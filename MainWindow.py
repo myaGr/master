@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets
-from ui_MainWindow import Ui_MainWindow  # UI界面
+from view.ui_MainWindow import Ui_MainWindow  # UI界面
 from threading import Thread  # 多线程
-from HexDataParse import HexDataParse  # 导入自定义的类，数据解析
+from func.HexDataParse import HexDataParse  # 导入自定义的类，数据解析
 import os.path
 import time
 
