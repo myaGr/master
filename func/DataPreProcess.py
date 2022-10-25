@@ -22,6 +22,7 @@ class DataPreProcess(object):
             interpolation["time"].extend(its)
             interpolation["yaw"].extend(yaw)
 
+        # TODO:320的待优化
         interp_keys = ['roll', 'pitch', 'AccX', 'AccY', 'AccZ', 'NorthVelocity', 'EastVelocity', 'GroundVelocity',
                        'lat', 'lon', 'height']
         for key in interp_keys:

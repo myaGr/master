@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>798</width>
-    <height>793</height>
+    <width>633</width>
+    <height>680</height>
    </rect>
   </property>
   <property name="font">
@@ -18,14 +18,14 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>INS解析与数据分析工具V1.2.4   Powered by 算法部 2022/10/12 </string>
+   <string>INS解析与数据分析工具V1.3   Powered by 算法部 2022/10/21 </string>
   </property>
   <property name="windowIcon">
    <iconset>
     <normaloff>C:/Users/wenzixuan/.designer/backup/AsensingIco.ico</normaloff>C:/Users/wenzixuan/.designer/backup/AsensingIco.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_3">
+   <layout class="QVBoxLayout" name="verticalLayout_6">
     <item>
      <widget class="QTabWidget" name="textBro_PrintMsg2">
       <property name="font">
@@ -37,7 +37,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab1">
        <property name="font">
@@ -331,7 +331,11 @@
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineEdit_GetRefFile"/>
+            <widget class="QLineEdit" name="lineEdit_GetRefFile">
+             <property name="placeholderText">
+              <string>文件名中含设备名，如：&quot;test_100C.txt&quot;</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="pushBtn_SelectRef">
@@ -669,6 +673,13 @@
             <number>0</number>
            </property>
            <item>
+            <widget class="QPushButton" name="pushBtn_ClearMsg2">
+             <property name="text">
+              <string>清空消息</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -681,8 +692,124 @@
              </property>
             </spacer>
            </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>CAN文件解析</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="QWidget" name="widget_15" native="true">
+          <layout class="QHBoxLayout" name="horizontalLayout_12">
            <item>
-            <widget class="QPushButton" name="pushBtn_ClearMsg2">
+            <widget class="QLabel" name="label_dbc">
+             <property name="text">
+              <string>dbc文件/文件夹路径* :</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_getDBCtext">
+             <property name="placeholderText">
+              <string>dbc文件/文件夹路径</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushBtn_getDBCtext">
+             <property name="text">
+              <string>选择文件</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="lineEdit_getfiletext" native="true">
+          <layout class="QHBoxLayout" name="horizontalLayout_16">
+           <item>
+            <widget class="QLabel" name="label_file">
+             <property name="text">
+              <string>待解析文件*  ：</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_GetFiletext">
+             <property name="toolTip">
+              <string>blf或asc文件/文件夹路径</string>
+             </property>
+             <property name="placeholderText">
+              <string>blf或asc文件/文件夹路径</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushBtn_GetFiletext">
+             <property name="text">
+              <string>选择文件</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="widget_14" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="QPushButton" name="pushBtn_decode">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>35</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <italic>false</italic>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>解析CAN数据成mat格式</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTextBrowser" name="textBrowser_can"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="widget_17" native="true">
+          <layout class="QHBoxLayout" name="horizontalLayout_14">
+           <item>
+            <spacer name="horizontalSpacer_6">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>578</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushBtn_ClearMsg_can">
              <property name="text">
               <string>清空消息</string>
              </property>
@@ -693,6 +820,13 @@
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="botton_help">
+      <property name="text">
+       <string>HELP</string>
+      </property>
      </widget>
     </item>
    </layout>

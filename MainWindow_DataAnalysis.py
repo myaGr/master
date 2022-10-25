@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets
+import webbrowser
 from PyQt5.QtCore import QCoreApplication
 
 from view.ui_MainWindow_DataAnalysis import Ui_MainWindow  # UI界面
@@ -11,11 +12,17 @@ import os.path
 import time
 import numpy as np
 from view import ui_another_window_actions
+from func.canLoader import canLoader
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
+        self.dbc_paths = None
+        self.dbcs_path_list = None
+        self.blfs_path_list = None
+        self.dbc_path = None
+        self.blf_path = None
         self.inscont = 1
         self.path = None
         self.types = []
@@ -51,11 +58,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.DataPreProcess = DataPreProcess()
         self.PlotGpsInsRawSyncDataObj = PlotGpsInsRawSyncData()
         # 信号关联
+        # 功能一：自身对比部分
         self.pushBtn_SelectFile.clicked.connect(self.onClickedSelectFile)  # 选择文件按钮按下
         self.pushBtn_StartParse1.clicked.connect(self.onClickedStartParseIns)  # 开始解析按钮按下
         self.pushBtn_StartPlot1.clicked.connect(self.onClickedStartPlotInsGps)  # 开始画图按钮按下
         self.pushBtn_ClearMsg1.clicked.connect(self.onClickedClearMsg1)  # 清空消息按钮按下
 
+        # 功能二：与参考数据对比部分
         self.pushBtn_SelectIns.clicked.connect(lambda: self.onClickedSelectINSFile('1'))  # 选择INS文件按钮按下
         self.pushBtn_SelectRef.clicked.connect(self.onClickedSelectRefFile)  # 选择参考文件按钮按下
         self.pushBtn_StartParse2.clicked.connect(self.onClickedStartParseInsRef)  # 开始解析按钮按下
@@ -65,6 +74,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # # 绑定槽函数
         self.toolButton.clicked.connect(lambda: self.get_config('1'))  # 参数配置按钮按下
+
+        # 功能三：CAN解析
+        self.dbc_files_dict = {}
+        self.blf_files_dict = {}
+        self.pushBtn_getDBCtext.clicked.connect(self.on_clicked_select_dbc_file)
+        self.pushBtn_GetFiletext.clicked.connect(self.on_clicked_select_blf_file)
+        self.pushBtn_decode.clicked.connect(self.on_clicked_start_analysis_blf)
+
+        # HELP
+        self.botton_help.clicked.connect(self.open_help_web)
 
     # '''添加一份测试数据的组件'''
     def add(self):
@@ -232,7 +251,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # 100C 数据解析
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
-            ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
+            if '320' in self.refpath:
+                ref_flag = self.Parse100CDataObj.save_320_to_df()  # 开始参考数据解析
+            else:
+                ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
             if ref_flag:
                 self.outputMsg2("缺少字段：" + str(ref_flag) + ", 解析失败。")
                 return
@@ -394,6 +416,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         t.setDaemon(True)  # 设置守护线程，如果进程结束，会自动去结束线程
         t.start()  # 启动线程
 
+    def create_can_ananlyse_thread(self):
+        t = Thread(target=self.can_analysis_func)  # 创建一个线程
+        t.setDaemon(True)  # 设置守护线程，如果进程结束，会自动去结束线程
+        t.start()  # 启动线程
+
     # 输出提示消息
     def outputMsg1(self, msg_str):
         msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
@@ -403,7 +430,80 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
         self.textBrowser_showmsg2.append(msg)
 
-    # 输出数据帧统计结果
+    def output_can_msg(self, msg_str):
+        msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
+        self.textBrowser_can.append(msg)
+
+    def on_clicked_select_dbc_file(self):
+        self.dbc_files_dict = {}
+        self.setPlotBtnFlase()
+        # files_list = ''
+        files_list, fileType = QtWidgets.QFileDialog.getOpenFileNames(self, "选择文件", os.getcwd(),
+                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        # files_list = files_list + file_name
+        self.lineEdit_getDBCtext.setText(str(files_list))
+        self.output_can_msg('\n'.join(["选择dbc文件： "]+files_list))
+        self.dbcs_path_list = files_list
+
+    def on_clicked_select_blf_file(self):
+        self.blf_files_dict = {}
+        self.setPlotBtnFlase()
+        # files_list = ''
+        files_list, fileType = QtWidgets.QFileDialog.getOpenFileNames(self, "选择文件", os.getcwd(),
+                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        # files_list = files_list + file_name
+        self.lineEdit_GetFiletext.setText(str(files_list))
+        self.output_can_msg('\n'.join(["选择blf/asc文件： "]+files_list))
+        self.blfs_path_list = files_list
+
+    def on_clicked_start_analysis_blf(self):
+        self.dbc_paths = []
+        self.dbc_path = self.lineEdit_getDBCtext.text()  # 获取dbc文件路径
+        self.blf_path = self.lineEdit_GetFiletext.text()  # 获取参考文件路径
+        self.dbc_paths.append(self.dbc_path)
+
+        for file in self.dbcs_path_list:
+            if not os.path.isfile(file):
+                self.output_can_msg(file + "文件不存在...")
+                return
+        for file in self.blfs_path_list:
+            if not os.path.isfile(file):
+                self.output_can_msg(file + "文件不存在...")
+                return
+
+        for dbc_path in self.dbcs_path_list:
+            key = os.path.abspath(dbc_path).split(os.sep)[-1]
+            self.dbc_files_dict[key] = dbc_path
+
+        for blf_path in self.blfs_path_list:
+            key = os.path.abspath(blf_path).split(os.sep)[-1]
+            self.blf_files_dict[key] = blf_path
+        # self.outputMsg2("hahaha...")
+
+        self.create_can_ananlyse_thread()  # 创建数据解析线程，开始数据解析
+
+    def can_analysis_func(self):
+        try:
+            # 100C 数据解析
+            self.output_can_msg("开始解析, 请稍等...")
+            loader = canLoader(self.blf_files_dict, self.dbc_files_dict)
+            signals_value_db_dict, msg_info = loader.main()
+            self.output_can_msg(msg_info)
+            self.output_can_msg("解析完成！")
+
+        except Exception as e:
+            self.output_can_msg("解析失败...")
+            self.output_can_msg('失败原因:' + str(e))
+
+    def open_help_web(self):
+        try:
+            url = 'https://asensing.feishu.cn/docx/doxcn0rUDcvflKKm5wPmmdisKab '
+            webbrowser.open_new_tab(url)
+            self.output_can_msg('已打开软件说明书')
+        except Exception as e:
+            self.output_can_msg('无法打开软件说明书')
+            self.output_can_msg(e)
+
     def outputDataFrameStatsResult(self):
         msg = "IMU数据帧：纯帧头数量:" + str(
             self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) + "，总帧数量:" + str(

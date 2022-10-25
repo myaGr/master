@@ -572,7 +572,7 @@ class PlotGpsInsRawSyncData:
         plt.show()  # 显示所有图像
 
     # INS数据与参考对比画图
-    def PlotRefGpsInsSyncData(self, filePath):
+    def PlotRefGpsInsSyncData(self, filePath, ref_type='100C'):
         """
 
         @author: wenzixuan liqianwen
@@ -937,14 +937,14 @@ class PlotGpsInsRawSyncData:
                 index = list(ref_ins_data.keys()).index(f_name)
                 if 0 == index:  # only plant the first Ref100C
                     line = ax55.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
-                                     ref_ins_data_before[f_name]["yaw_x"],
+                                     ref_ins_data[f_name]["yaw_x"],
                                      label='Ref' + self.ref_type, linewidth=1, alpha=0.7)
                     cursor_5.append(plot_add_nonius(line, show_formate='xy'))
                 line = ax55.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
-                                 ref_ins_data_before[f_name]["yaw_y"],
+                                 ref_ins_data[f_name]["yaw_y"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_5.append(plot_add_nonius(line, show_formate='xy'))
-            ax55 = self.set_ax(ax55, '', 'unit:deg', 'Pitch')
+            ax55 = self.set_ax(ax55, '', 'unit:deg', 'yaw')
 
             ax56 = fig.add_subplot(326)
             for f_name in ref_ins_data.keys():
@@ -952,7 +952,7 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].error["yaw"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_5.append(plot_add_nonius(line, show_formate='xy'))
-            ax56 = self.set_ax(ax56, '', 'unit:deg', 'Pitch对比')
+            ax56 = self.set_ax(ax56, '', 'unit:deg', 'yaw对比')
 
             fig.subplots_adjust(hspace=0.7)
             fig.canvas.manager.window.showMaximized()
@@ -1138,7 +1138,7 @@ class PlotGpsInsRawSyncData:
                 bin_edges, cdf_error = DataCDF(ref_ins_data[f_name].error["vel"])
                 line = ax83.plot(bin_edges, cdf_error, label=str(f_name + '_Ref-Ins'), linewidth=1, alpha=0.7)
                 cursor_8.append(plot_add_nonius(line, show_formate='xy'))
-            ax83 = self.set_ax(ax83, '', 'unit:m', '航向偏差统计', x_lim=[0, 0.5], y_lim=[0, 1])
+            ax83 = self.set_ax(ax83, '', 'unit:m', '速度偏差统计', x_lim=[0, 0.5], y_lim=[0, 1])
 
             fig.subplots_adjust(hspace=0.5)
             fig.canvas.manager.window.showMaximized()
@@ -1223,6 +1223,7 @@ class PlotGpsInsRawSyncData:
         if 0 == len(self.SyncRefInsData.keys()):
             return print('no file required to show !!!')
 
+        self.ref_type = ref_type
         ########################### 预处理 ###########################
         self.iniInsGpsBpos()  # 杆臂值初始化
         self.checkGpsFlag()  # Gps绘图数初始化
@@ -1264,21 +1265,23 @@ class PlotGpsInsRawSyncData:
         except Exception as e:
             print('Cannot plot pos_error')
             print(e)
-        try:
-            cursors.append(plot_attitude(self.RefInsData, self.SyncRefInsData))
-        except Exception as e:
-            print('Cannot plot attitude')
-            print(e)
-        try:
-            cursors.append(plot_ned_speed(self.RefInsData, self.SyncRefInsData))
-        except Exception as e:
-            print('Cannot plot ned_speed')
-            print(e)
-        try:
-            cursors.append(plot_xyz_speed(self.RefInsData, self.SyncRefInsData))
-        except Exception as e:
-            print('Cannot plot xyz_speed')
-            print(e)
+
+        if self.ref_type == '100C':
+            try:
+                cursors.append(plot_attitude(self.RefInsData, self.SyncRefInsData))
+            except Exception as e:
+                print('Cannot plot attitude')
+                print(e)
+            try:
+                cursors.append(plot_ned_speed(self.RefInsData, self.SyncRefInsData))
+            except Exception as e:
+                print('Cannot plot ned_speed')
+                print(e)
+            try:
+                cursors.append(plot_xyz_speed(self.RefInsData, self.SyncRefInsData))
+            except Exception as e:
+                print('Cannot plot xyz_speed')
+                print(e)
         try:
             cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
         except Exception as e:
@@ -1388,6 +1391,8 @@ class PlotGpsInsRawSyncData:
     def checkTimeType2(self):
         if not self.second_of_week:
             self.time0_set = self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0]
+        else:
+            self.time0_set = self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0] - self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0]
 
 
 def SaveStatisticToExcel(savedata, filePath):

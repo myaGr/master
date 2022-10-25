@@ -11,9 +11,9 @@ import time
 class StatisticAndPlot:
     """
     测试功能：与自身对比 + 与基准数据对比
-    @author: wenzixuan liianwen
-    @data: 2022-09-22
-    @version: For version_1.1
+    @author: wenzixuan liqianwen
+    @data: 2022-10-17
+    @version: For version_1.3
     """
 
     def __init__(self, parent=None):
@@ -67,11 +67,11 @@ class StatisticAndPlot:
     def Get100CData(self):
         print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", self.Parse100CDataObj.filepath)
         #  判断是否为100C参考数据
-        type_base_data = 1 if '100C' in obj.Parse100CDataObj.filepath else 0
+        type_base_data = 1 if '100C' in self.Parse100CDataObj.filepath else 0
         if type_base_data:
             ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
         else:
-            ref_flag = self.Parse100CDataObj.save320todf()
+            ref_flag = self.Parse100CDataObj.save_320_to_df()
         if ref_flag:
             print("缺少字段：" + str(ref_flag) + ", 解析失败。")
             return
@@ -105,12 +105,13 @@ if __name__ == "__main__":
 
     # 2. INS与参考数据对比画图
     obj = StatisticAndPlot()
-    file_list = [r'D:\Files\test\dbFiles\111\test1_LogINS.txt'
-                # ,r"D:\Downloads\12311-0927.txt"
-                 # r"C:\Users\wenzixuan\Downloads\lqw\1\test2_LogINS.txt"
+    file_list = [
+                r'D:\Files\test\dbFiles\test2\320\12311-0927_test.txt',
+                # r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt"
                 ]
     # obj.Parse100CDataObj.filepath = r"D:\Downloads\POS320后轮轴中心.txt"
-    obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\111\100C_test.txt'
+    obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\320\POS320后轮轴中心_test.txt'
+    # obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\100\POS320后轮轴_100C_test.txt'
     obj.DataPreProcess.t = [0, 0]  # 默认[0,0]
     types = []  # ["csv", "mat"]
     # 解析基准数据
@@ -149,7 +150,7 @@ if __name__ == "__main__":
     # 画图
     print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考对比统计画图开始...")
     try:
-        obj.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd())
+        obj.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd(), ref_type='320')
     except Exception as e:
         print("画图失败...")
         print('ValueError:' + str(e))
