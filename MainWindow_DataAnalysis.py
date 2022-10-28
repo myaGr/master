@@ -159,8 +159,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def onClickedSelectINSFile(self, n):
         self.setPlotBtnFlase()
         fileslist = ''
-        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(),
-                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(), "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
         fileslist = fileslist + fileName
         if int(n) == 1:
             self.lineEdit_GetInsFile.setText(fileslist)
@@ -173,8 +172,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def onClickedSelectRefFile(self):
         self.setPlotBtnFlase()
         fileslist = ''
-        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(),
-                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(), "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
         fileslist = fileslist + fileName
         self.lineEdit_GetRefFile.setText(fileslist)
 
@@ -231,15 +229,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.outputMsg1("生成Mat文件...")
                 self.HexDataParseObj.startSaveAllDataToMatFile()
 
-            # 时间插值
-            self.outputMsg2("开始参考数据时间插值...")
-            InsDataDFfilter = self.DataPreProcess.Datafilter(self.HexDataParseObj.InsDataDF, [0, 0])  # 过滤无效数据
-            self.InsDataDFInter = self.DataPreProcess.Datainterpolation(InsDataDFfilter)  # 时间插值
             # 时间同步
             self.outputMsg1("开始INS和GPS时间同步...")
-            self.SyncInsGpsData = self.DataPreProcess.Timesynchronize(self.InsDataDFInter,
-                                                                      self.HexDataParseObj.GpsDataDF, 'time',
-                                                                      'itow_pos')
+            # TODO
+            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF, self.HexDataParseObj.GpsDataDF, 'time', 'itow_pos')
             self.outputMsg1("时间同步完成，可生成统计图。")
             self.pushBtn_StartPlot1.setEnabled(True)
         except Exception as e:
@@ -303,20 +296,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
                 print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
 
-            # 时间插值
-            self.outputMsg2("开始参考数据时间插值...")
-            self.ins100cdf = self.DataPreProcess.Datainterpolation(self.Parse100CDataObj.ins100cdf)  # 时间插值
             # 时间同步
             self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
             for file_name in self.name_list:
                 try:
                     self.outputMsg2(file_name + ": INS和参考数据时间同步...")
-                    self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.Timesynchronize(
-                        self.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
+                    self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
                     if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
                         self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
-                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.Timesynchronize(
-                            self.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                 except Exception as e:
                     self.outputMsg2(file_name + ": 时间同步失败...")
                     self.outputMsg2('失败原因:' + str(e))
@@ -349,10 +337,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def onClickedStartPlotInsRef(self):
         # 配置杆臂值
         for n in self.GpsBpos.keys():
-            self.PlotGpsInsRawSyncDataObj.bpos_refins[self.name_list[int(n) - 1]] = np.array(
-                [[0, 0, 0], self.InsBpos[n]])
-            self.PlotGpsInsRawSyncDataObj.bpos_refgps[self.name_list[int(n) - 1]] = np.array(
-                [[0, 0, 0], self.GpsBpos[n]])
+            self.PlotGpsInsRawSyncDataObj.bpos_refins[self.name_list[int(n) - 1]] = np.array([[0, 0, 0], self.InsBpos[n]])
+            self.PlotGpsInsRawSyncDataObj.bpos_refgps[self.name_list[int(n) - 1]] = np.array([[0, 0, 0], self.GpsBpos[n]])
             # print("bpos_refins:", self.PlotGpsInsRawSyncDataObj.bpos_refins)
             # print("bpos_refgps:", self.PlotGpsInsRawSyncDataObj.bpos_refgps)
             # self.outputMsg2('file_name: ' + str(self.name_list[int(n) - 1]))
@@ -505,57 +491,49 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.output_can_msg(e)
 
     def outputDataFrameStatsResult(self):
-        msg = "IMU数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) + "，总帧数量:" + str(
+        msg = "IMU数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['imuDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "GPS数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['gpsFrameHeadNum_bdbd10']) + "，总帧数量:" + str(
+        msg = "GPS数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['gpsFrameHeadNum_bdbd10']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['gpsDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "车辆数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['vehicleFrameHeadNum_bdbd20']) + "，总帧数量:" + str(
+        msg = "车辆数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['vehicleFrameHeadNum_bdbd20']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['vehicleDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "INS数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['insFrameHeadNum_bdbd0b']) + "，总帧数量:" + str(
+        msg = "INS数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['insFrameHeadNum_bdbd0b']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['insDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "同步时间数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['syncFrameHeadNum_bdbd0c']) + "，总帧数量:" + str(
+        msg = "同步时间数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['syncFrameHeadNum_bdbd0c']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['syncDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "IMU2数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['imu2FrameHeadNum_bdbd2a']) + "，总帧数量:" + str(
+        msg = "IMU2数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['imu2FrameHeadNum_bdbd2a']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['imu2DataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "INS2数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['ins2FrameHeadNum_bdbd1b']) + "，总帧数量:" + str(
+        msg = "INS2数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['ins2FrameHeadNum_bdbd1b']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['ins2DataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "四轮转角数据帧：纯帧头数量:" + str(
-            self.HexDataParseObj.dataFrameStats['FourWSFrameHeadNum_bdbd30']) + "，总帧数量:" + str(
+        msg = "四轮转角数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['FourWSFrameHeadNum_bdbd30']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['FourWSDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])

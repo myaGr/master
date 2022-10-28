@@ -285,6 +285,7 @@ class PlotGpsInsRawSyncData:
                               label='1: 单点\n2: 差分\n4: 固定\n5: 浮点', color='r', linestyle="", marker='*')
             Plotobj5.ax2.set_ylim(0.5, 5.5)
             Plotobj5.ax2.yaxis.set_major_locator(MultipleLocator(1))
+
             plt.legend(loc='lower right')
 
         def plot_mileage(name='Mileage'):
@@ -811,6 +812,7 @@ class PlotGpsInsRawSyncData:
                     cursor_3.append(plot_add_nonius(line, show_formate='xy'))
             ax312.set_ylim(0, 6)
             ax312.yaxis.set_major_locator(MultipleLocator(1))
+            ax312.legend(loc='lower right')
 
             ########
             ax321 = fig.add_subplot(212)
@@ -841,6 +843,7 @@ class PlotGpsInsRawSyncData:
                     cursor_3.append(plot_add_nonius(line, show_formate='xy'))
             ax322.set_ylim(0, 6)
             ax322.yaxis.set_major_locator(MultipleLocator(1))
+            ax322.legend(loc='lower right')
 
             fig.subplots_adjust(hspace=0.7)
             fig.canvas.manager.window.showMaximized()
@@ -879,7 +882,7 @@ class PlotGpsInsRawSyncData:
                     cursor_4.append(plot_add_nonius(line, show_formate='xy'))
             ax42.set_ylim(0, 6)
             ax42.yaxis.set_major_locator(MultipleLocator(1))
-
+            ax42.legend(loc='lower right')
             fig.canvas.manager.window.showMaximized()
             return cursor_4
 

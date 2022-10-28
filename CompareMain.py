@@ -12,12 +12,13 @@ class StatisticAndPlot:
     """
     测试功能：与自身对比 + 与基准数据对比
     @author: wenzixuan liqianwen
-    @data: 2022-10-17
-    @version: For version_1.3
+    @data: 2022-09-22
+    @version: For version_1.1
     """
 
     def __init__(self, parent=None):
         # 实例化数据解析对象
+        self.InsDataDFInter = None
         self.SyncInsGpsData = None
         self.SyncRefInsData = None
         self.SyncRefGpsData = None
@@ -50,10 +51,10 @@ class StatisticAndPlot:
 
     def InsDataAnalysis(self):
         print(time.strftime('%H:%M:%S', time.localtime()), "开始参考数据时间插值...")
-        self.InsDataDFInter = self.DataPreProcess.Datainterpolation(self.HexDataParseObj.InsDataDF)  # 时间插值
+        # InsDataDFfilter = self.DataPreProcess.Datafilter(self.HexDataParseObj.InsDataDF, [0, 0])  # 过滤无效数据
+        # self.InsDataDFInter = self.DataPreProcess.Datainterpolation(InsDataDFfilter)  # 时间插值
         print(time.strftime('%H:%M:%S', time.localtime()), "INS和GPS时间同步...")
-        self.SyncInsGpsData = self.DataPreProcess.Timesynchronize(self.InsDataDFInter, self.HexDataParseObj.GpsDataDF,
-                                                                  'time', 'itow_pos')
+        self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF, self.HexDataParseObj.GpsDataDF, 'time', 'itow_pos')
         print(time.strftime('%H:%M:%S', time.localtime()), "INS和GPS统计画图开始...")
         self.PlotGpsInsRawSyncDataObj.InsDataDF = self.HexDataParseObj.InsDataDF
         self.PlotGpsInsRawSyncDataObj.GpsDataDF = self.HexDataParseObj.GpsDataDF
@@ -82,10 +83,10 @@ class StatisticAndPlot:
     def InsRefStatistics(self, t):
         self.DataPreProcess.t = t
         print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考数据时间同步...")
-        self.PlotGpsInsRawSyncDataObj.SyncRefInsData = self.DataPreProcess.Timesynchronize(
+        self.PlotGpsInsRawSyncDataObj.SyncRefInsData = self.DataPreProcess.timeSynchronize(
             obj.Parse100CDataObj.ins100cdf, obj.HexDataParseObj.InsDataDF, 'time', 'time')
         print(time.strftime('%H:%M:%S', time.localtime()), "GPS和参考数据时间同步...")
-        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = self.DataPreProcess.Timesynchronize(
+        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = self.DataPreProcess.timeSynchronize(
             obj.Parse100CDataObj.ins100cdf, obj.HexDataParseObj.GpsDataDF, 'time', 'itow_pos')
         print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考对比统计画图开始...")
         self.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(self.HexDataParseObj.filePath)
@@ -106,12 +107,13 @@ if __name__ == "__main__":
     # 2. INS与参考数据对比画图
     obj = StatisticAndPlot()
     file_list = [
-                r'D:\Files\test\dbFiles\test2\320\12311-0927_test.txt',
+                # r'D:\Files\test\dbFiles\test2\320\12311-0927_test.txt',
                 # r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt"
+                r'D:\Files\test\dbFiles\test1\test1_LogINS.txt'
                 ]
-    # obj.Parse100CDataObj.filepath = r"D:\Downloads\POS320后轮轴中心.txt"
-    obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\320\POS320后轮轴中心_test.txt'
+    # obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\320\POS320后轮轴中心_test.txt'
     # obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\100\POS320后轮轴_100C_test.txt'
+    obj.Parse100CDataObj.filepath = r"D:\Files\test\dbFiles\test1\100C_test.txt"
     obj.DataPreProcess.t = [0, 0]  # 默认[0,0]
     types = []  # ["csv", "mat"]
     # 解析基准数据
@@ -133,19 +135,15 @@ if __name__ == "__main__":
     # 配置GPS显示
     obj.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(name_list, 0)
     obj.PlotGpsInsRawSyncDataObj.gps_flag[name_list[0]] = 1
+    obj.PlotGpsInsRawSyncDataObj.second_of_week = True
 
-    # obj.PlotGpsInsRawSyncDataObj.second_of_week = False
-
-    # 时间插值
-    print(time.strftime('%H:%M:%S', time.localtime()), "开始参考数据时间插值...")
-    obj.ins100cdf = obj.DataPreProcess.Datainterpolation(obj.Parse100CDataObj.ins100cdf)  # 时间插值
     # 时间同步
     for file_name in name_list:
         print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考数据时间同步...")
-        obj.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = obj.DataPreProcess.Timesynchronize(obj.ins100cdf, obj.InsDataDF[file_name], 'time', 'time')
+        obj.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = obj.DataPreProcess.timeSynchronize(obj.Parse100CDataObj.ins100cdf, obj.InsDataDF[file_name], 'time', 'time')
         if obj.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
             print(time.strftime('%H:%M:%S', time.localtime()), "GPS和参考数据时间同步...")
-            obj.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = obj.DataPreProcess.Timesynchronize(obj.ins100cdf, obj.GpsDataDF[file_name], 'time', 'itow_pos')
+            obj.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = obj.DataPreProcess.timeSynchronize(obj.Parse100CDataObj.ins100cdf, obj.GpsDataDF[file_name], 'time', 'itow_pos')
 
     # 画图
     print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考对比统计画图开始...")

@@ -369,7 +369,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "INS解析与数据分析工具V1.3   Powered by 算法部 2022/10/25 "))
+        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V1.3.1   Powered by 算法部 2022/10/28 "))
         self.label_2.setText(_translate("MainWindow", "文件路径* ："))
         self.pushBtn_SelectFile.setText(_translate("MainWindow", "选择文件"))
         self.label_3.setText(_translate("MainWindow", "保存文件类型："))
