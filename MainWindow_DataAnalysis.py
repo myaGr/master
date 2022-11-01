@@ -244,9 +244,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # 100C 数据解析
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
-            if '320' in self.refpath:
+            ref_file_name = self.refpath.split('/')[-1].split('.')[0]
+            if '320' in ref_file_name:
+                self.outputMsg2(ref_file_name + "为 POS320 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save_320_to_df()  # 开始参考数据解析
             else:
+                self.outputMsg2(ref_file_name + "为 100C 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
             if ref_flag:
                 self.outputMsg2("缺少字段：" + str(ref_flag) + ", 解析失败。")
@@ -329,7 +332,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.checkOutputTimeType1()  # 获取显示时间类型
         try:
             print("开始INS和GPS统计画图...")
-            self.PlotGpsInsRawSyncDataObj.PlotGpsInsRawSyncData()
+            msg_info = self.PlotGpsInsRawSyncDataObj.PlotGpsInsRawSyncData()
+            self.outputMsg2(msg_info)
         except Exception as e:
             self.outputMsg2("画图失败...")
             self.outputMsg2('失败原因:' + str(e))
@@ -351,7 +355,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.outputMsg2("开始INS和参考对比统计画图...")
         try:
-            self.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd())
+            msg_info = self.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd())
+            self.outputMsg2(msg_info)
             self.outputMsg2("统计结果已生成：" + os.getcwd() + '\statistic.xlsx')
         except Exception as e:
             self.outputMsg2("画图失败...")

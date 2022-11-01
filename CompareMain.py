@@ -12,11 +12,11 @@ class StatisticAndPlot:
     """
     测试功能：与自身对比 + 与基准数据对比
     @author: wenzixuan liqianwen
-    @data: 2022-09-22
-    @version: For version_1.1
+    @data: 2022-11-01
+    @version: For version_1.3.2
     """
 
-    def __init__(self, parent=None):
+    def __init__(self):
         # 实例化数据解析对象
         self.InsDataDFInter = None
         self.SyncInsGpsData = None
@@ -36,15 +36,15 @@ class StatisticAndPlot:
         self.ImuDataDF = {}
         self.ins100cdf = {}
 
-    def GetParseInsData(self, types=None):
+    def GetParseInsData(self, gen_file_type=None):
         print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", self.HexDataParseObj.filePath)
         self.HexDataParseObj.startParseFileHexData()  # 开始数据解析
         print(time.strftime('%H:%M:%S', time.localtime()), "解析完成...")
         self.HexDataParseObj.saveDataToDF()
-        if "csv" in types:
+        if "csv" in gen_file_type:
             print("存成Csv文件...")
             self.HexDataParseObj.SaveAllDataToCsvFile()
-        if "mat" in types:
+        if "mat" in gen_file_type:
             print("存成Mat文件...")
             self.HexDataParseObj.startSaveAllDataToMatFile()
         print(time.strftime('%H:%M:%S', time.localtime()), "数据保存完成")
@@ -68,10 +68,12 @@ class StatisticAndPlot:
     def Get100CData(self):
         print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", self.Parse100CDataObj.filepath)
         #  判断是否为100C参考数据
-        type_base_data = 1 if '100C' in self.Parse100CDataObj.filepath else 0
-        if type_base_data:
+        ref_file_name = self.Parse100CDataObj.filepath.split('/')[-1].split('.')[0]
+        if '100C' in ref_file_name:
+            print(ref_file_name+'为100C格式输出数据')
             ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
         else:
+            print(ref_file_name+'为POS320格式输出数据')
             ref_flag = self.Parse100CDataObj.save_320_to_df()
         if ref_flag:
             print("缺少字段：" + str(ref_flag) + ", 解析失败。")
@@ -107,13 +109,12 @@ if __name__ == "__main__":
     # 2. INS与参考数据对比画图
     obj = StatisticAndPlot()
     file_list = [
-                # r'D:\Files\test\dbFiles\test2\320\12311-0927_test.txt',
-                # r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt"
-                r'D:\Files\test\dbFiles\test1\test1_LogINS.txt'
+                # 'D:/Files/test/dbFiles/test2/320/12311-0927_test.txt',
+                r"D:\\Files\\test\\dbFiles\\test2\\100\\12311-0928_test.txt"
                 ]
-    # obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\320\POS320后轮轴中心_test.txt'
-    # obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\100\POS320后轮轴_100C_test.txt'
-    obj.Parse100CDataObj.filepath = r"D:\Files\test\dbFiles\test1\100C_test.txt"
+    # obj.Parse100CDataObj.filepath = r"D:\Downloads\POS320后轮轴中心.txt"
+    # obj.Parse100CDataObj.filepath = 'D:/Files/test/dbFiles/test2/320/POS320后轮轴中心_test.txt'
+    obj.Parse100CDataObj.filepath = 'D:\\Files\\test\\dbFiles\\test2\\100\\POS后轮轴_100C_test.txt'
     obj.DataPreProcess.t = [0, 0]  # 默认[0,0]
     types = []  # ["csv", "mat"]
     # 解析基准数据
@@ -148,7 +149,7 @@ if __name__ == "__main__":
     # 画图
     print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考对比统计画图开始...")
     try:
-        obj.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd(), ref_type='320')
+        obj.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd(), ref_type='100C')
     except Exception as e:
         print("画图失败...")
         print('ValueError:' + str(e))

@@ -68,7 +68,8 @@ class PlotGpsInsData:
             cursor = mplcursors.cursor(lines, hover=True)  # 数据游标
             cursor.connect("add", lambda sel: sel.annotation.set_text(labels[sel.target.index]))
 
-    def ShowPlotFormat(self, xlabel, ylabel, hspace=0.5):
+    @staticmethod
+    def ShowPlotFormat(xlabel, ylabel, hspace=0.5):
         # 统一绘图样式设置
         # 设置（xlabel：X坐标轴名称，ylabel：Y坐标轴名称）
         plt.rc("font", family='MicroSoft YaHei', weight='bold')
@@ -577,6 +578,7 @@ class PlotGpsInsRawSyncData:
         """
 
         @author: wenzixuan liqianwen
+        :param ref_type:
         :param filePath: saving path
 
         注意：有时plot函数不要包裹太多层
@@ -778,6 +780,54 @@ class PlotGpsInsRawSyncData:
             fig.canvas.manager.window.showMaximized()
             return cursor_2
 
+        def plot_GPS_compare(ref_gps_data, ref_gps_data_before, name='GPS偏差对比'):
+            cursor_2 = []
+            fig = plt.figure()
+            fig.suptitle(name)
+            fig.subplots_adjust(hspace=0.7)
+            fig.canvas.manager.window.showMaximized()
+
+            ax21 = fig.add_subplot(311)
+            for f_name in ref_gps_data.keys():
+                if self.gps_flag[f_name]:
+                    line = ax21.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     abs(ref_gps_data[f_name].Pos["Lon_X"][0] - ref_gps_data[f_name].Pos["Lon_X"][1]),
+                                     label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_2.append(plot_add_nonius(line, show_formate='xy'))
+                    line = ax21.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     ref_gps_data_before[f_name]["LonStd"],
+                                     label=str(f_name + '_GPS std'), linewidth=1, alpha=0.7)
+                    cursor_2.append(plot_add_nonius(line, show_formate='xy'))
+            ax21 = self.set_ax(ax21, '', 'unit:m', '纬度_实际与估计偏差对比')
+
+            ax22 = fig.add_subplot(312)
+            for f_name in ref_gps_data.keys():
+                if self.gps_flag[f_name]:
+                    line = ax22.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     abs(ref_gps_data[f_name].Pos["Lat_Y"][0] - ref_gps_data[f_name].Pos["Lat_Y"][1]),
+                                     label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_2.append(plot_add_nonius(line, show_formate='xy'))
+                    line = ax22.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     ref_gps_data_before[f_name]["LatStd"],
+                                     label=str(f_name + '_GPS std'), linewidth=1, alpha=0.7)
+                    cursor_2.append(plot_add_nonius(line, show_formate='xy'))
+            ax22 = self.set_ax(ax22, '', 'unit:m', '经度_实际与估计偏差对比')
+
+            ax23 = fig.add_subplot(313)
+            for f_name in ref_gps_data.keys():
+                if self.gps_flag[f_name]:
+                    line = ax23.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     abs(ref_gps_data[f_name].Pos["Height_Z"][0] - ref_gps_data[f_name].Pos["Height_Z"][1]),
+                                     label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_2.append(plot_add_nonius(line, show_formate='xy'))
+                    line = ax23.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     ref_gps_data_before[f_name]["hMSLStd"],
+                                     label=str(f_name + '_GPS std'), linewidth=1, alpha=0.7)
+                    cursor_2.append(plot_add_nonius(line, show_formate='xy'))
+            ax23 = self.set_ax(ax23, '', 'unit:m', '高度_实际与估计偏差对比')
+
+            return cursor_2
+
         def plot_pos_compare(ref_ins_data, ref_gps_data, ref_ins_data_before, ref_gps_data_before,
                              name='横纵偏差(载体坐标系下)'):
             cursor_3 = []
@@ -891,6 +941,9 @@ class PlotGpsInsRawSyncData:
             fig = plt.figure()
             fig.suptitle(name)
 
+            fig.subplots_adjust(hspace=0.7)
+            fig.canvas.manager.window.showMaximized()
+
             ax51 = fig.add_subplot(321)
             for f_name in ref_ins_data.keys():
                 index = list(ref_ins_data.keys()).index(f_name)
@@ -940,14 +993,14 @@ class PlotGpsInsRawSyncData:
                 index = list(ref_ins_data.keys()).index(f_name)
                 if 0 == index:  # only plant the first Ref100C
                     line = ax55.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
-                                     ref_ins_data[f_name]["yaw_x"],
+                                     angele_standardization(np.array(ref_ins_data_before[f_name]["yaw_x"])),
                                      label='Ref' + self.ref_type, linewidth=1, alpha=0.7)
                     cursor_5.append(plot_add_nonius(line, show_formate='xy'))
                 line = ax55.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
-                                 ref_ins_data[f_name]["yaw_y"],
+                                 ref_ins_data_before[f_name]["yaw_y"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_5.append(plot_add_nonius(line, show_formate='xy'))
-            ax55 = self.set_ax(ax55, '', 'unit:deg', 'yaw')
+            ax55 = self.set_ax(ax55, '', 'unit:deg', 'Yaw')
 
             ax56 = fig.add_subplot(326)
             for f_name in ref_ins_data.keys():
@@ -957,8 +1010,6 @@ class PlotGpsInsRawSyncData:
                 cursor_5.append(plot_add_nonius(line, show_formate='xy'))
             ax56 = self.set_ax(ax56, '', 'unit:deg', 'yaw对比')
 
-            fig.subplots_adjust(hspace=0.7)
-            fig.canvas.manager.window.showMaximized()
             return cursor_5
 
         def plot_ned_speed(ref_ins_data, ref_ins_data_before, name='速度（导航坐标系）'):
@@ -1225,6 +1276,7 @@ class PlotGpsInsRawSyncData:
 
         if 0 == len(self.SyncRefInsData.keys()):
             return print('no file required to show !!!')
+        msg_info = ''
 
         self.ref_type = ref_type
         ########################### 预处理 ###########################
@@ -1240,61 +1292,88 @@ class PlotGpsInsRawSyncData:
         cursors = []
         try:
             plot_gps_situation(statistics_gps_all)
+            msg_info += '成功绘制： gps解状态图\n'
         except Exception as e:
             print('Cannot plot gps解状态')
+            msg_info += '无法绘制： gps解状态图\n'
             print(e)
         try:
             cursors.append(plot_time_diff(self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制图： time_diff\n'
         except Exception as e:
             print('Cannot plot time_diff')
+            msg_info += '无法绘制图： time_diff\n'
             print(e)
         try:
             cursors.append(plot_path(self.RefGpsData, self.RefInsData, self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制： 轨迹图\n'
         except Exception as e:
             print('Cannot plot path')
+            msg_info += '无法绘制： 轨迹图\n'
             print(e)
         try:
             cursors.append(plot_position(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制： 位置图\n'
         except Exception as e:
             print('Cannot plot position')
+            msg_info += '无法绘制： 位置图\n'
+            print(e)
+        try:
+            cursors.append(plot_GPS_compare(self.RefGpsData, self.SyncRefGpsData))
+            msg_info += '成功绘制图： gps实际与估计偏差\n'
+        except Exception as e:
+            print('Cannot plot GPS_compare')
+            msg_info += '无法绘制图： gps实际与估计偏差\n'
             print(e)
         try:
             cursors.append(plot_pos_compare(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制图： 横纵偏差(载体坐标系下)\n'
         except Exception as e:
             print('Cannot plot pos_compare')
+            msg_info += '无法绘制图： 横纵偏差(载体坐标系下)\n'
             print(e)
         try:
             cursors.append(plot_pos_error(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制图： 水平偏差(载体坐标系下)\n'
         except Exception as e:
             print('Cannot plot pos_error')
+            msg_info += '无法绘制图： 水平偏差(载体坐标系下)\n'
             print(e)
 
         if self.ref_type == '100C':
             try:
                 cursors.append(plot_attitude(self.RefInsData, self.SyncRefInsData))
+                msg_info += '成功绘制图： 姿态\n'
             except Exception as e:
                 print('Cannot plot attitude')
+                msg_info += '无法绘制图： 姿态\n'
                 print(e)
             try:
                 cursors.append(plot_ned_speed(self.RefInsData, self.SyncRefInsData))
+                msg_info += '成功绘制图： 速度（导航坐标系）\n'
             except Exception as e:
                 print('Cannot plot ned_speed')
+                msg_info += '无法绘制图： 速度（导航坐标系）\n'
                 print(e)
             try:
                 cursors.append(plot_xyz_speed(self.RefInsData, self.SyncRefInsData))
+                msg_info += '成功绘制图： 速度（载体坐标系）\n'
             except Exception as e:
                 print('Cannot plot xyz_speed')
+                msg_info += '无法绘制图： 速度（载体坐标系）\n'
                 print(e)
         try:
             cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
+            msg_info += '成功绘制图： 精度统计\n'
         except Exception as e:
             print('Cannot plot precision_statistics')
+            msg_info += '无法绘制图： 精度统计\n'
             print(e)
 
         # cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
 
         plt.show()  # 显示所有图像
-        return
+        return msg_info
 
     @staticmethod
     def set_ax(ax, x_label='', y_label='', name='', x_lim=None, y_lim=None):
@@ -1310,11 +1389,13 @@ class PlotGpsInsRawSyncData:
                 ax.set_xlim(x_lim[0], x_lim[1])
             except Exception as e:
                 print('Cannot set x_lim')
+                print(e)
         if y_lim:
             try:
                 ax.set_ylim(y_lim[0], y_lim[1])
             except Exception as e:
                 print('Cannot set y_lim')
+                print(e)
 
         return ax
 
