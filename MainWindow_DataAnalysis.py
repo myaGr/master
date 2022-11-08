@@ -11,19 +11,22 @@ from threading import Thread  # 多线程
 import os.path
 import time
 import numpy as np
-from view import ui_another_window_actions
+from view import ui_another_window_actions  # 配置杆臂值输入 + 场景输入
 from func.canLoader import canLoader
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
+        self.time_dir = {}
+        self.config_window, self.scene_config_window = None, None
         self.dbc_paths = None
         self.dbcs_path_list = None
         self.blfs_path_list = None
         self.dbc_path = None
         self.blf_path = None
         self.inscont = 1
+        self.scene_cont = 1
         self.path = None
         self.types = []
         self.inspath = None
@@ -44,10 +47,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.SyncRefInsData = None
         self.SyncRefGpsData = None
         # 新增测试数据
+        self.scene_widget_add = {}
+        self.horizontalLayout_scene_add = {}
+        self.label_scene_add = {}
+        self.label_start_add = {}
+        self.label_end_add = {}
+        self.lineEdit_scene_add = {}
+        self.lineEdit_start_add = {}
+        self.lineEdit_end_add = {}
+
         self.widget_add = {}
         self.horizontalLayout_add = {}
-        self.label_add = {}
-        self.lineEdit_GetInsFile_add = {}
         self.label_add = {}
         self.lineEdit_GetInsFile_add = {}
         self.pushBtn_SelectIns_add = {}
@@ -70,7 +80,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pushBtn_StartParse2.clicked.connect(self.onClickedStartParseInsRef)  # 开始解析按钮按下
         self.pushBtn_StartPlot2.clicked.connect(self.onClickedStartPlotInsRef)  # 开始画图按钮按下
         self.pushBtn_ClearMsg2.clicked.connect(self.onClickedClearMsg2)  # 清空消息按钮按下\
-        self.pushBtn_SelectIns_2.clicked.connect(self.add)  # 添加数据按钮按下
+        self.pushBtn_SelectIns_2.clicked.connect(self.add)  # 添加文件按钮按下
+        self.clear_test_file.clicked.connect(self.clear_test_file_record)  # 添加文件按钮按下
+
+        self.pushBtn_addScene.clicked.connect(self.add_scene)  # 添加场景按钮按下
+        self.importScene.clicked.connect(self.onClickedSelectFile_scene)  # 导入场景按钮按下
 
         # # 绑定槽函数
         self.toolButton.clicked.connect(lambda: self.get_config('1'))  # 参数配置按钮按下
@@ -84,6 +98,52 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # HELP
         self.botton_help.clicked.connect(self.open_help_web)
+
+    '''add scene'''
+
+    # TODO
+    def add_scene(self):
+        self.scene_cont += 1
+        n = str(self.scene_cont)
+        self.scene_widget_add[n] = QtWidgets.QWidget(self.widget_16)
+        self.scene_widget_add[n].setObjectName("widget_11")
+
+        self.horizontalLayout_scene_add[n] = QtWidgets.QHBoxLayout(self.scene_widget_add[n])
+        self.horizontalLayout_scene_add[n].setContentsMargins(0, 6, 0, 6)
+        self.horizontalLayout_scene_add[n].setObjectName("horizontalLayout_11")
+        print(self.horizontalLayout_scene_add[n])
+
+        self.label_scene_add[n] = QtWidgets.QLabel(self.scene_widget_add[n])
+        self.label_scene_add[n].setObjectName("label")
+        self.label_scene_add[n].setText("场景 ：")
+        self.horizontalLayout_scene_add[n].addWidget(self.label_scene_add[n])
+
+        self.lineEdit_scene_add[n] = QtWidgets.QLineEdit(self.scene_widget_add[n])
+        self.lineEdit_scene_add[n].setText("")
+        self.lineEdit_scene_add[n].setObjectName("lineEdit_scene")
+        self.horizontalLayout_scene_add[n].addWidget(self.lineEdit_scene_add[n])
+
+        self.label_start_add[n] = QtWidgets.QLabel(self.scene_widget_add[n])
+        self.label_start_add[n].setObjectName("label_7")
+        self.label_start_add[n].setText("开始(周内秒, s) ：")
+        self.horizontalLayout_scene_add[n].addWidget(self.label_start_add[n])
+
+        self.lineEdit_start_add[n] = QtWidgets.QLineEdit(self.scene_widget_add[n])
+        self.lineEdit_start_add[n].setText("")
+        self.lineEdit_start_add[n].setObjectName("lineEdit_StarTime")
+        self.horizontalLayout_scene_add[n].addWidget(self.lineEdit_start_add[n])
+
+        self.label_end_add[n] = QtWidgets.QLabel(self.scene_widget_add[n])
+        self.label_end_add[n].setObjectName("label_8")
+        self.label_end_add[n].setText("结束(周内秒, s) ：")
+        self.horizontalLayout_scene_add[n].addWidget(self.label_end_add[n])
+
+        self.lineEdit_end_add[n] = QtWidgets.QLineEdit(self.scene_widget_add[n])
+        self.lineEdit_end_add[n].setText("")
+        self.lineEdit_end_add[n].setObjectName("lineEdit_EndTime")
+        self.horizontalLayout_scene_add[n].addWidget(self.lineEdit_end_add[n])
+
+        self.verticalLayout_4.addWidget(self.scene_widget_add[n])
 
     # '''添加一份测试数据的组件'''
     def add(self):
@@ -120,6 +180,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.toolButton_add[n].clicked.connect(lambda: self.get_config(n))
 
+    def clear_test_file_record(self):
+        key_list = list(self.widget_add.keys())
+        for key in key_list:
+            self.verticalLayout.removeWidget(self.widget_add[key])
+            self.widget_add.pop(key)
+            self.horizontalLayout_add.pop(key)
+            self.label_add.pop(key)
+            self.lineEdit_GetInsFile_add.pop(key)
+            self.pushBtn_SelectIns_add.pop(key)
+            self.toolButton_add.pop(key)
+        self.inscont = 1
+
     # 打开配置参数窗口
     def get_config(self, n):
         """点击相应按钮，跳转到第二个界面"""
@@ -130,6 +202,57 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.config_window.show()
         self.config_window.saveDataButton.clicked.connect(lambda: self.save_config_data(n))
         self.config_window.saveDataButton.clicked.connect(self.config_window.close)
+
+    # 打开 导入场景 窗口
+    def onClickedSelectFile_scene(self):
+        """
+        @author: liqianwen
+        @version: for 数据解析分析工具 V1.3.3
+        """
+        key_list = list(self.scene_widget_add.keys())
+        for key in key_list:
+            self.verticalLayout_4.removeWidget(self.scene_widget_add[key])
+            self.scene_widget_add.pop(key)
+            self.horizontalLayout_scene_add.pop(key)
+            self.label_scene_add.pop(key)
+            self.label_start_add.pop(key)
+            self.label_end_add.pop(key)
+            self.lineEdit_scene_add.pop(key)
+            self.lineEdit_start_add.pop(key)
+            self.lineEdit_end_add.pop(key)
+
+        output_info = ''
+        time_dir = {}
+        self.setPlotBtnFlase()
+        config_file_path = ''
+        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(),
+                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        config_file_path = config_file_path + fileName
+        if not os.path.isfile(config_file_path):
+            self.outputMsg2(config_file_path + " 文件不存在...")
+            config_file_path = ''
+            self.time_dir = {}
+            self.scene_cont = 1
+        else:
+            with open(config_file_path, 'r', encoding='utf-8') as file_t:
+                self.scene_cont = 0
+                for line in file_t:
+                    time_dir[line.split(',')[0]] = {'scene_num': int(line.split(',')[1])
+                        , 'scene': line.split(',')[-1][:-1]
+                        , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
+                    self.scene_cont += 1
+            time_dir[str(len(list(time_dir.keys())) + 1)] = {'scene_num': 0
+                , 'scene': '全程'
+                , 'time_arrange': [0, 0]}
+            self.scene_cont += 1
+
+            output_info += '场景配置文件解析结果如下:\n'
+            for key in time_dir.keys():
+                output_info += '  第%s个场景为： ' % key + str(time_dir[key]) + '\n'
+            output_info += 'PS. 全程的时间范围默认为：[0, 0]。\n'
+            output_info += '请确认信息，若有误请检查场景配置文件!\n'
+            self.outputMsg2(output_info)
+            self.time_dir = time_dir
 
     # 读取杆臂值
     def save_config_data(self, n):
@@ -159,7 +282,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def onClickedSelectINSFile(self, n):
         self.setPlotBtnFlase()
         fileslist = ''
-        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(), "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(),
+                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
         fileslist = fileslist + fileName
         if int(n) == 1:
             self.lineEdit_GetInsFile.setText(fileslist)
@@ -172,7 +296,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def onClickedSelectRefFile(self):
         self.setPlotBtnFlase()
         fileslist = ''
-        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(), "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+        fileName, fileType = QtWidgets.QFileDialog.getOpenFileName(self, "选择文件", os.getcwd(),
+                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
         fileslist = fileslist + fileName
         self.lineEdit_GetRefFile.setText(fileslist)
 
@@ -210,6 +335,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not os.path.isfile(self.refpath):
             self.outputMsg2(self.refpath + "文件不存在...")
             return
+
+        index = list(self.time_dir.keys())[-1] if self.time_dir else '1'
+        if self.lineEdit_scene.text() != '':
+            self.time_dir[str(int(index) + 1)] = {'scene_num': 999
+                , 'scene': self.lineEdit_scene.text()
+                , 'time_arrange': [float(self.lineEdit_StarTime.text()), float(self.lineEdit_EndTime.text())]}
+        # elif index == '1':
+        #     self.time_dir[str(int(index))] = {'scene_num': 0
+        #         , 'scene': '全程'
+        #         , 'time_arrange': [0, 0]}
+        for n in self.lineEdit_scene_add.keys():  # 获取增加INS文件路径
+            self.time_dir[str(int(index) + int(n) +1)] = {'scene_num': 999
+                , 'scene': self.label_scene_add[n].text()
+                , 'time_arrange': [float(self.lineEdit_start_add[n].text()), float(self.lineEdit_end_add[n].text())]}
+
+        output_info = '即将解析的场景:\n'
+        for key in self.time_dir.keys():
+            output_info += '  第%s个场景为： ' % key + str(self.time_dir[key]) + '\n'
+        self.outputMsg2(output_info)
         self.createDataAnanlyseThread()  # 创建数据解析线程，开始数据解析
 
     # 线程回调函数，数据解析
@@ -231,8 +375,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # 时间同步
             self.outputMsg1("开始INS和GPS时间同步...")
-            # TODO
-            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF, self.HexDataParseObj.GpsDataDF, 'time', 'itow_pos')
+            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF,
+                                                                      self.HexDataParseObj.GpsDataDF, 'time',
+                                                                      'itow_pos')
             self.outputMsg1("时间同步完成，可生成统计图。")
             self.pushBtn_StartPlot1.setEnabled(True)
         except Exception as e:
@@ -286,8 +431,40 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.outputMsg2('失败原因:' + str(e))
                     continue
 
-            # 获取开始和结束时间
-            self.GetStartEndTime()
+            # 时间同步
+            self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
+            for file_name in self.name_list:
+                try:
+                    self.outputMsg2(file_name + ": INS和参考数据时间同步...")
+                    self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
+                        self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
+                    # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
+                    self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
+                    self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
+                        self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+                except Exception as e:
+                    self.outputMsg2(file_name + ": 时间同步失败...")
+                    self.outputMsg2('失败原因:' + str(e))
+                    continue
+
+            for scene in self.time_dir.keys():
+                try:
+                    time_arrange = self.time_dir[scene]['time_arrange']
+                    scene_dscribe = str(self.time_dir[scene]['scene_num']) + '_' + self.time_dir[scene]['scene']
+                    self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
+                    self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
+
+                    if self.time_dir[scene]['scene'] != '全程':
+                        self.outputMsg2('统计时间范围为%s的数据, 是为场景：%s' % (str(time_arrange), scene_dscribe))
+                        static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
+                        self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange,
+                                                                          scene=scene_dscribe)
+                        self.outputMsg2(static_msg_info)
+                        static_msg_info = ''
+                except Exception as e:
+                    self.outputMsg2(scene + ": 场景统计失败...")
+                    self.outputMsg2('失败原因:' + str(e))
+                    continue
 
             # 获取GPS显示数量
             self.checkGpsNum()
@@ -299,19 +476,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
                 print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
 
-            # 时间同步
-            self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
-            for file_name in self.name_list:
-                try:
-                    self.outputMsg2(file_name + ": INS和参考数据时间同步...")
-                    self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
-                    if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                        self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
-                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
-                except Exception as e:
-                    self.outputMsg2(file_name + ": 时间同步失败...")
-                    self.outputMsg2('失败原因:' + str(e))
-                    continue
+            # 获取开始和结束时间
+            self.GetStartEndTime()
+
             self.outputMsg2("时间同步完成，可生成统计图。")
             self.pushBtn_StartPlot2.setEnabled(True)
 
@@ -341,8 +508,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def onClickedStartPlotInsRef(self):
         # 配置杆臂值
         for n in self.GpsBpos.keys():
-            self.PlotGpsInsRawSyncDataObj.bpos_refins[self.name_list[int(n) - 1]] = np.array([[0, 0, 0], self.InsBpos[n]])
-            self.PlotGpsInsRawSyncDataObj.bpos_refgps[self.name_list[int(n) - 1]] = np.array([[0, 0, 0], self.GpsBpos[n]])
+            self.PlotGpsInsRawSyncDataObj.bpos_refins[self.name_list[int(n) - 1]] = np.array(
+                [[0, 0, 0], self.InsBpos[n]])
+            self.PlotGpsInsRawSyncDataObj.bpos_refgps[self.name_list[int(n) - 1]] = np.array(
+                [[0, 0, 0], self.GpsBpos[n]])
             # print("bpos_refins:", self.PlotGpsInsRawSyncDataObj.bpos_refins)
             # print("bpos_refgps:", self.PlotGpsInsRawSyncDataObj.bpos_refgps)
             # self.outputMsg2('file_name: ' + str(self.name_list[int(n) - 1]))
@@ -391,10 +560,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     # 获取开始和结束时间
     def GetStartEndTime(self):
         self.DataPreProcess.t = [0, 0]
-        if self.lineEdit_StarTime.text():
-            self.DataPreProcess.t[0] = float(self.lineEdit_StarTime.text())
-        if self.lineEdit_EndTime.text():
-            self.DataPreProcess.t[1] = float(self.lineEdit_EndTime.text())
+
+        if not self.scene_widget_add and 0==len(self.time_dir):
+            if self.lineEdit_StarTime.text():
+                self.DataPreProcess.t[0] = float(self.lineEdit_StarTime.text())
+            if self.lineEdit_EndTime.text():
+                self.DataPreProcess.t[1] = float(self.lineEdit_EndTime.text())
 
     # 创建数据解析线程
     def createDataParseThread(self):
@@ -430,10 +601,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setPlotBtnFlase()
         # files_list = ''
         files_list, fileType = QtWidgets.QFileDialog.getOpenFileNames(self, "选择文件", os.getcwd(),
-                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+                                                                      "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
         # files_list = files_list + file_name
         self.lineEdit_getDBCtext.setText(str(files_list))
-        self.output_can_msg('\n'.join(["选择dbc文件： "]+files_list))
+        self.output_can_msg('\n'.join(["选择dbc文件： "] + files_list))
         self.dbcs_path_list = files_list
 
     def on_clicked_select_blf_file(self):
@@ -441,10 +612,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setPlotBtnFlase()
         # files_list = ''
         files_list, fileType = QtWidgets.QFileDialog.getOpenFileNames(self, "选择文件", os.getcwd(),
-                                                                   "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
+                                                                      "All Files(*);;Text Files(*.txt)")  # 打开文件对话框，选择文件
         # files_list = files_list + file_name
         self.lineEdit_GetFiletext.setText(str(files_list))
-        self.output_can_msg('\n'.join(["选择blf/asc文件： "]+files_list))
+        self.output_can_msg('\n'.join(["选择blf/asc文件： "] + files_list))
         self.blfs_path_list = files_list
 
     def on_clicked_start_analysis_blf(self):
@@ -496,49 +667,57 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.output_can_msg(e)
 
     def outputDataFrameStatsResult(self):
-        msg = "IMU数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) + "，总帧数量:" + str(
+        msg = "IMU数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['imuDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "GPS数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['gpsFrameHeadNum_bdbd10']) + "，总帧数量:" + str(
+        msg = "GPS数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['gpsFrameHeadNum_bdbd10']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['gpsDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "车辆数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['vehicleFrameHeadNum_bdbd20']) + "，总帧数量:" + str(
+        msg = "车辆数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['vehicleFrameHeadNum_bdbd20']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['vehicleDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "INS数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['insFrameHeadNum_bdbd0b']) + "，总帧数量:" + str(
+        msg = "INS数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['insFrameHeadNum_bdbd0b']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['insDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "同步时间数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['syncFrameHeadNum_bdbd0c']) + "，总帧数量:" + str(
+        msg = "同步时间数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['syncFrameHeadNum_bdbd0c']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['syncDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "IMU2数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['imu2FrameHeadNum_bdbd2a']) + "，总帧数量:" + str(
+        msg = "IMU2数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['imu2FrameHeadNum_bdbd2a']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['imu2DataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "INS2数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['ins2FrameHeadNum_bdbd1b']) + "，总帧数量:" + str(
+        msg = "INS2数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['ins2FrameHeadNum_bdbd1b']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['ins2DataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])
         self.outputMsg1(msg)
 
-        msg = "四轮转角数据帧：纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['FourWSFrameHeadNum_bdbd30']) + "，总帧数量:" + str(
+        msg = "四轮转角数据帧：纯帧头数量:" + str(
+            self.HexDataParseObj.dataFrameStats['FourWSFrameHeadNum_bdbd30']) + "，总帧数量:" + str(
             self.HexDataParseObj.dataFrameStats['FourWSDataNum']) + "，错误帧数量:" + str(
             len(self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])) + "，错误帧索引下标:" + str(
             self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])

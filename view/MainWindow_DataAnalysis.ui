@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>633</width>
-    <height>680</height>
+    <width>654</width>
+    <height>686</height>
    </rect>
   </property>
   <property name="font">
@@ -18,14 +18,14 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>INS解析与数据分析工具V1.3   Powered by 算法部 2022/10/21 </string>
+   <string>INS解析与数据分析工具V1.3.3   Powered by 算法部 2022/11/09 </string>
   </property>
   <property name="windowIcon">
    <iconset>
     <normaloff>C:/Users/wenzixuan/.designer/backup/AsensingIco.ico</normaloff>C:/Users/wenzixuan/.designer/backup/AsensingIco.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_6">
+   <layout class="QHBoxLayout" name="horizontalLayout_15">
     <item>
      <widget class="QTabWidget" name="textBro_PrintMsg2">
       <property name="font">
@@ -37,7 +37,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab1">
        <property name="font">
@@ -307,7 +307,7 @@
        <attribute name="title">
         <string>INS精度统计分析</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_4">
+       <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
          <widget class="QWidget" name="widget_5" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -333,7 +333,7 @@
            <item>
             <widget class="QLineEdit" name="lineEdit_GetRefFile">
              <property name="placeholderText">
-              <string>文件名中含设备名，如：&quot;test_100C.txt&quot;</string>
+              <string>文件名中含设备名(仅支持100C和320)，如：&quot;test_100C.txt&quot;</string>
              </property>
             </widget>
            </item>
@@ -416,22 +416,23 @@
         <item>
          <widget class="QWidget" name="widget_9" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_9">
-           <property name="leftMargin">
-            <number>0</number>
-           </property>
-           <property name="topMargin">
-            <number>6</number>
-           </property>
-           <property name="rightMargin">
-            <number>0</number>
-           </property>
-           <property name="bottomMargin">
-            <number>6</number>
-           </property>
            <item>
             <widget class="QPushButton" name="pushBtn_SelectIns_2">
              <property name="text">
-              <string>+ 添加文件</string>
+              <string>+ 添加测试文件</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="clear_test_file">
+             <property name="focusPolicy">
+              <enum>Qt::StrongFocus</enum>
+             </property>
+             <property name="whatsThis">
+              <string/>
+             </property>
+             <property name="text">
+              <string>清除测试文件</string>
              </property>
             </widget>
            </item>
@@ -448,141 +449,120 @@
              </property>
             </spacer>
            </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="widget_13" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout_13">
-           <property name="leftMargin">
-            <number>0</number>
-           </property>
-           <property name="topMargin">
-            <number>6</number>
-           </property>
-           <property name="rightMargin">
-            <number>0</number>
-           </property>
-           <property name="bottomMargin">
-            <number>6</number>
-           </property>
            <item>
-            <widget class="QLabel" name="label_10">
+            <widget class="QPushButton" name="pushBtn_addScene">
              <property name="text">
-              <string>显示时间类型：</string>
+              <string>+添加场景</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QRadioButton" name="radioButton_tow2">
-             <property name="text">
-              <string>周内秒</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="radioButton_time2">
-             <property name="text">
-              <string>计时时间</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_5">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>显示GPS数量：</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QSpinBox" name="showGPS_spinBox">
-             <property name="minimum">
-              <number>1</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="widget_11" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout_11">
-           <property name="leftMargin">
-            <number>0</number>
-           </property>
-           <property name="topMargin">
-            <number>6</number>
-           </property>
-           <property name="rightMargin">
-            <number>0</number>
-           </property>
-           <property name="bottomMargin">
-            <number>6</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="label_7">
+            <widget class="QToolButton" name="importScene">
              <property name="whatsThis">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;默认统计全程时间&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;参数设置&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
-              <string>开始时间（周内秒）：</string>
+              <string>导入场景</string>
              </property>
             </widget>
            </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="widget_16" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
            <item>
-            <widget class="QLineEdit" name="lineEdit_StarTime">
-             <property name="text">
-              <string/>
-             </property>
-             <property name="placeholderText">
-              <string>0</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_8">
-             <property name="text">
-              <string> 结束时间（周内秒）：</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="lineEdit_EndTime">
-             <property name="text">
-              <string/>
-             </property>
-             <property name="placeholderText">
-              <string>0</string>
-             </property>
+            <widget class="QWidget" name="widget_11" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_11">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>6</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>6</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_9">
+                <property name="whatsThis">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;默认统计全程时间&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>场景：</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_scene">
+                <property name="layoutDirection">
+                 <enum>Qt::LeftToRight</enum>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="placeholderText">
+                 <string>高速/隧道/等...</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_7">
+                <property name="whatsThis">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;默认统计全程时间&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>开始(周内秒, s)：</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_StarTime">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="placeholderText">
+                 <string>0</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string> 结束(周内秒, s)：</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_EndTime">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="placeholderText">
+                 <string>0</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
           </layout>
@@ -595,7 +575,7 @@
             <number>0</number>
            </property>
            <property name="topMargin">
-            <number>6</number>
+            <number>2</number>
            </property>
            <property name="rightMargin">
             <number>0</number>
@@ -651,20 +631,109 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QWidget" name="widget_13" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_13">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>6</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>6</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>显示时间类型：</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="radioButton_tow2">
+                <property name="text">
+                 <string>周内秒</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="radioButton_time2">
+                <property name="text">
+                 <string>计时时间</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_5">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_4">
+                <property name="text">
+                 <string>显示GPS数量：</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="showGPS_spinBox">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
         <item>
-         <widget class="QTextBrowser" name="textBrowser_showmsg2"/>
+         <widget class="QTextBrowser" name="textBrowser_showmsg2">
+          <property name="cursor" stdset="0">
+           <cursorShape>IBeamCursor</cursorShape>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QWidget" name="widget_4" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <property name="spacing">
+            <number>9</number>
+           </property>
            <property name="leftMargin">
             <number>0</number>
            </property>
            <property name="topMargin">
-            <number>6</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
             <number>0</number>
@@ -672,13 +741,6 @@
            <property name="bottomMargin">
             <number>0</number>
            </property>
-           <item>
-            <widget class="QPushButton" name="pushBtn_ClearMsg2">
-             <property name="text">
-              <string>清空消息</string>
-             </property>
-            </widget>
-           </item>
            <item>
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
@@ -692,7 +754,21 @@
              </property>
             </spacer>
            </item>
+           <item>
+            <widget class="QPushButton" name="pushBtn_ClearMsg2">
+             <property name="text">
+              <string>清空消息</string>
+             </property>
+            </widget>
+           </item>
           </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="botton_help">
+          <property name="text">
+           <string>HELP</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -705,6 +781,15 @@
         <item>
          <widget class="QWidget" name="widget_15" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_12">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="bottomMargin">
+            <number>6</number>
+           </property>
            <item>
             <widget class="QLabel" name="label_dbc">
              <property name="text">
@@ -732,6 +817,15 @@
         <item>
          <widget class="QWidget" name="lineEdit_getfiletext" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_16">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="bottomMargin">
+            <number>6</number>
+           </property>
            <item>
             <widget class="QLabel" name="label_file">
              <property name="text">
@@ -762,6 +856,18 @@
         <item>
          <widget class="QWidget" name="widget_14" native="true">
           <layout class="QVBoxLayout" name="verticalLayout_5">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>6</number>
+           </property>
            <item>
             <widget class="QPushButton" name="pushBtn_decode">
              <property name="enabled">
@@ -820,13 +926,6 @@
         </item>
        </layout>
       </widget>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="botton_help">
-      <property name="text">
-       <string>HELP</string>
-      </property>
      </widget>
     </item>
    </layout>

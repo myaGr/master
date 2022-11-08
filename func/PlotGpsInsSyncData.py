@@ -1,8 +1,12 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Cursor
 import mplcursors
 from matplotlib.pyplot import MultipleLocator
+from openpyxl.reader.excel import load_workbook
+
 from func.DataStatistics import DataStatistics
 import pandas as pd
 import math
@@ -90,6 +94,11 @@ class PlotGpsInsRawSyncData:
     """
 
     def __init__(self, ref_type='100C'):
+        self.gps_flag_all = None
+        self.SyncRefInsData_all = None
+        self.SyncRefGpsData_all = None
+        self.RefInsData_all = None
+        self.RefGpsData_all = None
         self.time0_set = 0
         self.gps_flag = None
         self.second_of_week = True
@@ -1248,31 +1257,31 @@ class PlotGpsInsRawSyncData:
 
             # fig.canvas.manager.window.showMaximized()
 
-        def gen_statistics_xlsx():
-            savedata = []
-            statistic_gps_all = {}
-            statistics_ins, statistics_gps = [], []
-
-            for file_name in self.gps_flag.keys():
-                # INS数据与参考对比统计
-                statistics_ins = self.RefInsData[file_name].StatisticSyncData(self.SyncRefInsData[file_name],
-                                                                              file_name + "_Ins")
-                # GPS解状态统计
-                if self.gps_flag[file_name]:
-                    statistics_gps = self.RefGpsData[file_name].StatisticGpsFlag(self.SyncRefGpsData[file_name],
-                                                                                 file_name + "_gps")
-                    statistic_gps_all[file_name] = statistics_gps
-
-                if not savedata:
-                    savedata = [statistics_ins, statistics_gps]
-                else:
-                    for item in statistics_ins:
-                        savedata[0][item].append(statistics_ins[item][0])
-                    for item in statistics_gps:
-                        savedata[1][item].append(statistics_gps[item][0])
-            SaveStatisticToExcel(savedata, filePath)
-
-            return statistic_gps_all
+        # def gen_statistics_xlsx():
+        #     savedata = []
+        #     statistic_gps_all = {}
+        #     statistics_ins, statistics_gps = {}, {}
+        #
+        #     for file_name in self.gps_flag.keys():
+        #         # INS数据与参考对比统计
+        #         statistics_ins = self.RefInsData[file_name].StatisticSyncData(self.SyncRefInsData[file_name], file_name + "_Ins")
+        #         statistics_ins['时间范围'] = '全程'
+        #         # GPS解状态统计
+        #         if self.gps_flag[file_name]:
+        #             statistics_gps = self.RefGpsData[file_name].StatisticGpsFlag(self.SyncRefGpsData[file_name], file_name + "_gps")
+        #             statistics_gps['时间范围'] = '全程'
+        #             statistic_gps_all[file_name] = statistics_gps
+        #
+        #         if not savedata:
+        #             savedata = [statistics_ins, statistics_gps]
+        #         else:
+        #             for item in statistics_ins:
+        #                 savedata[0][item].append(statistics_ins[item][0])
+        #             for item in statistics_gps:
+        #                 savedata[1][item].append(statistics_gps[item][0])
+        #     SaveStatisticToExcel(savedata, filePath)
+        #
+        #     return statistic_gps_all
 
         if 0 == len(self.SyncRefInsData.keys()):
             return print('no file required to show !!!')
@@ -1283,10 +1292,16 @@ class PlotGpsInsRawSyncData:
         self.iniInsGpsBpos()  # 杆臂值初始化
         self.checkGpsFlag()  # Gps绘图数初始化
         self.dataPreStatistics()  # 统计指标数据预处理
+        ########################### 画图只为全局数据 ###########################
+        self.gps_flag = self.gps_flag_all
+        self.SyncRefInsData = self.SyncRefInsData_all
+        self.SyncRefGpsData = self.SyncRefGpsData_all
+        self.RefInsData = self.RefInsData_all
+        self.RefGpsData = self.RefGpsData_all
+        ########################### 预处理2 ###########################
         self.checkTimeType2()  # 显示时间类型
-
         ########################## 生成统计表格 ##########################
-        statistics_gps_all = gen_statistics_xlsx()
+        statistics_gps_all = self.gen_statistics_xlsx(filePath)
 
         ########################## 开始画图 ##########################
         cursors = []
@@ -1418,51 +1433,101 @@ class PlotGpsInsRawSyncData:
             self.gps_flag[list(self.SyncRefInsData.keys())[0]] = 1
 
     # INS和GPS指标数据绘图预处理
-    def dataPreStatistics(self):
-        data1 = self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]
-        pos0 = np.array([data1['lat_x'][1], data1['lon_x'][1], data1['height_x'][1]])  # 统一计算初始点
-        for file_name in list(self.SyncRefInsData.keys()):
+    def dataPreStatistics(self, time_arrange=None):
+        msg_info = ''
+        if not self.SyncRefInsData_all:
+            self.SyncRefInsData_all = self.SyncRefInsData.copy()
+            self.SyncRefGpsData_all = self.SyncRefGpsData.copy()
+            self.gps_flag_all = self.gps_flag.copy()
+        SyncRefInsData = self.SyncRefInsData_all.copy()
+        SyncRefGpsData = self.SyncRefGpsData_all.copy()
+        RefInsData = {}
+        RefGpsData = {}
+        start_time_index = 1
+
+        if time_arrange:
+            gps_flag = dict.fromkeys(list(SyncRefInsData.keys()), 1)
+            start_time = time_arrange[0]
+            end_time = time_arrange[1]
+            for file_name in list(SyncRefInsData.keys()):
+                # find the time index in pandas.series
+                gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
+                # make sure end_time != 0
+                end_time = end_time if end_time > 0 else max(gps_time)
+                start_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time >= start_time].index)[0]
+                end_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time <= end_time].index)[-1]
+                SyncRefGpsData[file_name] = SyncRefGpsData[file_name][start_time_index:end_time_index][:]
+
+                ins_time = SyncRefInsData[file_name]['sync_time'].values
+                end_time = end_time if end_time > 0 else max(ins_time)
+                start_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time >= start_time].index)[0]
+                end_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time <= end_time].index)[-1]
+                SyncRefInsData[file_name] = SyncRefInsData[file_name][start_time_index:end_time_index][:]
+        else:
+            gps_flag = self.gps_flag.copy()
+
+        data1 = SyncRefInsData[list(SyncRefInsData.keys())[0]]
+        pos0 = np.array([data1['lat_x'][start_time_index], data1['lon_x'][start_time_index], data1['height_x'][start_time_index]])  # 统一计算初始点
+        for file_name in list(SyncRefInsData.keys()):
             try:
-                SyncRefInsData = self.SyncRefInsData[file_name]
-                self.RefInsData[file_name] = DataStatistics()  # INS和参考数据统计计算
-                self.RefInsData[file_name].SpeedCalculation(SyncRefInsData, 2)  # 计算北东地和前右下速度
-                self.RefInsData[file_name].PosErrorCalculation(SyncRefInsData, self.bpos_refins[file_name], pos0, 2)
+                SyncRefInsData_single = SyncRefInsData[file_name]
+                RefInsData[file_name] = DataStatistics()  # INS和参考数据统计计算
+                RefInsData[file_name].SpeedCalculation(SyncRefInsData_single, 2)  # 计算北东地和前右下速度
+                RefInsData[file_name].PosErrorCalculation(SyncRefInsData_single, self.bpos_refins[file_name], pos0, 2)
                 # 原画图内生成部分
-                self.RefInsData[file_name].error["yaw"] = angele_standardization(
-                    np.array(self.SyncRefInsData[file_name]["yaw_x"] - self.SyncRefInsData[file_name]["yaw_y"]))
-                self.RefInsData[file_name].error["pitch"] = self.SyncRefInsData[file_name]["pitch_x"] - \
-                                                            self.SyncRefInsData[file_name]["pitch_y"]
-                self.RefInsData[file_name].error["roll"] = self.SyncRefInsData[file_name]["roll_x"] - \
-                                                           self.SyncRefInsData[file_name]["roll_y"]
-                self.RefInsData[file_name].error["vel_n"] = self.RefInsData[file_name].REFSpeed["NorthVelocity"] - \
-                                                            self.RefInsData[file_name].INSSpeed["NorthVelocity"]
-                self.RefInsData[file_name].error["vel_e"] = self.RefInsData[file_name].REFSpeed["EastVelocity"] - \
-                                                            self.RefInsData[file_name].INSSpeed["EastVelocity"]
-                self.RefInsData[file_name].error["vel_g"] = self.RefInsData[file_name].REFSpeed["GroundVelocity"] - \
-                                                            self.RefInsData[file_name].INSSpeed["GroundVelocity"]
-                self.RefInsData[file_name].error["vel_x"] = self.RefInsData[file_name].REFSpeed["ForwardVelocity"] - \
-                                                            self.RefInsData[file_name].INSSpeed["ForwardVelocity"]
-                self.RefInsData[file_name].error["vel_y"] = self.RefInsData[file_name].REFSpeed["RightVelocity"] - \
-                                                            self.RefInsData[file_name].INSSpeed["RightVelocity"]
-                self.RefInsData[file_name].error["vel_z"] = self.RefInsData[file_name].REFSpeed["DownwardVelocity"] - \
-                                                            self.RefInsData[file_name].INSSpeed["DownwardVelocity"]
-                self.RefInsData[file_name].error["vel"] = np.sqrt(
-                    pow(self.RefInsData[file_name].error["vel_x"], 2) + pow(self.RefInsData[file_name].error["vel_y"],
-                                                                            2))
-                if self.gps_flag[file_name]:
-                    SyncRefGpsData = self.SyncRefGpsData[file_name]
-                    self.RefGpsData[file_name] = DataStatistics()  # GPSs和参考数据统计计算
-                    self.RefGpsData[file_name].PosErrorCalculation(SyncRefGpsData, self.bpos_refgps[file_name], pos0, 1)
-                    self.RefGpsData[file_name].Gpsflagstransfer(SyncRefGpsData)  # GPS解状态转换
+                RefInsData[file_name].error["yaw"] = angele_standardization(
+                    np.array(SyncRefInsData[file_name]["yaw_x"] - SyncRefInsData[file_name]["yaw_y"]))
+                RefInsData[file_name].error["pitch"] = SyncRefInsData[file_name]["pitch_x"] - \
+                                                            SyncRefInsData[file_name]["pitch_y"]
+                RefInsData[file_name].error["roll"] = SyncRefInsData[file_name]["roll_x"] - \
+                                                           SyncRefInsData[file_name]["roll_y"]
+                RefInsData[file_name].error["vel_n"] = RefInsData[file_name].REFSpeed["NorthVelocity"] - \
+                                                            RefInsData[file_name].INSSpeed["NorthVelocity"]
+                RefInsData[file_name].error["vel_e"] = RefInsData[file_name].REFSpeed["EastVelocity"] - \
+                                                            RefInsData[file_name].INSSpeed["EastVelocity"]
+                RefInsData[file_name].error["vel_g"] = RefInsData[file_name].REFSpeed["GroundVelocity"] - \
+                                                            RefInsData[file_name].INSSpeed["GroundVelocity"]
+                RefInsData[file_name].error["vel_x"] = RefInsData[file_name].REFSpeed["ForwardVelocity"] - \
+                                                            RefInsData[file_name].INSSpeed["ForwardVelocity"]
+                RefInsData[file_name].error["vel_y"] = RefInsData[file_name].REFSpeed["RightVelocity"] - \
+                                                            RefInsData[file_name].INSSpeed["RightVelocity"]
+                RefInsData[file_name].error["vel_z"] = RefInsData[file_name].REFSpeed["DownwardVelocity"] - \
+                                                            RefInsData[file_name].INSSpeed["DownwardVelocity"]
+                RefInsData[file_name].error["vel"] = np.sqrt(
+                    pow(RefInsData[file_name].error["vel_x"], 2) + pow(RefInsData[file_name].error["vel_y"],2))
+                if gps_flag[file_name]:
+                    SyncRefGpsData_single = SyncRefGpsData[file_name]
+                    RefGpsData[file_name] = DataStatistics()  # GPSs和参考数据统计计算
+                    RefGpsData[file_name].PosErrorCalculation(SyncRefGpsData_single, self.bpos_refgps[file_name], pos0, 1)
+                    RefGpsData[file_name].Gpsflagstransfer(SyncRefGpsData_single)  # GPS解状态转换
+
+                msg_info += '\n  已统计文件：' + file_name + '\n'
             except Exception as e:
-                print(e)
-                self.SyncRefInsData.pop(file_name)
-                self.SyncRefGpsData.pop(file_name)
-                self.gps_flag.pop(file_name)
-                if file_name in self.RefInsData.keys():
-                    self.RefInsData.pop(file_name)
-                if file_name in self.RefGpsData.keys():
-                    self.RefGpsData.pop(file_name)
+                msg_info += '  此时段下无法统计的文件： '+file_name + '\n'
+                msg_info += str(e)
+                SyncRefInsData.pop(file_name)
+                SyncRefGpsData.pop(file_name)
+                gps_flag.pop(file_name)
+                if file_name in RefInsData.keys():
+                    RefInsData.pop(file_name)
+                if file_name in RefGpsData.keys():
+                    RefGpsData.pop(file_name)
+
+        print(msg_info)
+        if not time_arrange:
+            self.SyncRefInsData_all = SyncRefInsData.copy()
+            self.SyncRefGpsData_all = SyncRefGpsData.copy()
+            self.RefInsData_all = RefInsData.copy()
+            self.RefGpsData_all = RefGpsData.copy()
+            self.gps_flag_all = gps_flag.copy()
+        else:
+            self.SyncRefInsData = SyncRefInsData.copy()
+            self.SyncRefGpsData = SyncRefGpsData.copy()
+            self.RefInsData = RefInsData.copy()
+            self.RefGpsData = RefGpsData.copy()
+            self.gps_flag = gps_flag.copy()
+
+        return msg_info
 
     # 用于与自身对比
     def checkTimeType1(self):
@@ -1478,15 +1543,77 @@ class PlotGpsInsRawSyncData:
         else:
             self.time0_set = self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0] - self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0]
 
+    def gen_statistics_xlsx(self, filePath, time_arrange='全程', scene='全场景'):
+        savedata = []
+        statistic_gps_all = {}
+        statistics_ins, statistics_gps = {}, {}
+
+        for file_name in self.gps_flag.keys():
+            # INS数据与参考对比统计
+            statistics_ins['时间范围'] = [str(time_arrange)]
+            statistics_ins['场景'] = [scene]
+            statistics_ins.update(self.RefInsData[file_name].StatisticSyncData(self.SyncRefInsData[file_name],
+                                                                          file_name + "_Ins"))
+            # GPS解状态统计
+            if self.gps_flag[file_name]:
+                statistics_gps['时间范围'] = [str(time_arrange)]
+                statistics_gps['场景'] = [scene]
+                statistics_gps.update(self.RefGpsData[file_name].StatisticGpsFlag(self.SyncRefGpsData[file_name],
+                                                                             file_name + "_gps"))
+                statistic_gps_all[file_name] = statistics_gps
+
+            if not savedata:
+                savedata = [statistics_ins, statistics_gps]
+            else:
+                for item in statistics_ins:
+                    savedata[0][item].append(statistics_ins[item][0])
+                for item in statistics_gps:
+                    savedata[1][item].append(statistics_gps[item][0])
+        SaveStatisticToExcel(savedata, filePath)
+
+        return statistic_gps_all
+
 
 def SaveStatisticToExcel(savedata, filePath):
-    print("filePath:  ", filePath + '/statistic.xlsx')
-    writer = pd.ExcelWriter(filePath + '/statistic.xlsx')
 
     data_1 = pd.DataFrame.from_dict(savedata[0])
     data_2 = pd.DataFrame.from_dict(savedata[1])
-    data_1.to_excel(writer, 'INS精度统计')  # 不要行和列的标签
-    data_2.to_excel(writer, 'GPS解状态统计')
+
+    xlsx_path = filePath + '/statistic.xlsx'
+    print("filePath:  ", xlsx_path)
+    if os.path.exists(xlsx_path):
+        ins_df = pd.DataFrame(pd.read_excel(xlsx_path, sheet_name='INS精度统计'))
+        ins_df_rows = ins_df.shape[0]
+        gps_df = pd.DataFrame(pd.read_excel(xlsx_path, sheet_name='GPS解状态统计'))
+        gps_df_rows = gps_df.shape[0]
+
+        wb = load_workbook(xlsx_path)
+        writer = pd.ExcelWriter(xlsx_path, mode='w')
+        writer.book = wb
+        writer.sheets = dict((ws.title, ws) for ws in wb.worksheets)
+
+        data_1.to_excel(writer, sheet_name='INS精度统计', startrow=ins_df_rows+1, index=False, header=False)  # 不要行和列的标签
+        data_2.to_excel(writer, sheet_name='GPS解状态统计', startrow=gps_df_rows+1, index=False, header=False)
+    else:
+        writer = pd.ExcelWriter(xlsx_path)
+        data_1.to_excel(writer, sheet_name='INS精度统计', index=False)  # 不要行和列的标签
+        data_2.to_excel(writer, sheet_name='GPS解状态统计', index=False)
+
+        sheet = writer.sheets['INS精度统计']
+        sheet.column_dimensions["A"].width = 15
+        sheet.column_dimensions["B"].width = 13
+        sheet.column_dimensions["C"].width = 22
+        key_list = [chr(i) for i in range(ord('D'), ord("Z")+1)]
+        for i in [chr(i) for i in range(ord('A'), ord("W")+1)]:
+            key_list.append('A'+i)
+        for key in key_list:
+            sheet.column_dimensions[key].width = 12.5
+
+        sheet = writer.sheets['GPS解状态统计']
+        sheet.column_dimensions["A"].width = 15
+        sheet.column_dimensions["B"].width = 13
+        sheet.column_dimensions["C"].width = 24
+
     writer.save()
 
 

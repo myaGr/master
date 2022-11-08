@@ -54,7 +54,7 @@ class Parse100CData(object):
         print(self.ins100cdf)
 
     # 100C数据保存为Dataframe
-    def save_320_to_df(self):
+    def save_320_to_df_old(self):
         """320 文件数据向100C对齐，生成相同结构的数据结果
         @author: liqianwen
         """
@@ -98,6 +98,46 @@ class Parse100CData(object):
         diff_keys = set(required_keys) - set(keys + ['Q'] + ['height'])
         for key in diff_keys:
             values[key] = [0] * file_length
+
+        self.ins100cdf = pd.DataFrame(values)
+
+    def save_320_to_df(self):
+        """320 文件数据向100C对齐，生成相同结构的数据结果
+        @author: liqianwen
+        @version: for V1.3.3
+        """
+        f = open(self.filepath, 'r')
+        lines = f.readlines()
+        startflag = 0
+        # 320内应含有的字段
+        keys_name = ['GPSTime', 'Latitude', 'Longitude', 'H-MSL', 'Heading', 'Pitch', 'Roll', 'posQuality'
+                    , 'Vel-N', 'Vel-E', 'Vel-U', 'H-Ell', 'Abx', 'Gbx', 'Aby', 'Gby', 'Abz', 'Gbz']
+        required_keys = ["time", "lat", "lon", "height", "yaw", "pitch", "roll", "Q", "NorthVelocity", "EastVelocity",
+                         "GroundVelocity", "H-Ell", "AccX", "GyroX", "AccY", "GyroY", "AccZ", "GyroZ"]
+        values = {}
+        for line in lines:
+            li = line.replace('\n', '').split(" ")
+            while '' in li:
+                li.remove('')
+            # print(len(li),li)
+            if "GPSTime" in li and len(li) >= 18:  # 寻找100C数据字头
+                diff_keys = set(keys_name) - set(li)
+                if len(diff_keys) > 0:  # 判断是否缺少字段， 如果缺少直接返回
+                    print('missing values:', diff_keys)
+                    return diff_keys
+                startflag = 1
+                for i in li:
+                    if i in keys_name:
+                        values[required_keys[keys_name.index(i)]] = []
+
+            if startflag == 1 and len(li) >= 22 and li[0] != '(sec)':
+                values[required_keys[0]].append(float(li[0]))
+                values[required_keys[1]].append(float(li[1]) + float(li[2]) / 60 + float(li[3]) / 3600)
+                values[required_keys[2]].append(float(li[4]) + float(li[5]) / 60 + float(li[6]) / 3600)
+                for k in range(3, len(required_keys)):
+                    values[required_keys[k]].append(float(li[k + 4]))
+        f.close()
+        values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
 
         self.ins100cdf = pd.DataFrame(values)
 
