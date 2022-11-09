@@ -63,6 +63,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pushBtn_SelectIns_add = {}
         self.toolButton_add = {}
         # 实例化数据解析对象
+        # TODO
         self.HexDataParseObj = HexDataParse()
         self.Parse100CDataObj = Parse100CData()
         self.DataPreProcess = DataPreProcess()
@@ -81,7 +82,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pushBtn_StartPlot2.clicked.connect(self.onClickedStartPlotInsRef)  # 开始画图按钮按下
         self.pushBtn_ClearMsg2.clicked.connect(self.onClickedClearMsg2)  # 清空消息按钮按下\
         self.pushBtn_SelectIns_2.clicked.connect(self.add)  # 添加文件按钮按下
-        self.clear_test_file.clicked.connect(self.clear_test_file_record)  # 添加文件按钮按下
+        self.clear_test_file.clicked.connect(self.clear_test_file_record)  # 清空文件按钮按下
 
         self.pushBtn_addScene.clicked.connect(self.add_scene)  # 添加场景按钮按下
         self.importScene.clicked.connect(self.onClickedSelectFile_scene)  # 导入场景按钮按下
@@ -191,6 +192,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.pushBtn_SelectIns_add.pop(key)
             self.toolButton_add.pop(key)
         self.inscont = 1
+        self.refpath = ''
+        self.inspath = ''
+        self.lineEdit_GetInsFile.setText('')
+        self.lineEdit_GetRefFile.setText('')
+        self.time_dir = {}
 
     # 打开配置参数窗口
     def get_config(self, n):
@@ -311,6 +317,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     # 开始解析按钮按下
     def onClickedStartParseIns(self):
         self.setPlotBtnFlase()
+
+        #  reset 实例化
+        self.HexDataParseObj = HexDataParse()
+        self.Parse100CDataObj = Parse100CData()
+        self.DataPreProcess = DataPreProcess()
+        self.PlotGpsInsRawSyncDataObj = PlotGpsInsRawSyncData()
+
         self.path = self.lineEdit_GetFile.text()  # 获取文件路径
         if not os.path.isfile(self.path):
             self.outputMsg1(self.path + "文件不存在...")
@@ -321,7 +334,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     # INS和100C对比，开始解析按钮按下
     def onClickedStartParseInsRef(self):
         self.setPlotBtnFlase()
+
+        # reset some value
         self.inspaths = []
+        self.InsDataDF = {}
+        self.GpsDataDF = {}
+        self.HexDataParseObj = HexDataParse()
+        self.Parse100CDataObj = Parse100CData()
+        self.DataPreProcess = DataPreProcess()
+        self.PlotGpsInsRawSyncDataObj = PlotGpsInsRawSyncData()
+
         self.inspath = self.lineEdit_GetInsFile.text()  # 获取INS文件路径
         self.refpath = self.lineEdit_GetRefFile.text()  # 获取参考文件路径
         self.inspaths.append(self.inspath)
@@ -337,16 +359,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         index = list(self.time_dir.keys())[-1] if self.time_dir else '1'
+        # 场景中有填写东西
         if self.lineEdit_scene.text() != '':
             self.time_dir[str(int(index) + 1)] = {'scene_num': 999
                 , 'scene': self.lineEdit_scene.text()
                 , 'time_arrange': [float(self.lineEdit_StarTime.text()), float(self.lineEdit_EndTime.text())]}
+        # # 场景中没有填写东西，默认统计绘制全局 --> 在绘图前判断
         # elif index == '1':
         #     self.time_dir[str(int(index))] = {'scene_num': 0
         #         , 'scene': '全程'
         #         , 'time_arrange': [0, 0]}
         for n in self.lineEdit_scene_add.keys():  # 获取增加INS文件路径
-            self.time_dir[str(int(index) + int(n) +1)] = {'scene_num': 999
+            self.time_dir[str(int(index) + int(n) + 1)] = {'scene_num': 999
                 , 'scene': self.label_scene_add[n].text()
                 , 'time_arrange': [float(self.lineEdit_start_add[n].text()), float(self.lineEdit_end_add[n].text())]}
 
@@ -387,6 +411,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def dataAnalysisThreadFunc(self):
         try:
             # 100C 数据解析
+            # ps. self.Parse100CDataObj.ins100cdf 会被重置
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
             ref_file_name = self.refpath.split('/')[-1].split('.')[0]
@@ -431,6 +456,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.outputMsg2('失败原因:' + str(e))
                     continue
 
+            # 获取开始和结束时间
+            self.GetStartEndTime()
+
             # 时间同步
             self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
             for file_name in self.name_list:
@@ -447,10 +475,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.outputMsg2('失败原因:' + str(e))
                     continue
 
+            # 分时段统计， time_dir仅服务于此
             for scene in self.time_dir.keys():
                 try:
                     time_arrange = self.time_dir[scene]['time_arrange']
                     scene_dscribe = str(self.time_dir[scene]['scene_num']) + '_' + self.time_dir[scene]['scene']
+                    # 统计部分场景中，先把所有GPS的值都置上
                     self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
                     self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
 
@@ -466,7 +496,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.outputMsg2('失败原因:' + str(e))
                     continue
 
-            # 获取GPS显示数量
+            # 获取绘图中 GPS 显示数量
             self.checkGpsNum()
             if self.GpsNum > len(self.name_list):
                 self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
@@ -475,9 +505,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 for i in range(self.GpsNum):
                     self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
                 print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
-
-            # 获取开始和结束时间
-            self.GetStartEndTime()
 
             self.outputMsg2("时间同步完成，可生成统计图。")
             self.pushBtn_StartPlot2.setEnabled(True)
@@ -559,13 +586,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     # 获取开始和结束时间
     def GetStartEndTime(self):
+        # 如果没有添加场景 且 场景是默认值
         self.DataPreProcess.t = [0, 0]
 
-        if not self.scene_widget_add and 0==len(self.time_dir):
+        # 如果没有添加场景 且
+        if not self.scene_widget_add and 1 == len(self.time_dir):
             if self.lineEdit_StarTime.text():
                 self.DataPreProcess.t[0] = float(self.lineEdit_StarTime.text())
             if self.lineEdit_EndTime.text():
                 self.DataPreProcess.t[1] = float(self.lineEdit_EndTime.text())
+
+            if self.DataPreProcess.t[0] == 0 and self.DataPreProcess.t[1] == 0:
+                for val in self.time_dir.values():
+                    self.DataPreProcess.t[0] = val['time_arrange'][0]
+                    self.DataPreProcess.t[1] = val['time_arrange'][1]
+
+            self.outputMsg2('将绘制时间段为%s的统计图' % str(self.DataPreProcess.t))
 
     # 创建数据解析线程
     def createDataParseThread(self):

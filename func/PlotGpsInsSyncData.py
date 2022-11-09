@@ -1355,28 +1355,29 @@ class PlotGpsInsRawSyncData:
             msg_info += '无法绘制图： 水平偏差(载体坐标系下)\n'
             print(e)
 
-        if self.ref_type == '100C':
-            try:
-                cursors.append(plot_attitude(self.RefInsData, self.SyncRefInsData))
-                msg_info += '成功绘制图： 姿态\n'
-            except Exception as e:
-                print('Cannot plot attitude')
-                msg_info += '无法绘制图： 姿态\n'
-                print(e)
-            try:
-                cursors.append(plot_ned_speed(self.RefInsData, self.SyncRefInsData))
-                msg_info += '成功绘制图： 速度（导航坐标系）\n'
-            except Exception as e:
-                print('Cannot plot ned_speed')
-                msg_info += '无法绘制图： 速度（导航坐标系）\n'
-                print(e)
-            try:
-                cursors.append(plot_xyz_speed(self.RefInsData, self.SyncRefInsData))
-                msg_info += '成功绘制图： 速度（载体坐标系）\n'
-            except Exception as e:
-                print('Cannot plot xyz_speed')
-                msg_info += '无法绘制图： 速度（载体坐标系）\n'
-                print(e)
+        # if self.ref_type == '100C':
+        try:
+            cursors.append(plot_attitude(self.RefInsData, self.SyncRefInsData))
+            msg_info += '成功绘制图： 姿态\n'
+        except Exception as e:
+            print('Cannot plot attitude')
+            msg_info += '无法绘制图： 姿态\n'
+            print(e)
+        try:
+            cursors.append(plot_ned_speed(self.RefInsData, self.SyncRefInsData))
+            msg_info += '成功绘制图： 速度（导航坐标系）\n'
+        except Exception as e:
+            print('Cannot plot ned_speed')
+            msg_info += '无法绘制图： 速度（导航坐标系）\n'
+            print(e)
+        try:
+            cursors.append(plot_xyz_speed(self.RefInsData, self.SyncRefInsData))
+            msg_info += '成功绘制图： 速度（载体坐标系）\n'
+        except Exception as e:
+            print('Cannot plot xyz_speed')
+            msg_info += '无法绘制图： 速度（载体坐标系）\n'
+            print(e)
+
         try:
             cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
             msg_info += '成功绘制图： 精度统计\n'
@@ -1562,14 +1563,15 @@ class PlotGpsInsRawSyncData:
                                                                              file_name + "_gps"))
                 statistic_gps_all[file_name] = statistics_gps
 
-            if not savedata:
-                savedata = [statistics_ins, statistics_gps]
-            else:
-                for item in statistics_ins:
-                    savedata[0][item].append(statistics_ins[item][0])
-                for item in statistics_gps:
-                    savedata[1][item].append(statistics_gps[item][0])
-        SaveStatisticToExcel(savedata, filePath)
+            savedata = [statistics_ins, statistics_gps]
+            # if not savedata:
+            #     savedata = [statistics_ins, statistics_gps]
+            # else:
+            #     for item in statistics_ins:
+            #         savedata[0][item].append(statistics_ins[item][0])
+            #     for item in statistics_gps:
+            #         savedata[1][item].append(statistics_gps[item][0])
+            SaveStatisticToExcel(savedata, filePath)
 
         return statistic_gps_all
 
