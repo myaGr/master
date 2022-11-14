@@ -18,14 +18,14 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>INS解析与数据分析工具V1.3.3   Powered by 算法部 2022/11/09 </string>
+   <string>数据解析与分析工具V2.0   Powered by 算法部 2022/11/16</string>
   </property>
   <property name="windowIcon">
    <iconset>
     <normaloff>C:/Users/wenzixuan/.designer/backup/AsensingIco.ico</normaloff>C:/Users/wenzixuan/.designer/backup/AsensingIco.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_15">
+   <layout class="QVBoxLayout" name="verticalLayout_7">
     <item>
      <widget class="QTabWidget" name="textBro_PrintMsg2">
       <property name="font">
@@ -259,7 +259,7 @@
             <number>0</number>
            </property>
            <property name="topMargin">
-            <number>6</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
             <number>0</number>
@@ -462,7 +462,7 @@
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;参数设置&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
-              <string>导入场景</string>
+              <string>导入/清除场景</string>
              </property>
             </widget>
            </item>
@@ -764,13 +764,6 @@
           </layout>
          </widget>
         </item>
-        <item>
-         <widget class="QPushButton" name="botton_help">
-          <property name="text">
-           <string>HELP</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab">
@@ -901,6 +894,18 @@
         <item>
          <widget class="QWidget" name="widget_17" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_14">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
            <item>
             <spacer name="horizontalSpacer_6">
              <property name="orientation">
@@ -926,6 +931,13 @@
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="botton_help">
+      <property name="text">
+       <string>HELP</string>
+      </property>
      </widget>
     </item>
    </layout>

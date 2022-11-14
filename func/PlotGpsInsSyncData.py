@@ -583,10 +583,12 @@ class PlotGpsInsRawSyncData:
         plt.show()  # 显示所有图像
 
     # INS数据与参考对比画图
-    def PlotRefGpsInsSyncData(self, filePath, ref_type='100C'):
+    def PlotRefGpsInsSyncData(self, filePath, ref_type='100C', time_arrange='[0,0]', scene='全程'):
         """
 
         @author: wenzixuan liqianwen
+        :param scene:
+        :param time_arrange:
         :param ref_type:
         :param filePath: saving path
 
@@ -1301,7 +1303,7 @@ class PlotGpsInsRawSyncData:
         ########################### 预处理2 ###########################
         self.checkTimeType2()  # 显示时间类型
         ########################## 生成统计表格 ##########################
-        statistics_gps_all = self.gen_statistics_xlsx(filePath)
+        statistics_gps_all = self.gen_statistics_xlsx(filePath, time_arrange=time_arrange, scene=scene)
 
         ########################## 开始画图 ##########################
         cursors = []
@@ -1547,14 +1549,24 @@ class PlotGpsInsRawSyncData:
     def gen_statistics_xlsx(self, filePath, time_arrange='全程', scene='全场景'):
         savedata = []
         statistic_gps_all = {}
-        statistics_ins, statistics_gps = {}, {}
+        # statistics_ins, statistics_gps = {}, {}
+        statistics_pos_ins, statistics_loc_ins, statistics_gps = {}, {}, {}
 
         for file_name in self.gps_flag.keys():
             # INS数据与参考对比统计
-            statistics_ins['时间范围'] = [str(time_arrange)]
-            statistics_ins['场景'] = [scene]
-            statistics_ins.update(self.RefInsData[file_name].StatisticSyncData(self.SyncRefInsData[file_name],
-                                                                          file_name + "_Ins"))
+            # statistics_ins['时间范围'] = [str(time_arrange)]
+            # statistics_ins['场景'] = [scene]
+            # statistics_ins.update(self.RefInsData[file_name].StatisticSyncData(self.SyncRefInsData[file_name],
+            #                                                               file_name + "_Ins"))
+            statistics_pos_ins = self.RefInsData[file_name].statistic_sync_positions(self.SyncRefInsData[file_name]
+                                                                                     , file_name + "_Ins"
+                                                                                     , time_range=str(time_arrange)
+                                                                                     , scene=scene)
+            statistics_loc_ins = self.RefInsData[file_name].statistic_sync_locations(self.SyncRefInsData[file_name]
+                                                                                     , file_name + "_Ins"
+                                                                                     , time_range=str(time_arrange)
+                                                                                     , scene=scene)
+
             # GPS解状态统计
             if self.gps_flag[file_name]:
                 statistics_gps['时间范围'] = [str(time_arrange)]
@@ -1563,14 +1575,8 @@ class PlotGpsInsRawSyncData:
                                                                              file_name + "_gps"))
                 statistic_gps_all[file_name] = statistics_gps
 
-            savedata = [statistics_ins, statistics_gps]
-            # if not savedata:
-            #     savedata = [statistics_ins, statistics_gps]
-            # else:
-            #     for item in statistics_ins:
-            #         savedata[0][item].append(statistics_ins[item][0])
-            #     for item in statistics_gps:
-            #         savedata[1][item].append(statistics_gps[item][0])
+            savedata = [statistics_pos_ins, statistics_loc_ins, statistics_gps]
+
             SaveStatisticToExcel(savedata, filePath)
 
         return statistic_gps_all
@@ -1578,14 +1584,17 @@ class PlotGpsInsRawSyncData:
 
 def SaveStatisticToExcel(savedata, filePath):
 
-    data_1 = pd.DataFrame.from_dict(savedata[0])
-    data_2 = pd.DataFrame.from_dict(savedata[1])
+    data_1_pos = pd.DataFrame.from_dict(savedata[0])
+    data_1_loc = pd.DataFrame.from_dict(savedata[1])
+    data_2 = pd.DataFrame.from_dict(savedata[2])
 
-    xlsx_path = filePath + '/statistic.xlsx'
+    xlsx_path = filePath + '\statistic.xlsx'
     print("filePath:  ", xlsx_path)
     if os.path.exists(xlsx_path):
-        ins_df = pd.DataFrame(pd.read_excel(xlsx_path, sheet_name='INS精度统计'))
-        ins_df_rows = ins_df.shape[0]
+        ins_df_pos = pd.DataFrame(pd.read_excel(xlsx_path, sheet_name='INS姿态精度统计'))
+        ins_df_pos_rows = ins_df_pos.shape[0]
+        ins_df_loc = pd.DataFrame(pd.read_excel(xlsx_path, sheet_name='INS姿态精度统计'))
+        ins_df_loc_rows = ins_df_loc.shape[0]
         gps_df = pd.DataFrame(pd.read_excel(xlsx_path, sheet_name='GPS解状态统计'))
         gps_df_rows = gps_df.shape[0]
 
@@ -1594,27 +1603,39 @@ def SaveStatisticToExcel(savedata, filePath):
         writer.book = wb
         writer.sheets = dict((ws.title, ws) for ws in wb.worksheets)
 
-        data_1.to_excel(writer, sheet_name='INS精度统计', startrow=ins_df_rows+1, index=False, header=False)  # 不要行和列的标签
+        data_1_pos.to_excel(writer, sheet_name='INS姿态精度统计', startrow=ins_df_pos_rows+1, index=False, header=False)  # 不要行和列的标签
+        data_1_loc.to_excel(writer, sheet_name='INS位置精度统计', startrow=ins_df_loc_rows+1, index=False, header=False)
         data_2.to_excel(writer, sheet_name='GPS解状态统计', startrow=gps_df_rows+1, index=False, header=False)
     else:
         writer = pd.ExcelWriter(xlsx_path)
-        data_1.to_excel(writer, sheet_name='INS精度统计', index=False)  # 不要行和列的标签
+        data_1_pos.to_excel(writer, sheet_name='INS姿态精度统计', index=False)  # 不要行和列的标签
+        data_1_loc.to_excel(writer, sheet_name='INS位置精度统计', index=False)
         data_2.to_excel(writer, sheet_name='GPS解状态统计', index=False)
 
-        sheet = writer.sheets['INS精度统计']
-        sheet.column_dimensions["A"].width = 15
-        sheet.column_dimensions["B"].width = 13
-        sheet.column_dimensions["C"].width = 22
+        sheet = writer.sheets['INS姿态精度统计']
+        sheet.column_dimensions["A"].width = 22
+        sheet.column_dimensions["B"].width = 20
+        sheet.column_dimensions["C"].width = 13
         key_list = [chr(i) for i in range(ord('D'), ord("Z")+1)]
-        for i in [chr(i) for i in range(ord('A'), ord("W")+1)]:
+        for i in [chr(i) for i in range(ord('A'), ord("F")+1)]:
             key_list.append('A'+i)
         for key in key_list:
-            sheet.column_dimensions[key].width = 12.5
+            sheet.column_dimensions[key].width = 14
+
+        sheet = writer.sheets['INS位置精度统计']
+        sheet.column_dimensions["A"].width = 22
+        sheet.column_dimensions["B"].width = 20
+        sheet.column_dimensions["C"].width = 13
+        key_list = [chr(i) for i in range(ord('D'), ord("Z") + 1)]
+        for i in [chr(i) for i in range(ord('A'), ord("C") + 1)]:
+            key_list.append('A' + i)
+        for key in key_list:
+            sheet.column_dimensions[key].width = 13
 
         sheet = writer.sheets['GPS解状态统计']
-        sheet.column_dimensions["A"].width = 15
+        sheet.column_dimensions["A"].width = 18
         sheet.column_dimensions["B"].width = 13
-        sheet.column_dimensions["C"].width = 24
+        sheet.column_dimensions["C"].width = 22
 
     writer.save()
 

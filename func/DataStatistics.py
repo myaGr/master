@@ -14,8 +14,12 @@ class DataStatistics:
         self.Pos = {}
         self.bpos = np.array([[0, 0, 0], [0, 0, 0]])
         self.statisticslist = {}
+        self.statistics_list_loc = {}
+        self.statistics_list_pos = {}
         self.statisticsgpsflag = {}
         self.error_statistic = {}
+        self.error_statistic_loc = {}
+        self.error_statistic_pos = {}
 
     # InsGps速度转换，北东地坐标系转前右下坐标系
     # 参数： 时间同步数据，同步数据类型：（1）GPS和INS同步数据 （2）参考数据和INS同步数据
@@ -206,6 +210,64 @@ class DataStatistics:
             self.statisticslist[items[10 + i * 4 + 4]] = [round(sigma_err[3], 4)]
             self.error_statistic[error[i]] = sigma_err
         return self.statisticslist
+
+    def statistic_sync_positions(self, SyncData, name, time_range='[0,0]', scene='全程'):
+        items = ['名称', '时间范围', '场景', '统计帧数',
+                 '横滚偏差1σ', '横滚偏差2σ', '横滚偏差3σ', '横滚偏差最大',
+                 '俯仰偏差1σ', '俯仰偏差2σ', '俯仰偏差3σ', '俯仰偏差最大',
+                 '航向偏差1σ', '航向偏差2σ', '航向偏差3σ', '航向偏差最大',
+                 '速度偏差1σ', '速度偏差2σ', '速度偏差3σ', '速度偏差最大',
+                 'X速度偏差1σ', 'X速度偏差2σ', 'X速度偏差3σ', 'X速度偏差最大',
+                 'Y速度偏差1σ', 'Y速度偏差2σ', 'Y速度偏差3σ', 'Y速度偏差最大',
+                 'Z速度偏差1σ', 'Z速度偏差2σ', 'Z速度偏差3σ', 'Z速度偏差最大']
+        error = ["roll", "pitch", "yaw", "vel", "vel_x", "vel_y", "vel_z"]
+
+        self.statistics_list_pos[items[0]] = [name]
+        self.statistics_list_pos[items[1]] = [time_range]
+        self.statistics_list_pos[items[2]] = [scene]
+        self.statistics_list_pos[items[3]] = [len(SyncData)]
+
+        for i in range(len(error)):
+            sigma_err = self.sigma_err_cal(self.error[error[i]])
+            self.statistics_list_pos[items[3 + i * 4 + 1]] = [round(sigma_err[0], 4)]
+            self.statistics_list_pos[items[3 + i * 4 + 2]] = [round(sigma_err[1], 4)]
+            self.statistics_list_pos[items[3 + i * 4 + 3]] = [round(sigma_err[2], 4)]
+            self.statistics_list_pos[items[3 + i * 4 + 4]] = [round(sigma_err[3], 4)]
+            self.error_statistic[error[i]] = sigma_err
+        return self.statistics_list_pos
+
+    def statistic_sync_locations(self, SyncData, name, time_range='[0,0]', scene='全程'):
+        items = ['名称', '时间范围', '场景', '统计帧数', 'RMS外符合精度',
+                 '<0.02偏差占比', '<0.05偏差占比', '<0.1偏差占比', '<0.2偏差占比',
+                 '<0.5偏差占比', '<1偏差占比', '<1.5偏差占比', '<2偏差占比',
+                 '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大',
+                 '高程偏差1σ', '高程偏差2σ', '高程偏差3σ', '高程偏差最大',
+                 '横向偏差1σ', '横向偏差2σ', '横向偏差3σ', '横向偏差最大',
+                 '纵向偏差1σ', '纵向偏差2σ', '纵向偏差3σ', '纵向偏差最大']
+        percentage = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 1.5, 2]
+        error = ["pos", "height", "PosXError", "PosYError"]
+        self.error["pos"] = self.Pos["PosXYError"]
+        self.error["height"] = self.Pos["Height_Z"][0] - self.Pos["Height_Z"][1]
+        self.error["PosXError"] = self.Pos["PosXError"]
+        self.error["PosYError"] = self.Pos["PosYError"]
+
+        self.statistics_list_loc[items[0]] = [name]
+        self.statistics_list_loc[items[1]] = [time_range]
+        self.statistics_list_loc[items[2]] = [scene]
+        self.statistics_list_loc[items[3]] = [len(SyncData)]
+        self.statistics_list_loc[items[4]] = [round(np.sqrt(sum(self.error["pos"] * self.error["pos"]) / len(SyncData)), 4)]
+        for i in range(len(percentage)):
+            self.statistics_list_loc[items[i + 5]] = [
+                round(len(self.error["pos"][np.where(self.error["pos"] < percentage[i])]) / len(SyncData), 4)]
+
+        for i in range(len(error)):
+            sigma_err = self.sigma_err_cal(self.error[error[i]])
+            self.statistics_list_loc[items[12 + i * 4 + 1]] = [round(sigma_err[0], 4)]
+            self.statistics_list_loc[items[12 + i * 4 + 2]] = [round(sigma_err[1], 4)]
+            self.statistics_list_loc[items[12 + i * 4 + 3]] = [round(sigma_err[2], 4)]
+            self.statistics_list_loc[items[12 + i * 4 + 4]] = [round(sigma_err[3], 4)]
+            self.error_statistic_loc[error[i]] = sigma_err
+        return self.statistics_list_loc
 
     # 统计GPS各种解状态的占比
     def StatisticGpsFlag(self, SyncRefGpsData, name):
