@@ -344,6 +344,29 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QComboBox" name="select_type">
+             <property name="font">
+              <font>
+               <family>黑体</family>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <italic>false</italic>
+               <bold>false</bold>
+              </font>
+             </property>
+             <item>
+              <property name="text">
+               <string>100C</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>320</string>
+              </property>
+             </item>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>

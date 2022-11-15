@@ -160,8 +160,7 @@ class canLoader(object):
 
         return signals_value_db_dict
 
-    @staticmethod
-    def check_sigs_list(dbc_files, blf_files, sigs_list):
+    def check_sigs_list(self, dbc_files, blf_files, sigs_list):
         """
 
         :param dbc_files: dbc所在的文件夹
@@ -234,36 +233,49 @@ class canLoader(object):
                     this_blf_started_time = now_file[0].timestamp
                     now_file = None
                     print('共有 %d 条数据, 约用时 %d 分钟！' % (len(msgs_req), len(msgs_req) * 0.001082 / 60))
+                    self.output_info += '共有 %d 条数据\n' % len(msgs_req)
+                    count = 0
                     for msg in msgs_req:
-                        sigs_result_by_time_dict[str(msg.timestamp) + '_' + hex(msg.arbitration_id)] = dict(
-                            {'canID': (ch, hex(msg.arbitration_id)), 'data': {}})
-                        # try:
-                        msg_content = ch_dbc[msg.channel + 1].decode_message(frame_id_or_name=msg.arbitration_id,
-                                                                             data=msg.data,
-                                                                             decode_choices=False)  # 这里控制数字或字符串
-                        for sig_req in sigs_req_in_ch_msg[(msg.channel + 1, hex(msg.arbitration_id))]:
-                            sig_t_value = (msg.timestamp, msg_content[sig_req])
-                            sigs_result_dict[(msg.channel + 1, hex(msg.arbitration_id), sig_req)].append(sig_t_value)
-                            # output sigs_result_dict into csv
+                        try:
+                            sigs_result_by_time_dict[str(msg.timestamp) + '_' + hex(msg.arbitration_id)] = dict(
+                                {'canID': (ch, hex(msg.arbitration_id)), 'data': {}})
+                            # try:
+                            msg_content = ch_dbc[msg.channel + 1].decode_message(frame_id_or_name=msg.arbitration_id,
+                                                                                 data=msg.data,
+                                                                                 decode_choices=False)  # 这里控制数字或字符串
+                            for sig_req in sigs_req_in_ch_msg[(msg.channel + 1, hex(msg.arbitration_id))]:
+                                sig_t_value = (msg.timestamp, msg_content[sig_req])
+                                sigs_result_dict[(msg.channel + 1, hex(msg.arbitration_id), sig_req)].append(sig_t_value)
+                                # output sigs_result_dict into csv
 
-                            sigs_result_by_time_dict[str(msg.timestamp) + '_' + hex(msg.arbitration_id)]["data"][
-                                sig_req] = msg_content[sig_req]
+                                sigs_result_by_time_dict[str(msg.timestamp) + '_' + hex(msg.arbitration_id)]["data"][
+                                    sig_req] = msg_content[sig_req]
+                        except Exception as e:
+                            count += 1
+                            if '无法解析的信号有： ' not in self.output_info:
+                                self.output_info += '无法解析的信号有： \n'
+                            if hex(msg.arbitration_id) not in self.output_info:
+                                self.output_info += hex(msg.arbitration_id)
+                                self.output_info += '  '
+                                print(e)
+                                print(hex(msg.arbitration_id))
                         # except Exception as e:
                         #     print(e)
                         #     print('Sth wrong of canID %s in %f' %(hex(msg.arbitration_id), msg.timestamp))
 
                     msgs_req = None
             elif end_format == 'asc':
-                try:
-                    with can.ASCReader(blf_file) as file:
-                        now_file = list(file)
-                        msgs_req = list(
-                            filter(lambda msg_x: hex(msg_x.arbitration_id) in msgs_req_in_ch[msg_x.channel + 1],
-                                   now_file))
-                        this_blf_started_time = now_file[0].timestamp
-                        now_file = None
-                        print('共有 %d 条数据, 约用时 %f 分钟！' % (len(msgs_req), len(msgs_req) * 0.001082 / 60))
-                        for msg in msgs_req:
+                with can.ASCReader(blf_file) as file:
+                    now_file = list(file)
+                    msgs_req = list(
+                        filter(lambda msg_x: hex(msg_x.arbitration_id) in msgs_req_in_ch[msg_x.channel + 1],
+                               now_file))
+                    this_blf_started_time = now_file[0].timestamp
+                    now_file = None
+                    print('共有 %d 条数据, 约用时 %f 分钟！' % (len(msgs_req), len(msgs_req) * 0.001082 / 60))
+                    self.output_info += '共有 %d 条数据\n' % len(msgs_req)
+                    for msg in msgs_req:
+                        try:
                             sigs_result_by_time_dict[str(msg.timestamp) + '_' + hex(msg.arbitration_id)] = dict(
                                 {'canID': (ch, hex(msg.arbitration_id)), 'data': {}})
                             msg_content = ch_dbc[msg.channel + 1].decode_message(frame_id_or_name=msg.arbitration_id,
@@ -276,16 +288,20 @@ class canLoader(object):
 
                                 sigs_result_by_time_dict[str(msg.timestamp) + '_' + hex(msg.arbitration_id)]["data"][
                                     sig_req] = msg_content[sig_req]
+                        except Exception as e:
+                            print(e)
+                            if '无法解析的信号有： ' not in self.output_info:
+                                self.output_info += '无法解析的信号有： \n'
+                            if hex(msg.arbitration_id) not in self.output_info:
+                                self.output_info += hex(msg.arbitration_id)
+                                self.output_info += '  '
+                        # print('time: %f  canID: %s  dict length:%d' % (msg.timestamp, str(msg.arbitration_id), len(sigs_result_by_time_dict.keys())))
+                        # print()
 
-                            # print('time: %f  canID: %s  dict length:%d' % (msg.timestamp, str(msg.arbitration_id), len(sigs_result_by_time_dict.keys())))
-                            # print()
-
-                        msgs_req = None
-                except Exception as e:
-                    print(e)
-                    print('sth wrong in file: %s' % blf_file)
+                    msgs_req = None
             else:
                 print('暂不支持此数据类型： %s' % blf_file)
+                self.output_info += '暂不支持此数据类型： %s\n' % blf_file
                 continue
 
             for key in sigs_result_dict.keys():

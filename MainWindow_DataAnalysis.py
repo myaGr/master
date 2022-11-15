@@ -18,6 +18,7 @@ from func.canLoader import canLoader
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
+        self.ref_type = '100C'
         self.time_dir = {}
         self.config_window, self.scene_config_window = None, None
         self.dbc_paths = None
@@ -251,10 +252,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     time_dir[str(self.scene_cont)] = {'scene_num': int(line.split(',')[0])
                         , 'scene': line.split(',')[-1][:-1]
                         , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
-            self.scene_cont += 1
-            time_dir[str(self.scene_cont)] = {'scene_num': 0
-                , 'scene': '全程'
-                , 'time_arrange': [0, 0]}
+                    have_all_scene = 1 if time_dir[str(self.scene_cont)]['time_arrange'] == [0,0] else 0
+            if have_all_scene:
+                self.scene_cont += 1
+                time_dir[str(self.scene_cont)] = {'scene_num': 0
+                    , 'scene': '全程'
+                    , 'time_arrange': [0, 0]}
 
             output_info += '场景配置文件解析结果如下:\n'
             for key in time_dir.keys():
@@ -356,17 +359,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.outputMsg2(self.refpath + "文件不存在...")
             return
 
+        # 获取基准数据的数据类型
+        self.ref_type = self.select_type.currentText()
+        self.outputMsg2(self.refpath + "为 %s 文件" % self.ref_type)
+
         # 场景中有填写东西
         if self.lineEdit_scene.text() != '':
             self.scene_cont += 1
-            self.time_dir[str(self.scene_cont)] = {'scene_num': 999
+            self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
                 , 'scene': self.lineEdit_scene.text()
                 , 'time_arrange': [float(self.lineEdit_StarTime.text()), float(self.lineEdit_EndTime.text())]}
         else:
             pass
         for n in self.lineEdit_scene_add.keys():  # 获取增加INS文件路径
             self.scene_cont += 1
-            self.time_dir[str(self.scene_cont)] = {'scene_num': 999
+            self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
                 , 'scene': self.lineEdit_scene_add[n].text()
                 , 'time_arrange': [float(self.lineEdit_start_add[n].text()), float(self.lineEdit_end_add[n].text())]}
 
@@ -378,7 +385,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 , 'time_arrange': [0, 0]}
 
         if self.time_dir:
-            output_info = '即将解析的场景:\n'
+            output_info = '即将解析的场景:\n\n'
             for key in self.time_dir.keys():
                 output_info += '  场景 %s 的时间范围：' % self.time_dir[key]['scene'] + str(self.time_dir[key]['time_arrange']) + '\n'
             self.outputMsg2(output_info)
@@ -420,12 +427,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
             ref_file_name = self.refpath.split('/')[-1].split('.')[0]
-            if '320' in ref_file_name:
+            if self.ref_type == '320':
                 self.outputMsg2(ref_file_name + "为 POS320 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save_320_to_df()  # 开始参考数据解析
-            else:
+            elif self.ref_type == '100C':
                 self.outputMsg2(ref_file_name + "为 100C 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
+            else:
+                self.outputMsg2("尚未兼容基准文件格式：" + self.ref_type)
+                return
+            # 判断是否存在缺少的字段
             if ref_flag:
                 self.outputMsg2("缺少字段：" + str(ref_flag) + ", 解析失败。")
                 return
@@ -473,6 +484,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
                     self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
                         self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+                    if len(self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name]) == 0 or len(self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name])==0:
+                        self.outputMsg2('时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
                 except Exception as e:
                     self.outputMsg2(file_name + ": 时间同步失败...")
                     self.outputMsg2('失败原因:' + str(e))
@@ -489,9 +502,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
 
                         if self.time_dir[scene]['scene'] != '全程':
-                            self.outputMsg2('统计时间范围为%s的数据, 是为场景：%s' % (str(time_arrange), scene_dscribe))
+                            self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
                             static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
-                            self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange,
+                            self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(),
+                                                                              time_arrange=time_arrange,
                                                                               scene=scene_dscribe)
                             self.outputMsg2(static_msg_info)
                             static_msg_info = ''
@@ -500,7 +514,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         self.outputMsg2('失败原因:' + str(e))
                         continue
 
-            # 获取开始和结束时间
+            # 根据 场景空格 和 self.time_dir 获取开始和结束时间
             self.GetStartEndTime()
             if self.DataPreProcess.t[0] != 0 or self.DataPreProcess.t[1] != 0:
                 self.outputMsg2('同步时间段为%s的数据：' % str(self.DataPreProcess.t))
@@ -530,6 +544,36 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 for i in range(self.GpsNum):
                     self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
                 print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
+
+            # 场景统计完成，清空已有场景
+            # 单条场景
+            if len(list(self.time_dir.keys())) == 1:
+                # 此条场景是手动输入
+                if self.lineEdit_scene.text() != '':
+                    self.scene_cont = 0
+                    self.time_dir = {}
+                    print('1条场景，且此条场景是手动输入')
+                # 此条场景是通过场景文件输入
+                elif self.time_dir[list(self.time_dir.keys())[0]]['time_arrange'] == [0,0]:
+                    print('1条场景，且此条场景值为[0,0]')
+                    self.scene_cont = 0
+                    self.time_dir = {}
+                else:
+                    print('1条场景，且此条场景通过场景文件输入')
+            else:
+                # 手动输入场景不止一条
+                print('手动输入场景不止一条')
+                if len(list(self.scene_widget_add.keys())) > 0:
+                    for key in list(self.scene_widget_add.keys()):
+                        print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
+                        self.time_dir.pop(str(self.scene_cont))
+                        self.scene_cont -= 1
+                # 清除最上方的场景
+                if self.lineEdit_scene.text() != '':
+                    print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
+                    self.time_dir.pop(str(self.scene_cont))
+                    self.scene_cont -= 1
+            print(self.time_dir)
 
             self.outputMsg2("时间同步完成，可生成统计图。")
             self.pushBtn_StartPlot2.setEnabled(True)
@@ -731,8 +775,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             url = 'https://asensing.feishu.cn/docx/doxcn0rUDcvflKKm5wPmmdisKab '
             webbrowser.open_new_tab(url)
             self.output_can_msg('已打开软件说明书')
+            self.outputMsg1('已打开软件说明书')
+            self.outputMsg2('已打开软件说明书')
         except Exception as e:
             self.output_can_msg('无法打开软件说明书')
+            self.outputMsg1('无法打开软件说明书')
+            self.outputMsg2('无法打开软件说明书')
             self.output_can_msg(e)
 
     def outputDataFrameStatsResult(self):

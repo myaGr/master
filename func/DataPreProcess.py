@@ -24,8 +24,9 @@ class DataPreProcess(object):
             df = df[df[times] <= self.t[1]]
 
         # 过滤INS未初始化数据
+        # 0x01 02 04 08 分别对应初始化值： P V A H，一般姿态A会先初始化
         if 'IMUstatus' in df.keys():
-            df = df[df['IMUstatus'] % 16 == 15]
+            df = df[df['IMUstatus'] >= 15]
 
         # 过滤GPS无效数据
         if 'flagsPos' in df.keys():

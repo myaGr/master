@@ -1469,7 +1469,7 @@ class PlotGpsInsRawSyncData:
         else:
             gps_flag = self.gps_flag.copy()
 
-        data1 = SyncRefInsData[list(SyncRefInsData.keys())[0]]
+        data1 = SyncRefInsData[list(SyncRefInsData.keys())[-1]]
         pos0 = np.array([data1['lat_x'][start_time_index], data1['lon_x'][start_time_index], data1['height_x'][start_time_index]])  # 统一计算初始点
         for file_name in list(SyncRefInsData.keys()):
             try:

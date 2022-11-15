@@ -111,27 +111,28 @@ if __name__ == "__main__":
     obj = StatisticAndPlot()
     file_list = [
         # 'D:/Files/test/dbFiles/test2/320/12311-0927_test.txt',
-        r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt",
-        # r"D:\Files\test\dbFiles\test2\100\12311-0928_test2.txt"
+        # r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt",
+        r"D:\Files\test\dbFiles\test6_320\pcsim_ins_playback.log"
     ]
     # obj.Parse100CDataObj.filepath = r"D:\Downloads\POS320后轮轴中心.txt"
     # obj.Parse100CDataObj.filepath = 'D:/Files/test/dbFiles/test2/320/POS320后轮轴中心_test.txt'
-    obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test2\100\POS后轮轴_100C_test.txt'
+    obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test6_320\后轮轴1013_100C.txt'
 
     # 最后一个得是 全程 t = [0,0]
     scenes_config_path = r'D:\Files\test\dbFiles\test2\100\config1.txt'
     time_dict = {}
     scene_cont = 0
-    with open(scenes_config_path, 'r', encoding='utf-8') as file_t:
-        for line in file_t:
-            scene_cont += 1
-            time_dict[str(scene_cont)] = {'scene_num': int(line.split(',')[0])
-                , 'scene': line.split(',')[-1][:-1]
-                , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
-        scene_cont += 1
-        time_dict[str(scene_cont)] = {'scene_num': 0
-            , 'scene': '全程'
-            , 'time_arrange': [0, 0]}
+    if os.path.exists(scenes_config_path):
+        with open(scenes_config_path, 'r', encoding='utf-8') as file_t:
+            for line in file_t:
+                scene_cont += 1
+                time_dict[str(scene_cont)] = {'scene_num': int(line.split(',')[0])
+                    , 'scene': line.split(',')[-1][:-1]
+                    , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
+    scene_cont += 1
+    time_dict[str(scene_cont)] = {'scene_num': 0
+        , 'scene': '全程'
+        , 'time_arrange': [0, 0]}
 
     obj.DataPreProcess.t = [0, 0]  # 默认[0,0]
     types = []  # ["csv", "mat"]
