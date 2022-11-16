@@ -90,7 +90,7 @@ class PlotGpsInsRawSyncData:
     plot INS数据与自身GPS对比画图 & INS数据与参考对比画图
     @author: wenzixuan liqianwen
     @version: for analyse db files
-    @date: 2022-10-12
+    @date: 2022-11-15
     """
 
     def __init__(self, ref_type='100C'):
@@ -1394,6 +1394,10 @@ class PlotGpsInsRawSyncData:
         return msg_info
 
     @staticmethod
+    def close_plot():
+        plt.close('all')
+
+    @staticmethod
     def set_ax(ax, x_label='', y_label='', name='', x_lim=None, y_lim=None):
         ax.autoscale(enable=True, axis='y')
         ax.set_xlabel(x_label)
@@ -1614,8 +1618,8 @@ def SaveStatisticToExcel(savedata, filePath):
 
         sheet = writer.sheets['INS姿态精度统计']
         sheet.column_dimensions["A"].width = 22
-        sheet.column_dimensions["B"].width = 20
-        sheet.column_dimensions["C"].width = 13
+        sheet.column_dimensions["B"].width = 22
+        sheet.column_dimensions["C"].width = 15
         key_list = [chr(i) for i in range(ord('D'), ord("Z")+1)]
         for i in [chr(i) for i in range(ord('A'), ord("F")+1)]:
             key_list.append('A'+i)
@@ -1624,8 +1628,8 @@ def SaveStatisticToExcel(savedata, filePath):
 
         sheet = writer.sheets['INS位置精度统计']
         sheet.column_dimensions["A"].width = 22
-        sheet.column_dimensions["B"].width = 20
-        sheet.column_dimensions["C"].width = 13
+        sheet.column_dimensions["B"].width = 22
+        sheet.column_dimensions["C"].width = 15
         key_list = [chr(i) for i in range(ord('D'), ord("Z") + 1)]
         for i in [chr(i) for i in range(ord('A'), ord("C") + 1)]:
             key_list.append('A' + i)

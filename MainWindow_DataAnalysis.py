@@ -20,6 +20,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.ref_type = '100C'
         self.time_dir = {}
+        self.time_dir_config = {}
         self.config_window, self.scene_config_window = None, None
         self.dbc_paths = None
         self.dbcs_path_list = None
@@ -201,6 +202,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.lineEdit_GetInsFile.setText('')
         self.lineEdit_GetRefFile.setText('')
         self.time_dir = {}
+        self.time_dir_config = {}
         self.GpsBpos = {}
         self.InsBpos = {}
 
@@ -232,6 +234,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.lineEdit_scene_add.pop(key)
             self.lineEdit_start_add.pop(key)
             self.lineEdit_end_add.pop(key)
+        self.lineEdit_scene.setText('')
+        self.lineEdit_StarTime.setText('')
+        self.lineEdit_EndTime.setText('')
 
         output_info = ''
         time_dir = {}
@@ -243,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not os.path.isfile(config_file_path):
             self.outputMsg2('已清空场景, 文件' + config_file_path + "文件不存在...")
             config_file_path = ''
-            self.time_dir = {}
+            self.time_dir_config = {}
             self.scene_cont = 0
         else:
             with open(config_file_path, 'r', encoding='utf-8') as file_t:
@@ -252,7 +257,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     time_dir[str(self.scene_cont)] = {'scene_num': int(line.split(',')[0])
                         , 'scene': line.split(',')[-1][:-1]
                         , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
-                    have_all_scene = 1 if time_dir[str(self.scene_cont)]['time_arrange'] == [0,0] else 0
+                    have_all_scene = 1 if time_dir[str(self.scene_cont)]['time_arrange'] != [0,0] or have_all_scene else 0
             if have_all_scene:
                 self.scene_cont += 1
                 time_dir[str(self.scene_cont)] = {'scene_num': 0
@@ -265,7 +270,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             output_info += 'PS. 全程的时间范围默认为：[0, 0]。\n'
             output_info += '请确认信息，若有误请检查场景配置文件!\n'
             self.outputMsg2(output_info)
-            self.time_dir = time_dir
+            self.time_dir_config = time_dir
 
     # 读取杆臂值
     def save_config_data(self, n):
@@ -314,6 +319,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def onClickedClearMsg2(self):
         self.textBrowser_showmsg2.clear()  # 清空textBrowser_showMsg里的消息
+        self.PlotGpsInsRawSyncDataObj.close_plot()
 
     # 开始解析按钮按下
     def onClickedStartParseIns(self):
@@ -363,19 +369,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ref_type = self.select_type.currentText()
         self.outputMsg2(self.refpath + "为 %s 文件" % self.ref_type)
 
+        self.time_dir = self.time_dir_config.copy()
+        print(self.time_dir)
+        self.scene_cont = len(self.time_dir.keys())
         # 场景中有填写东西
         if self.lineEdit_scene.text() != '':
             self.scene_cont += 1
-            self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
-                , 'scene': self.lineEdit_scene.text()
-                , 'time_arrange': [float(self.lineEdit_StarTime.text()), float(self.lineEdit_EndTime.text())]}
+            try:
+                self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
+                    , 'scene': self.lineEdit_scene.text()
+                    , 'time_arrange': [float(self.lineEdit_StarTime.text()), float(self.lineEdit_EndTime.text())]}
+            except Exception as e:
+                self.outputMsg2(self.lineEdit_scene.text() + ' 场景输入错误，默认为全程！')
+                self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
+                    , 'scene': self.lineEdit_scene.text()
+                    , 'time_arrange': [0, 0]}
+
         else:
             pass
         for n in self.lineEdit_scene_add.keys():  # 获取增加INS文件路径
             self.scene_cont += 1
-            self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
-                , 'scene': self.lineEdit_scene_add[n].text()
-                , 'time_arrange': [float(self.lineEdit_start_add[n].text()), float(self.lineEdit_end_add[n].text())]}
+            try:
+                self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
+                    , 'scene': self.lineEdit_scene_add[n].text()
+                    , 'time_arrange': [float(self.lineEdit_start_add[n].text()), float(self.lineEdit_end_add[n].text())]}
+            except Exception as e:
+                self.outputMsg2(self.lineEdit_scene_add[n].text() + ' 场景输入错误，默认为全程！')
+                self.time_dir[str(self.scene_cont)] = {'scene_num': '手动填写'
+                    , 'scene': self.lineEdit_scene_add[n].text()
+                    , 'time_arrange': [0, 0]}
 
         # 场景中没有填写东西，默认统计绘制全局 --> 在绘图前判断
         if len(list(self.time_dir)) == 0:
@@ -435,6 +457,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
             else:
                 self.outputMsg2("尚未兼容基准文件格式：" + self.ref_type)
+                # self.clear_handinput_scenes()
                 return
             # 判断是否存在缺少的字段
             if ref_flag:
@@ -455,15 +478,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.outputMsg2("开始解析：" + file)
                     self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
                     self.HexDataParseObj.saveDataToDF()
-                    if self.HexDataParseObj.InsDataDF is None:
+                    if self.HexDataParseObj.InsDataDF is not None:
+                        self.outputMsg2("数据解析完成。")
+                        # 数据保存
+                        self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
+                        self.HexDataParseObj.InsDataDF = None
+                        self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
+                        self.HexDataParseObj.GpsDataDF = None
+                    else:
                         self.outputMsg2("数据无效，解析失败。")
-                        return
-                    self.outputMsg2("数据解析完成。")
-                    # 数据保存
-                    self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
-                    self.HexDataParseObj.InsDataDF = None
-                    self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
-                    self.HexDataParseObj.GpsDataDF = None
+                        continue
                 except Exception as e:
                     self.inspaths.pop(file_name)
                     self.name_list.pop(file_name)
@@ -544,36 +568,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 for i in range(self.GpsNum):
                     self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
                 print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
-
-            # 场景统计完成，清空已有场景
-            # 单条场景
-            if len(list(self.time_dir.keys())) == 1:
-                # 此条场景是手动输入
-                if self.lineEdit_scene.text() != '':
-                    self.scene_cont = 0
-                    self.time_dir = {}
-                    print('1条场景，且此条场景是手动输入')
-                # 此条场景是通过场景文件输入
-                elif self.time_dir[list(self.time_dir.keys())[0]]['time_arrange'] == [0,0]:
-                    print('1条场景，且此条场景值为[0,0]')
-                    self.scene_cont = 0
-                    self.time_dir = {}
-                else:
-                    print('1条场景，且此条场景通过场景文件输入')
-            else:
-                # 手动输入场景不止一条
-                print('手动输入场景不止一条')
-                if len(list(self.scene_widget_add.keys())) > 0:
-                    for key in list(self.scene_widget_add.keys()):
-                        print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
-                        self.time_dir.pop(str(self.scene_cont))
-                        self.scene_cont -= 1
-                # 清除最上方的场景
-                if self.lineEdit_scene.text() != '':
-                    print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
-                    self.time_dir.pop(str(self.scene_cont))
-                    self.scene_cont -= 1
-            print(self.time_dir)
 
             self.outputMsg2("时间同步完成，可生成统计图。")
             self.pushBtn_StartPlot2.setEnabled(True)
@@ -679,6 +673,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.DataPreProcess.t[1] = val['time_arrange'][1]
 
             self.outputMsg2('将绘制时间段为%s的统计图' % str(self.DataPreProcess.t))
+
+    def clear_handinput_scenes(self):
+        try:
+            # 场景统计完成，清空已有场景
+            # 单条场景
+            if len(list(self.time_dir.keys())) == 1:
+                # 此条场景是手动输入
+                if self.lineEdit_scene.text() != '':
+                    self.scene_cont = 0
+                    self.time_dir = {}
+                    print('1条场景，且此条场景是手动输入')
+                # 此条场景是通过场景文件输入
+                elif self.time_dir[list(self.time_dir.keys())[0]]['time_arrange'] == [0, 0]:
+                    print('1条场景，且此条场景值为[0,0]')
+                    self.scene_cont = 0
+                    self.time_dir = {}
+                else:
+                    print('1条场景，且此条场景通过场景文件输入')
+            else:
+                # 手动输入场景不止一条
+                print('手动输入场景不止一条')
+                if len(list(self.scene_widget_add.keys())) > 0:
+                    for key in list(self.scene_widget_add.keys()):
+                        print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
+                        self.time_dir.pop(str(self.scene_cont))
+                        self.scene_cont -= 1
+                # 清除最上方的场景
+                if self.lineEdit_scene.text() != '':
+                    print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
+                    self.time_dir.pop(str(self.scene_cont))
+                    self.scene_cont -= 1
+            print(self.time_dir)
+        except Exception as e:
+            print(e)
+            self.outputMsg2('场景输入有误，请点击清除场景键')
 
     # 创建数据解析线程
     def createDataParseThread(self):

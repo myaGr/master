@@ -452,7 +452,7 @@ class Ui_MainWindow(object):
         self.radioButton_tow2.setText(_translate("MainWindow", "周内秒"))
         self.radioButton_time2.setText(_translate("MainWindow", "计时时间"))
         self.label_4.setText(_translate("MainWindow", "显示GPS数量："))
-        self.pushBtn_ClearMsg2.setText(_translate("MainWindow", "清空消息"))
+        self.pushBtn_ClearMsg2.setText(_translate("MainWindow", "清空消息和所有绘制图"))
         self.textBro_PrintMsg2.setTabText(self.textBro_PrintMsg2.indexOf(self.tab_2), _translate("MainWindow", "INS精度统计分析"))
         self.label_dbc.setText(_translate("MainWindow", "dbc文件/文件夹路径* :"))
         self.lineEdit_getDBCtext.setPlaceholderText(_translate("MainWindow", "dbc文件/文件夹路径"))
