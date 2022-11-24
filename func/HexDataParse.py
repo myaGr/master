@@ -712,20 +712,20 @@ class HexDataParse(object):
         matDic = {'Lon': np.array([self.gpsData['Lon']]).T, 'LonStd': np.array([self.gpsData['LonStd']]).T,
                   'Lat': np.array([self.gpsData['Lat']]).T, 'LatStd': np.array([self.gpsData['LatStd']]).T,
                   'hMSL': np.array([self.gpsData['hMSL']]).T, 'hMSLStd': np.array([self.gpsData['hMSLStd']]).T,
-                  'gpsFix': np.array([self.gpsData['gpsFix']]).T, 'flags': np.array([self.gpsData['flags']]).T,
+                  'gpsFix': np.float64(np.array([self.gpsData['gpsFix']]).T), 'flags': np.float64(np.array([self.gpsData['flags']]).T),
                   'HSpd': np.array([self.gpsData['HSpd']]).T, 'Trk': np.array([self.gpsData['TrackAngle']]).T,
                   'VSpd': np.array([self.gpsData['VSpd']]).T, 'LatencyVel': np.array([self.gpsData['LatencyVel']]).T,
                   'BaseLineLength': np.array([self.gpsData['BaseLineLength']]).T,
                   'heading': np.array([self.gpsData['Heading']]).T, 'cAcc': np.array([self.gpsData['HeadingStd']]).T,
                   'pitch': np.array([self.gpsData['Pitch']]).T, 'pitchStd': np.array([self.gpsData['PitchStd']]).T,
-                  'RecMsg': np.array([self.gpsData['RecMsg']]).T, 'RecMsgBin': self.Unit2Bin(self.gpsData['RecMsg'], 8),
-                  'NumSV': np.array([self.gpsData['numSV']]).T,
+                  'RecMsg': np.float64(np.array([self.gpsData['RecMsg']]).T), 'RecMsgBin': self.Unit2Bin(self.gpsData['RecMsg'], 8),
+                  'NumSV': np.float64(np.array([self.gpsData['numSV']]).T),
                   't': np.array([self.gpsData['year'], self.gpsData['month'], self.gpsData['day'], self.gpsData['hour'],
                                  self.gpsData['minute'], self.gpsData['second']]).T,
                   'itow_pos': np.array([self.gpsData['itow_pos']]).T,
                   'itow_vel': np.array([self.gpsData['itow_vel']]).T,
                   'itow_heading': np.array([self.gpsData['itow_heading']]).T, 'ts': np.array([gpsInsTime]).T,
-                  'flagsPos': (np.array([self.gpsData['flags']]).T % 256),
+                  'flagsPos': np.float64(np.array([self.gpsData['flags']]).T % 256),
                   'flagsVel': (np.array([self.gpsData['flags']]).T / 256) % 256,
                   'flagsHeading': (np.array([self.gpsData['flags']]).T / 256 / 256) % 256,
                   'flagsTime': (np.array([self.gpsData['flags']]).T / 256 / 256 / 256) % 256}
@@ -759,9 +759,9 @@ class HexDataParse(object):
                   'VehSpdNonDriL': VehSpdNonDriL.astype(np.float64),
                   'VehSpdNonDriR': vehicleData.astype(np.float64),
                   'tsVehSpdNonDri': np.array([self.vehicleData['WheelSpeedBackTime']]).T,
-                  'Shifter': np.array([self.vehicleData['gear']]).T,
+                  'Shifter': np.float64(np.array([self.vehicleData['gear']]).T),
                   'tsShifter': np.array([self.vehicleData['gearTime']]).T,
-                  'flag': np.array([self.vehicleData['flag']]).T}
+                  'flag': np.float64(np.array([self.vehicleData['flag']]).T)}
         return matDic
 
         # if self.saveFolderPath == "":
@@ -782,14 +782,14 @@ class HexDataParse(object):
                   'pos': np.array([self.insData['lat'], self.insData['lon'], self.insData['height']]).T,
                   'v': np.array(
                       [self.insData['NorthVelocity'], self.insData['EastVelocity'], self.insData['GroundVelocity']]).T,
-                  'IMUstatus': np.array([self.insData['IMUstatus']]).T,
+                  'IMUstatus': np.float64(np.array([self.insData['IMUstatus']]).T),
                   'IMUstatusBin': self.Unit2Bin(self.insData['IMUstatus'], 8),
-                  'LEKFstatus': np.array([self.insData['LEKFstatus']]).T,
+                  'LEKFstatus': np.float64(np.array([self.insData['LEKFstatus']]).T),
                   'LEKFstatusBin': self.Unit2Bin(self.insData['LEKFstatus'], 32),
-                  'GPSstatus': np.array([self.insData['GPSstatus']]).T,
+                  'GPSstatus': np.float64(np.array([self.insData['GPSstatus']]).T),
                   'GPSstatusBin': self.Unit2Bin(self.insData['GPSstatus'], 8),
-                  'P': np.array([self.insData['PData1'], self.insData['PData2'], self.insData['PData3']]).T,
-                  'ts': np.array([self.insData['time']]).T, 'Ptype': np.array([self.insData['Ptype']]).T}
+                  'P': np.float64(np.array([self.insData['PData1'], self.insData['PData2'], self.insData['PData3']]).T),
+                  'ts': np.array([self.insData['time']]).T, 'Ptype': np.float64(np.array([self.insData['Ptype']]).T)}
         return matDic
         # if self.saveFolderPath == "":
         #     folderPath = os.path.dirname(self.filePath) + '/Unpack_' + os.path.basename(self.filePath).split('.')[0]
@@ -805,8 +805,8 @@ class HexDataParse(object):
     def saveSyncDataToMatFile(self):
         syncInsTime = [self.insData['time'][i] for i in self.syncInsTimeIndex]
 
-        matDic = {'timu': np.array([self.syncData['imuTime']]).T, 'tgps': np.array([self.syncData['gpsTime']]).T,
-                  'ts': np.array([syncInsTime]).T}
+        matDic = {'timu': np.float64(np.array([self.syncData['imuTime']]).T), 'tgps': np.float64(np.array([self.syncData['gpsTime']]).T),
+                  'ts': np.float64(np.array([syncInsTime]).T)}
         return matDic
 
         # if self.saveFolderPath == "":
@@ -822,13 +822,15 @@ class HexDataParse(object):
         # IMU2数据
 
     def saveImu2DataToMatFile(self):
-        matDic = {'g': np.array([self.imu2Data['GyroX'], self.imu2Data['GyroY'], self.imu2Data['GyroZ']]).T,
-                  'a': np.array([self.imu2Data['AccX'], self.imu2Data['AccY'], self.imu2Data['AccZ']]).T,
-                  'temp': np.array([self.imu2Data['temperature']]).T,
+        # 为保证生成mat文件中的值均为double格式，在类似temp的值中转换成 np.float64
+        matDic = {'g': np.float64(np.array([self.imu2Data['GyroX'], self.imu2Data['GyroY'], self.imu2Data['GyroZ']]).T),
+                  'a': np.float64(np.array([self.imu2Data['AccX'], self.imu2Data['AccY'], self.imu2Data['AccZ']]).T),
+                  'temp': np.float64(np.array([self.imu2Data['temperature']]).T),
                   'ts': np.array([self.imu2Data['time']]).T}
         return matDic
 
     def saveIns2DataToMatFile(self):
+        # 为保证生成mat文件中的值均为double格式，在类似status的值中转换成 np.float64
         matDic = {'Quaternion': np.array(
             [self.ins2Data['Quaternion1'], self.ins2Data['Quaternion2'], self.ins2Data['Quaternion3'],
              self.ins2Data['Quaternion4']]).T,
@@ -839,20 +841,20 @@ class HexDataParse(object):
                                          self.ins2Data['OdomAngular_VZ']]).T,
                   'Odom_Acc': np.array([self.ins2Data['OdomAcceleration_X'], self.ins2Data['OdomAcceleration_Y'],
                                         self.ins2Data['OdomAcceleration_Z']]).T,
-                  'LiOdometryStatu': np.array([self.ins2Data['LiOdometryStatus']]).T,
-                  'sensor_status': np.array([self.ins2Data['sensor_status']]).T,
+                  'LiOdometryStatu': np.float64(np.array([self.ins2Data['LiOdometryStatus']]).T),
+                  'sensor_status': np.float64(np.array([self.ins2Data['sensor_status']]).T),
                   'temp_P': np.array([self.ins2Data['temp_P0'], self.ins2Data['temp_P1'], self.ins2Data['temp_P2']]).T,
-                  'Index': np.array([self.ins2Data['Index']]).T,
-                  'frame_id': np.array([self.ins2Data['frame_id']]).T,
+                  'Index': np.float64(np.array([self.ins2Data['Index']]).T),
+                  'frame_id': np.float64(np.array([self.ins2Data['frame_id']]).T),
                   'time': np.array([self.ins2Data['time']]).T
                   }
         return matDic
 
     def saveFourWSDataToMatFile(self):
-        matDic = {'WheelF': np.array(
-            [self.FourWSData['tsWheelF_s'], self.FourWSData['WheelFl'], self.FourWSData['WheelFr']]).T,
-                  'WheelR': np.array(
-                      [self.FourWSData['tsWheelR_s'], self.FourWSData['WheelRl'], self.FourWSData['WheelRr']]).T}
+        matDic = {'WheelF': np.float64(np.array(
+            [self.FourWSData['tsWheelF_s'], self.FourWSData['WheelFl'], self.FourWSData['WheelFr']]).T),
+                  'WheelR': np.float64(np.array(
+                      [self.FourWSData['tsWheelR_s'], self.FourWSData['WheelRl'], self.FourWSData['WheelRr']]).T)}
         return matDic
 
     # 轮循表数据
@@ -938,7 +940,7 @@ class HexDataParse(object):
         alllist = []
         for i in num:
             tobin = bin(i)[2:].rjust(unit, '0')
-            binlist = list(map(int, reversed(list(tobin))))
+            binlist = list(map(float, reversed(list(tobin))))
             alllist.append(binlist)
         return alllist
 
@@ -963,8 +965,8 @@ class HexDataParse(object):
                                  'EnvisionCanData': veh, 'Imu2Dta': Imu2Dta, 'FourWSData': FourWSData,
                                  'Ins2Data': Ins2Data
                                  }}
-        dir = os.path.split(self.filePath)
-        newFilePath = dir[0] + '/' + dir[1][:-4] + '_GPSINSData.mat'
+        dir_path = os.path.split(self.filePath)
+        newFilePath = dir_path[0] + '/' + dir_path[1][:-4] + '_GPSINSData.mat'
         savemat(newFilePath, matDic, do_compression=True)  # 存成.mat文件格式
 
     def dict2csv(self, dic, filename):
@@ -984,8 +986,8 @@ class HexDataParse(object):
 
     # 开始将GPSINS数据存成.cvs格式
     def SaveAllDataToCsvFile(self):
-        dir = os.path.split(self.filePath)
-        folderPath = dir[0] + '/' + dir[1][:-4] + '_CsvData'
+        dir_path = os.path.split(self.filePath)
+        folderPath = dir_path[0] + '/' + dir_path[1][:-4] + '_CsvData'
         if not os.path.exists(folderPath):
             os.mkdir(folderPath)
         self.InsDataDF.to_csv(folderPath + '/InsData.csv')
@@ -1117,8 +1119,9 @@ class HexDataParse(object):
 
 if __name__ == "__main__":
     obj = HexDataParse()
-    obj.filePath = "E://PycharmProjects/DataParse/12302.txt"
-    types = ["csv", "mat"]
+    obj.filePath = r"D:\Files\test\dbFiles\test1\test1_LogINS.txt"
+    # types = ["csv", "mat"]
+    types = ["mat"]
 
     print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", obj.filePath)
     obj.startParseFileHexData()  # 开始数据解析

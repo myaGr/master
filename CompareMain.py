@@ -97,94 +97,95 @@ class StatisticAndPlot:
 
 if __name__ == "__main__":
 
-    # # 1. INS数据解析与自身GPS对比画图
-    # obj = StatisticAndPlot()
-    # obj.HexDataParseObj.filePath = r"D:\Files\dbFiles\12302.txt"
-    # # obj.HexDataParseObj.filePath = "C:/Users/wenzixuan/Downloads/lqw/111.txt"
-    # # types = ["csv"]
-    # types = []
-    # obj.PlotGpsInsRawSyncDataObj.second_of_week = True
-    # obj.GetParseInsData(types)
-    # obj.InsDataAnalysis()
-
-    # 2. INS与参考数据对比画图
+    # 1. INS数据解析与自身GPS对比画图
     obj = StatisticAndPlot()
-    file_list = [
-        # 'D:/Files/test/dbFiles/test2/320/12311-0927_test.txt',
-        # r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt",
-        r"D:\Files\test\dbFiles\test6_320\pcsim_ins_playback.log"
-    ]
-    # obj.Parse100CDataObj.filepath = r"D:\Downloads\POS320后轮轴中心.txt"
-    # obj.Parse100CDataObj.filepath = 'D:/Files/test/dbFiles/test2/320/POS320后轮轴中心_test.txt'
-    obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test6_320\后轮轴1013_100C.txt'
-
-    # 最后一个得是 全程 t = [0,0]
-    scenes_config_path = r'D:\Files\test\dbFiles\test2\100\config1.txt'
-    time_dict = {}
-    scene_cont = 0
-    if os.path.exists(scenes_config_path):
-        with open(scenes_config_path, 'r', encoding='utf-8') as file_t:
-            for line in file_t:
-                scene_cont += 1
-                time_dict[str(scene_cont)] = {'scene_num': int(line.split(',')[0])
-                    , 'scene': line.split(',')[-1][:-1]
-                    , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
-    scene_cont += 1
-    time_dict[str(scene_cont)] = {'scene_num': 0
-        , 'scene': '全程'
-        , 'time_arrange': [0, 0]}
-
-    obj.DataPreProcess.t = [0, 0]  # 默认[0,0]
-    types = []  # ["csv", "mat"]
-    # 解析基准数据
-    obj.Get100CData()
-
-    name_list = []
-    for file in file_list:
-        obj.HexDataParseObj.filePath = file
-        obj.GetParseInsData(types)
-        file_name = file.split('\\')[-1].split('.')[0]
-        name_list.append(file_name)
-
-        obj.InsDataDF[file_name] = obj.HexDataParseObj.InsDataDF
-        obj.HexDataParseObj.InsDataDF = None
-        obj.GpsDataDF[file_name] = obj.HexDataParseObj.GpsDataDF
-        obj.HexDataParseObj.GpsDataDF = None
-
-    # 时间同步
-    for file_name in name_list:
-        print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考数据时间同步...")
-        obj.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = obj.DataPreProcess.timeSynchronize(
-            obj.Parse100CDataObj.ins100cdf, obj.InsDataDF[file_name], 'time', 'time')
-        # if obj.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-        print(time.strftime('%H:%M:%S', time.localtime()), "GPS和参考数据时间同步...")
-        obj.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = obj.DataPreProcess.timeSynchronize(
-            obj.Parse100CDataObj.ins100cdf, obj.GpsDataDF[file_name], 'time', 'itow_pos')
-
-    # TODO: 数据统计
-    for scene in time_dict.keys():
-        time_arrange = time_dict[scene]['time_arrange']
-        scene_dscribe = str(time_dict[scene]['scene_num']) + '_' + time_dict[scene]['scene']
-        obj.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(name_list, 1)
-        obj.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
-
-        if time_dict[scene]['scene'] != '全程':
-            print('统计时间范围为%s的数据, 是为场景：%s' % (str(time_arrange), scene_dscribe))
-            obj.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
-            obj.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange,
-                                                             scene=scene_dscribe)
-
-    # Attention: 配置 GPS 显示 here
-    #  TODO
-    obj.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(name_list, 0)
-    obj.PlotGpsInsRawSyncDataObj.gps_flag[name_list[0]] = 1
+    obj.HexDataParseObj.filePath = r"D:\Files\dbFiles\12302.txt"
+    # obj.HexDataParseObj.filePath = "C:/Users/wenzixuan/Downloads/lqw/111.txt"
+    # types = ["csv"]
+    types = []
     obj.PlotGpsInsRawSyncDataObj.second_of_week = True
+    obj.GetParseInsData(types)
+    obj.InsDataAnalysis()
 
-    # 画图
-    print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考对比统计画图开始...")
-    try:
-        obj.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd(), ref_type='100C')
-    except Exception as e:
-        print("画图失败...")
-        print('ValueError:' + str(e))
-    print(time.strftime('%H:%M:%S', time.localtime()), 'over')
+    # # 2. INS与参考数据对比画图
+    # obj = StatisticAndPlot()
+    # file_list = [
+    #     r'D:\Files\test\dbFiles\test1\test1_LogINS.txt',
+    #     # r"D:\Files\test\dbFiles\test2\100\12311-0928_test.txt",
+    #     # r"D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt"
+    # ]
+    # obj.Parse100CDataObj.filepath = r"D:\Files\test\dbFiles\test1\100C_test.txt"
+    # # obj.Parse100CDataObj.filepath = 'D:/Files/test/dbFiles/test2/320/POS320后轮轴中心_test.txt'
+    # # obj.Parse100CDataObj.filepath = r'D:\Files\test\dbFiles\test6_320\1114到后轴320.txt'
+    #
+    # # 最后一个得是 全程 t = [0,0]
+    # # scenes_config_path = r'D:\Files\test\dbFiles\test2\100\config1.txt'
+    # scenes_config_path = ''
+    # time_dict = {}
+    # scene_cont = 0
+    # if os.path.exists(scenes_config_path):
+    #     with open(scenes_config_path, 'r', encoding='utf-8') as file_t:
+    #         for line in file_t:
+    #             scene_cont += 1
+    #             time_dict[str(scene_cont)] = {'scene_num': int(line.split(',')[0])
+    #                 , 'scene': line.split(',')[-1][:-1]
+    #                 , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
+    # scene_cont += 1
+    # time_dict[str(scene_cont)] = {'scene_num': 0
+    #     , 'scene': '全程'
+    #     , 'time_arrange': [0, 0]}
+    #
+    # obj.DataPreProcess.t = [0, 0]  # 默认[0,0]
+    # types = []  # ["csv", "mat"]
+    # # 解析基准数据
+    # obj.Get100CData()
+    #
+    # name_list = []
+    # for file in file_list:
+    #     obj.HexDataParseObj.filePath = file
+    #     obj.GetParseInsData(types)
+    #     file_name = file.split('\\')[-1].split('.')[0]
+    #     name_list.append(file_name)
+    #
+    #     obj.InsDataDF[file_name] = obj.HexDataParseObj.InsDataDF
+    #     obj.HexDataParseObj.InsDataDF = None
+    #     obj.GpsDataDF[file_name] = obj.HexDataParseObj.GpsDataDF
+    #     obj.HexDataParseObj.GpsDataDF = None
+    #
+    # # 时间同步
+    # for file_name in name_list:
+    #     print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考数据时间同步...")
+    #     obj.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = obj.DataPreProcess.timeSynchronize(
+    #         obj.Parse100CDataObj.ins100cdf, obj.InsDataDF[file_name], 'time', 'time')
+    #     # if obj.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
+    #     print(time.strftime('%H:%M:%S', time.localtime()), "GPS和参考数据时间同步...")
+    #     obj.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = obj.DataPreProcess.timeSynchronize(
+    #         obj.Parse100CDataObj.ins100cdf, obj.GpsDataDF[file_name], 'time', 'itow_pos')
+    #
+    # # TODO: 数据统计
+    # for scene in time_dict.keys():
+    #     time_arrange = time_dict[scene]['time_arrange']
+    #     scene_dscribe = str(time_dict[scene]['scene_num']) + '_' + time_dict[scene]['scene']
+    #     obj.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(name_list, 1)
+    #     obj.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
+    #
+    #     if time_dict[scene]['scene'] != '全程':
+    #         print('统计时间范围为%s的数据, 是为场景：%s' % (str(time_arrange), scene_dscribe))
+    #         obj.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
+    #         obj.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange,
+    #                                                          scene=scene_dscribe)
+    #
+    # # Attention: 配置 GPS 显示 here
+    # #  TODO
+    # obj.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(name_list, 0)
+    # obj.PlotGpsInsRawSyncDataObj.gps_flag[name_list[0]] = 1
+    # obj.PlotGpsInsRawSyncDataObj.second_of_week = True
+    #
+    # # 画图
+    # print(time.strftime('%H:%M:%S', time.localtime()), "INS和参考对比统计画图开始...")
+    # try:
+    #     obj.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd(), ref_type='100C')
+    # except Exception as e:
+    #     print("画图失败...")
+    #     print('ValueError:' + str(e))
+    # print(time.strftime('%H:%M:%S', time.localtime()), 'over')

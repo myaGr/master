@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>654</width>
-    <height>686</height>
+    <width>656</width>
+    <height>693</height>
    </rect>
   </property>
   <property name="font">
@@ -18,7 +18,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>数据解析与分析工具V2.0   Powered by 算法部 2022/11/16</string>
+   <string>数据解析与分析工具V2.0.1   Powered by 算法部 2022/11/25</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -283,7 +283,7 @@
            <item>
             <widget class="QPushButton" name="pushBtn_ClearMsg1">
              <property name="text">
-              <string>清空消息</string>
+              <string>清空消息和所有绘制图</string>
              </property>
             </widget>
            </item>
@@ -780,7 +780,7 @@
            <item>
             <widget class="QPushButton" name="pushBtn_ClearMsg2">
              <property name="text">
-              <string>清空消息</string>
+              <string>清空消息和所有绘制图</string>
              </property>
             </widget>
            </item>

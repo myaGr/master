@@ -11,6 +11,7 @@ class Parse100CData(object):
 
     # 100C数据保存为Dataframe
     def save100Ctodf(self):
+        msg_info = ''
         f = open(self.filepath, 'r')
         lines = f.readlines()
         startflag = 0
@@ -39,10 +40,23 @@ class Parse100CData(object):
                 values[keys[1]].append(float(li[1]) + float(li[2]) / 60 + float(li[3]) / 3600)
                 values[keys[2]].append(float(li[4]) + float(li[5]) / 60 + float(li[6]) / 3600)
                 for k in range(3, len(keys)):
-                    values[keys[k]].append(float(li[k + 4]))
+                    if keys[k] == 'height':
+                        try:
+                            values[keys[k]].append(float(li[k + 12]))
+                            if msg_info:
+                                msg_info += '基准数据高程误差计算采用正高值（即H-MSL)'
+                        except Exception as e:
+                            print(e)
+                            values[keys[k]].append(float(li[k + 4]))
+                            if msg_info:
+                                msg_info += '基准数据H-MSL有误，高程误差计算采用椭球高（即H-ELL)'
+
+                    else:
+                        values[keys[k]].append(float(li[k + 4]))
         f.close()
         values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
         self.ins100cdf = pd.DataFrame(values)
+        return msg_info
 
     # 100C数据保存为.csv数据
     def save100Ctocsv(self):
@@ -104,8 +118,9 @@ class Parse100CData(object):
     def save_320_to_df(self):
         """320 文件数据向100C对齐，生成相同结构的数据结果
         @author: liqianwen
-        @version: for V1.3.3
+        @version: for V2.0.1
         """
+        msg_info = ''
         f = open(self.filepath, 'r')
         lines = f.readlines()
         startflag = 0
@@ -135,11 +150,24 @@ class Parse100CData(object):
                 values[required_keys[1]].append(float(li[1]) + float(li[2]) / 60 + float(li[3]) / 3600)
                 values[required_keys[2]].append(float(li[4]) + float(li[5]) / 60 + float(li[6]) / 3600)
                 for k in range(3, len(required_keys)):
-                    values[required_keys[k]].append(float(li[k + 4]))
+                    if required_keys[k] == 'height':
+                        try:
+                            values[required_keys[k]].append(float(li[k + 12]))
+                            if msg_info:
+                                msg_info += '基准数据高程误差计算采用正高值（即H-MSL)'
+                        except Exception as e:
+                            print(e)
+                            values[required_keys[k]].append(float(li[k + 4]))
+                            if msg_info:
+                                msg_info += '基准数据H-MSL有误，高程误差计算采用椭球高（即H-ELL)'
+
+                    else:
+                        values[required_keys[k]].append(float(li[k + 4]))
         f.close()
         values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
 
         self.ins100cdf = pd.DataFrame(values)
+        return msg_info
 
     # 100C数据保存为.csv数据
     def save_320_to_csv(self):
@@ -156,6 +184,6 @@ class Parse100CData(object):
 
 if __name__ == "__main__":
     obj = Parse100CData()
-    obj.filepath = "C:/Users/wenzixuan/Downloads/ls_data/hzb1.txt"
+    obj.filepath = r"D:\Files\test\dbFiles\test1\100C_test.txt"
     obj.save100Ctodf()
     obj.save100Ctocsv()

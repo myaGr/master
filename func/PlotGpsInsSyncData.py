@@ -69,7 +69,8 @@ class PlotGpsInsData:
             lines = ax.plot(x, y, label=label, linewidth=1, linestyle=linestyle, marker=marker, alpha=0.7)
         self.fig.canvas.mpl_connect('scroll_event', self.call_back_xy)
         if labels:
-            cursor = mplcursors.cursor(lines, hover=True)  # 数据游标
+            cursor = mplcursors.cursor(lines, multiple=True)  # 数据游标
+            # cursor = mplcursors.cursor(lines, hover=True)
             cursor.connect("add", lambda sel: sel.annotation.set_text(labels[sel.target.index]))
 
     @staticmethod
@@ -82,7 +83,8 @@ class PlotGpsInsData:
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.grid()
-        plt.legend(loc='best')
+        # plt.legend(loc='best')
+        plt.legend(bbox_to_anchor=(1.05, 1.1), loc=1)
 
 
 class PlotGpsInsRawSyncData:
@@ -312,7 +314,7 @@ class PlotGpsInsRawSyncData:
                               '里程(下)')
             Plotobj6.ShowPlotFormat('', 'unit:meter')
 
-        def plot_path(name='Car Path'):
+        def plot_path(name='Car Trajectory'):
             Plotobj7 = PlotGpsInsData()
             Plotobj7.fig.suptitle(name)
             Plotobj7.ax1 = plt.subplot(111)
@@ -633,6 +635,8 @@ class PlotGpsInsRawSyncData:
             fig = plt.figure(figsize=(8, 6))
             ax1 = fig.add_subplot(111)
             index = 0
+
+            # 先画ins图
             for f_name in self.gps_flag.keys():
                 # 参考和INS
                 if 0 == index:
@@ -655,16 +659,18 @@ class PlotGpsInsRawSyncData:
                                  color=self.color_list[index + 1], alpha=0.7)
                 labels2 = list(ref_ins_data_before[f_name]['time_y'] - self.time0_set)
                 cursor_1.append(plot_add_nonius(line2, labels=labels2, show_formate='time'))
-
+            # 再画gps图
+            for f_name in self.gps_flag.keys():
                 # GPS
                 if self.gps_flag[f_name]:
                     labels3 = list(ref_gps_data_before[f_name]['time'])
                     ax1.plot(RefGpsData[f_name].Pos["Lon_X"][1], RefGpsData[f_name].Pos["Lat_Y"][1]
                              , linestyle='-', marker='', alpha=0.3)
                     line3 = ax1.plot(RefGpsData[f_name].Pos["Lon_X"][1], RefGpsData[f_name].Pos["Lat_Y"][1]
-                                     , linestyle='', marker='.', alpha=0.7)
-                    cursor_1.append(
-                        plot_add_nonius(line3, labels=labels3, show_formate='time', hover=True, multiple=False))
+                                     , linestyle='', marker='.', alpha=0.6)
+                    cursor_1.append(plot_add_nonius(line3, labels=labels3, show_formate='time'
+                                                    # , multiple=False
+                                                    ))
 
                     ax1.plot(RefGpsData[f_name].Pos["GpsSigle"][1], RefGpsData[f_name].Pos["GpsSigle"][0]
                              , label=str(f_name + '_Gps_Sigle'), linestyle='', marker='.', color='lightcoral',
@@ -1221,11 +1227,12 @@ class PlotGpsInsRawSyncData:
             for f_name, value in self.gps_flag.items():
                 if value:
                     gps_filename.append(f_name)
-            plt.suptitle(name)
+            fig = plt.figure()
+            fig.suptitle(name)
 
             if sum(list(self.gps_flag.values())) in [0, 1]:
                 file_name = gps_filename[0] if len(gps_filename) == 1 else list(self.gps_flag.keys())[0]
-                sub = plt.subplot(1, 1, 1)
+                sub = fig.add_subplot()
                 sub.set_title(file_name)
                 items = []
                 percent = []
@@ -1244,7 +1251,7 @@ class PlotGpsInsRawSyncData:
 
                 for i in range(sub_pic_num):
                     file_name = gps_filename[i]
-                    sub = plt.subplot(col, row, i + 1)
+                    sub = fig.add_subplot(col, row, i + 1)
                     sub.set_title(file_name)
                     sub.axis('equal')
                     items = []
@@ -1403,7 +1410,8 @@ class PlotGpsInsRawSyncData:
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         ax.grid()
-        ax.legend(loc='best')
+        # ax.legend(loc='upper right')
+        ax.legend(bbox_to_anchor=(1.05, 1.1), loc=1)
         ax.set_title(name)
 
         if x_lim:

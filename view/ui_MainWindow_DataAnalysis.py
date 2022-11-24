@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(654, 686)
+        MainWindow.resize(656, 693)
         font = QtGui.QFont()
         font.setBold(False)
         font.setItalic(False)
@@ -411,7 +411,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V2.0   Powered by 算法部 2022/11/16"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V2.0.1   Powered by 算法部 2022/11/25"))
         self.label_2.setText(_translate("MainWindow", "文件路径* ："))
         self.pushBtn_SelectFile.setText(_translate("MainWindow", "选择文件"))
         self.label_3.setText(_translate("MainWindow", "保存文件类型："))
@@ -422,7 +422,7 @@ class Ui_MainWindow(object):
         self.radioButton_time.setText(_translate("MainWindow", "计时时间"))
         self.pushBtn_StartParse1.setText(_translate("MainWindow", "开始解析"))
         self.pushBtn_StartPlot1.setText(_translate("MainWindow", "开始画图"))
-        self.pushBtn_ClearMsg1.setText(_translate("MainWindow", "清空消息"))
+        self.pushBtn_ClearMsg1.setText(_translate("MainWindow", "清空消息和所有绘制图"))
         self.textBro_PrintMsg2.setTabText(self.textBro_PrintMsg2.indexOf(self.tab1), _translate("MainWindow", "INS解析画图分析"))
         self.label_5.setText(_translate("MainWindow", "参考文件*  ："))
         self.lineEdit_GetRefFile.setPlaceholderText(_translate("MainWindow", "文件名中含设备名(仅支持100C和320)，如：\"test_100C.txt\""))
