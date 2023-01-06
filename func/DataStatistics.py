@@ -10,6 +10,7 @@ class DataStatistics:
         self.GPSSpeed = {}
         self.INSSpeed = {}
         self.GpsInsSpeedDiff = {}
+        self.RefGpsSpeedDiff = {}
         self.VehSpd = {}
         self.Pos = {}
         self.bpos = np.array([[0, 0, 0], [0, 0, 0]])
@@ -43,18 +44,14 @@ class DataStatistics:
             self.GpsInsSpeedDiff["EastVelocity"] = self.GPSSpeed["EastVelocity"] - self.INSSpeed["EastVelocity"]
             self.GpsInsSpeedDiff["GroundVelocity"] = self.GPSSpeed["GroundVelocity"] - self.INSSpeed["GroundVelocity"]
             # INS北东地速度转换成前右下坐标系下的速度
-            self.INSSpeed["ForwardVelocity"] = cosyaw * self.INSSpeed["NorthVelocity"] + sinyaw * self.INSSpeed[
-                "EastVelocity"]
-            self.INSSpeed["RightVelocity"] = - sinyaw * self.INSSpeed["NorthVelocity"] + cosyaw * self.INSSpeed[
-                "EastVelocity"]
+            self.INSSpeed["ForwardVelocity"] = cosyaw * self.INSSpeed["NorthVelocity"] + sinyaw * self.INSSpeed["EastVelocity"]
+            self.INSSpeed["RightVelocity"] = - sinyaw * self.INSSpeed["NorthVelocity"] + cosyaw * self.INSSpeed["EastVelocity"]
             self.INSSpeed["DownwardVelocity"] = self.INSSpeed["GroundVelocity"]
             # 里程
             instime_diff_list = np.diff(InsGpsSyncData['time'])
-            self.mileage["ForwardVelocity"] = np.cumsum(
-                instime_diff_list * np.array(self.INSSpeed["ForwardVelocity"][1:]))
+            self.mileage["ForwardVelocity"] = np.cumsum(instime_diff_list * np.array(self.INSSpeed["ForwardVelocity"][1:]))
             self.mileage["RightVelocity"] = np.cumsum(instime_diff_list * np.array(self.INSSpeed["RightVelocity"][1:]))
-            self.mileage["DownwardVelocity"] = np.cumsum(
-                instime_diff_list * np.array(self.INSSpeed["DownwardVelocity"][1:]))
+            self.mileage["DownwardVelocity"] = np.cumsum(instime_diff_list * np.array(self.INSSpeed["DownwardVelocity"][1:]))
 
         if type == 2:  # 参考数据和INS同步数据
             sinyaw = np.sin(np.array(InsGpsSyncData["yaw_x"]) / 180 * math.pi)
@@ -74,11 +71,29 @@ class DataStatistics:
                 "EastVelocity"]
             self.REFSpeed["DownwardVelocity"] = self.REFSpeed["GroundVelocity"]
             # INS北东地速度转换成前右下坐标系下的速度
-            self.INSSpeed["ForwardVelocity"] = cosyaw * self.INSSpeed["NorthVelocity"] + sinyaw * self.INSSpeed[
-                "EastVelocity"]
-            self.INSSpeed["RightVelocity"] = - sinyaw * self.INSSpeed["NorthVelocity"] + cosyaw * self.INSSpeed[
-                "EastVelocity"]
+            self.INSSpeed["ForwardVelocity"] = cosyaw * self.INSSpeed["NorthVelocity"] + sinyaw * self.INSSpeed["EastVelocity"]
+            self.INSSpeed["RightVelocity"] = - sinyaw * self.INSSpeed["NorthVelocity"] + cosyaw * self.INSSpeed["EastVelocity"]
             self.INSSpeed["DownwardVelocity"] = self.INSSpeed["GroundVelocity"]
+
+        elif type == 3:  # 参考数据和GPS同步数据
+            sinyaw = np.sin(np.array(InsGpsSyncData["yaw"]) / 180 * math.pi)
+            cosyaw = np.cos(np.array(InsGpsSyncData["yaw"]) / 180 * math.pi)
+            sinheading = np.sin(np.array(InsGpsSyncData['TrackAngle']) / 180 * math.pi)
+            cosheading = np.cos(np.array(InsGpsSyncData['TrackAngle']) / 180 * math.pi)
+
+            # Ref 北、东、地速度
+            self.REFSpeed["NorthVelocity"] = InsGpsSyncData['NorthVelocity']
+            self.REFSpeed["EastVelocity"] = InsGpsSyncData['EastVelocity']
+            self.REFSpeed["GroundVelocity"] = InsGpsSyncData['GroundVelocity']
+            # GPS 北、东、地速度
+            self.GPSSpeed["NorthVelocity"] = np.array(InsGpsSyncData['HSpd']) * cosheading
+            self.GPSSpeed["EastVelocity"] = np.array(InsGpsSyncData['HSpd']) * sinheading
+            self.GPSSpeed["GroundVelocity"] = np.array(InsGpsSyncData['VSpd'])
+            # REF-INS 北、东、地速度差
+            self.RefGpsSpeedDiff["NorthVelocity"] = self.REFSpeed["NorthVelocity"] - self.GPSSpeed["NorthVelocity"]
+            self.RefGpsSpeedDiff["EastVelocity"] = self.REFSpeed["EastVelocity"] - self.GPSSpeed["EastVelocity"]
+            self.RefGpsSpeedDiff["GroundVelocity"] = self.REFSpeed["GroundVelocity"] - self.GPSSpeed[
+                "GroundVelocity"]
 
     # 四轮轮速计算
     def ForwardSpeedCalculation(self, PData, VehicleData):
@@ -138,12 +153,9 @@ class DataStatistics:
         self.Pos["Lat_Y"][1] = self.Pos["Lat_Y"][1] - pos_err[1][0]
         self.Pos["Lon_X"][1] = self.Pos["Lon_X"][1] - pos_err[1][1]
         self.Pos["Height_Z"][1] = self.Pos["Height_Z"][1] - pos_err[1][2]
-        self.Pos["PosXError"] = cos3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + sin3 * (
-                    self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 横向偏差
-        self.Pos["PosYError"] = -sin3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + cos3 * (
-                    self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 纵向偏差
-        self.Pos["PosXYError"] = np.sqrt(
-            self.Pos["PosXError"] * self.Pos["PosXError"] + self.Pos["PosYError"] * self.Pos["PosYError"])  # 水平偏差
+        self.Pos["PosXError"] = cos3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + sin3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 横向偏差
+        self.Pos["PosYError"] = -sin3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + cos3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 纵向偏差
+        self.Pos["PosXYError"] = np.sqrt(self.Pos["PosXError"] * self.Pos["PosXError"] + self.Pos["PosYError"] * self.Pos["PosYError"])  # 水平偏差
 
     # GPS解状态转换
     def Gpsflagstransfer(self, InsGpsSyncData):
@@ -179,16 +191,11 @@ class DataStatistics:
 
     # 统计INS精度
     def StatisticSyncData(self, SyncData, name):
-        items = ['名称', '统计帧数', 'RMS外符合精度', '<0.02偏差占比', '<0.05偏差占比', '<0.1偏差占比', '<0.2偏差占比',
-                 '<0.5偏差占比', '<1偏差占比', '<1.5偏差占比', '<2偏差占比',
-                 '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大', '横滚偏差1σ', '横滚偏差2σ', '横滚偏差3σ',
-                 '横滚偏差最大',
-                 '俯仰偏差1σ', '俯仰偏差2σ', '俯仰偏差3σ', '俯仰偏差最大', '航向偏差1σ', '航向偏差2σ', '航向偏差3σ',
-                 '航向偏差最大',
-                 '速度偏差1σ', '速度偏差2σ', '速度偏差3σ', '速度偏差最大', 'X速度偏差1σ', 'X速度偏差2σ', 'X速度偏差3σ',
-                 'X速度偏差最大',
-                 'Y速度偏差1σ', 'Y速度偏差2σ', 'Y速度偏差3σ', 'Y速度偏差最大', 'Z速度偏差1σ', 'Z速度偏差2σ',
-                 'Z速度偏差3σ', 'Z速度偏差最大',
+        items = ['名称', '统计帧数', 'RMS外符合精度', '<0.02偏差占比', '<0.05偏差占比', '<0.1偏差占比', '<0.2偏差占比','<0.5偏差占比', '<1偏差占比', '<1.5偏差占比','<2偏差占比',
+                 '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大', '横滚偏差1σ', '横滚偏差2σ', '横滚偏差3σ','横滚偏差最大',
+                 '俯仰偏差1σ', '俯仰偏差2σ', '俯仰偏差3σ', '俯仰偏差最大', '航向偏差1σ', '航向偏差2σ', '航向偏差3σ', '航向偏差最大',
+                 '速度偏差1σ', '速度偏差2σ', '速度偏差3σ', '速度偏差最大', 'X速度偏差1σ', 'X速度偏差2σ', 'X速度偏差3σ','X速度偏差最大',
+                 'Y速度偏差1σ', 'Y速度偏差2σ', 'Y速度偏差3σ', 'Y速度偏差最大', 'Z速度偏差1σ', 'Z速度偏差2σ','Z速度偏差3σ', 'Z速度偏差最大',
                  '高程偏差1σ', '高程偏差2σ', '高程偏差3σ', '高程偏差最大']
         percentage = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 1.5, 2]
         error = ["pos", "roll", "pitch", "yaw", "vel", "vel_x", "vel_y", "vel_z", "height"]
@@ -273,8 +280,7 @@ class DataStatistics:
     def StatisticGpsFlag(self, SyncRefGpsData, name):
         items = ["名称", "统计帧数", "固定", "浮点", "差分", "单点", "None"]
         gps_len = len(SyncRefGpsData)
-        none_len = gps_len - len(self.Pos["GpsFix"][0]) - len(self.Pos["GpsFloat"][0]) - len(
-            self.Pos["GpsDiff"][0]) - len(self.Pos["GpsSigle"][0])
+        none_len = gps_len - len(self.Pos["GpsFix"][0]) - len(self.Pos["GpsFloat"][0]) - len(self.Pos["GpsDiff"][0]) - len(self.Pos["GpsSigle"][0])
         self.statisticsgpsflag[items[0]] = [name]
         self.statisticsgpsflag[items[1]] = [gps_len]
         self.statisticsgpsflag[items[2]] = [round(len(self.Pos["GpsFix"][0]) / gps_len, 4)]

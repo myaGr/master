@@ -1029,7 +1029,7 @@ class PlotGpsInsRawSyncData:
 
             return cursor_5
 
-        def plot_ned_speed(ref_ins_data, ref_ins_data_before, name='速度（导航坐标系）'):
+        def plot_ned_speed(ref_ins_data, ref_gps_data, ref_ins_data_before, ref_gps_data_before, name='速度（导航坐标系）'):
             cursor_6 = []
             fig = plt.figure()
             fig.suptitle(name)
@@ -1037,7 +1037,7 @@ class PlotGpsInsRawSyncData:
             ax61 = fig.add_subplot(321)
             for f_name in ref_ins_data.keys():
                 index = list(ref_ins_data.keys()).index(f_name)
-                if 0 == index:  # only plant the first Ref100C
+                if 0 == index:  # only plant Ref100C once
                     line = ax61.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
                                      ref_ins_data[f_name].REFSpeed["NorthVelocity"],
                                      label='Ref' + self.ref_type, linewidth=1, alpha=0.7)
@@ -1046,6 +1046,10 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].INSSpeed["NorthVelocity"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                line = ax61.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                ref_gps_data[f_name].GPSSpeed['NorthVelocity'],
+                                 label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
+                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax61 = self.set_ax(ax61, '', 'unit:m/s', '北向速度')
 
             ax62 = fig.add_subplot(322)
@@ -1053,6 +1057,10 @@ class PlotGpsInsRawSyncData:
                 line = ax62.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
                                  ref_ins_data[f_name].error["vel_n"],
                                  label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
+                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                line = ax62.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                ref_gps_data[f_name].RefGpsSpeedDiff['NorthVelocity'],
+                                label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax62 = self.set_ax(ax62, '', 'unit:m/s', '北向速度对比')
 
@@ -1068,6 +1076,10 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].INSSpeed["EastVelocity"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                line = ax63.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                ref_gps_data[f_name].GPSSpeed['EastVelocity'],
+                                 label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
+                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax63 = self.set_ax(ax63, '', 'unit:m/s', '东向速度')
 
             ax64 = fig.add_subplot(324)
@@ -1075,6 +1087,10 @@ class PlotGpsInsRawSyncData:
                 line = ax64.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
                                  ref_ins_data[f_name].error["vel_e"],
                                  label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
+                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                line = ax64.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                ref_gps_data[f_name].RefGpsSpeedDiff['EastVelocity'],
+                                label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax64 = self.set_ax(ax64, '', 'unit:m/s', '东向速度对比')
 
@@ -1090,6 +1106,10 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].INSSpeed["GroundVelocity"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                line = ax65.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                ref_gps_data[f_name].GPSSpeed['GroundVelocity'],
+                                 label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
+                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax65 = self.set_ax(ax65, '', 'unit:m/s', '地向速度')
 
             ax66 = fig.add_subplot(326)
@@ -1097,6 +1117,10 @@ class PlotGpsInsRawSyncData:
                 line = ax66.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
                                  ref_ins_data[f_name].error["vel_g"],
                                  label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
+                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                line = ax66.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                ref_gps_data[f_name].RefGpsSpeedDiff['GroundVelocity'],
+                                label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax66 = self.set_ax(ax66, '', 'unit:m/s', '地向速度对比')
 
@@ -1193,7 +1217,9 @@ class PlotGpsInsRawSyncData:
                     bin_edges, cdf_error = DataCDF(ref_gps_data[f_name].Pos["PosXYError"])
                     line = ax81.plot(bin_edges, cdf_error, label=str(f_name + '_Ref-Gps'), linewidth=1, alpha=0.7)
                     cursor_8.append(plot_add_nonius(line, show_formate='xy'))
-            ax81 = self.set_ax(ax81, 'unit:m', '占比：%', '水平偏差统计', x_lim=[0, 0.5], y_lim=[0, 1])
+            ax81 = self.set_ax(ax81, 'unit:m', '占比：%', '水平偏差统计', y_lim=[0.6, 1])
+            # reset legend location
+            ax81.legend(loc='lower right')
 
             ########
             ax82 = fig.add_subplot(312)
@@ -1201,7 +1227,8 @@ class PlotGpsInsRawSyncData:
                 bin_edges, cdf_error = DataCDF(abs(ref_ins_data[f_name].error["yaw"]))
                 line = ax82.plot(bin_edges, cdf_error, label=str(f_name + '_Ref-Ins'), linewidth=1, alpha=0.7)
                 cursor_8.append(plot_add_nonius(line, show_formate='xy'))
-            ax82 = self.set_ax(ax82, '', 'unit:m', '航向偏差统计', x_lim=[0, 0.5], y_lim=[0, 1])
+            ax82 = self.set_ax(ax82, 'unit:m', '占比：%', '航向偏差统计', y_lim=[0.6, 1])
+            ax82.legend(loc='lower right')
 
             ########
             ax83 = fig.add_subplot(313)
@@ -1209,7 +1236,8 @@ class PlotGpsInsRawSyncData:
                 bin_edges, cdf_error = DataCDF(ref_ins_data[f_name].error["vel"])
                 line = ax83.plot(bin_edges, cdf_error, label=str(f_name + '_Ref-Ins'), linewidth=1, alpha=0.7)
                 cursor_8.append(plot_add_nonius(line, show_formate='xy'))
-            ax83 = self.set_ax(ax83, '', 'unit:m', '速度偏差统计', x_lim=[0, 0.5], y_lim=[0, 1])
+            ax83 = self.set_ax(ax83, 'unit:m', '占比：%', '速度偏差统计', y_lim=[0.6, 1])
+            ax83.legend(loc='lower right')
 
             fig.subplots_adjust(hspace=0.5)
             fig.canvas.manager.window.showMaximized()
@@ -1266,32 +1294,6 @@ class PlotGpsInsRawSyncData:
 
             # fig.canvas.manager.window.showMaximized()
 
-        # def gen_statistics_xlsx():
-        #     savedata = []
-        #     statistic_gps_all = {}
-        #     statistics_ins, statistics_gps = {}, {}
-        #
-        #     for file_name in self.gps_flag.keys():
-        #         # INS数据与参考对比统计
-        #         statistics_ins = self.RefInsData[file_name].StatisticSyncData(self.SyncRefInsData[file_name], file_name + "_Ins")
-        #         statistics_ins['时间范围'] = '全程'
-        #         # GPS解状态统计
-        #         if self.gps_flag[file_name]:
-        #             statistics_gps = self.RefGpsData[file_name].StatisticGpsFlag(self.SyncRefGpsData[file_name], file_name + "_gps")
-        #             statistics_gps['时间范围'] = '全程'
-        #             statistic_gps_all[file_name] = statistics_gps
-        #
-        #         if not savedata:
-        #             savedata = [statistics_ins, statistics_gps]
-        #         else:
-        #             for item in statistics_ins:
-        #                 savedata[0][item].append(statistics_ins[item][0])
-        #             for item in statistics_gps:
-        #                 savedata[1][item].append(statistics_gps[item][0])
-        #     SaveStatisticToExcel(savedata, filePath)
-        #
-        #     return statistic_gps_all
-
         if 0 == len(self.SyncRefInsData.keys()):
             return print('no file required to show !!!')
         msg_info = ''
@@ -1301,7 +1303,7 @@ class PlotGpsInsRawSyncData:
         self.iniInsGpsBpos()  # 杆臂值初始化
         self.checkGpsFlag()  # Gps绘图数初始化
         self.dataPreStatistics()  # 统计指标数据预处理
-        ########################### 画图只为全局数据 ###########################
+        ########################### 画图只为全局的/唯一那条的 数据 ###########################
         self.gps_flag = self.gps_flag_all
         self.SyncRefInsData = self.SyncRefInsData_all
         self.SyncRefGpsData = self.SyncRefGpsData_all
@@ -1310,7 +1312,7 @@ class PlotGpsInsRawSyncData:
         ########################### 预处理2 ###########################
         self.checkTimeType2()  # 显示时间类型
         ########################## 生成统计表格 ##########################
-        statistics_gps_all = self.gen_statistics_xlsx(filePath, time_arrange=time_arrange, scene=scene)
+        statistics_gps_all = self.gen_statistics_xlsx(filePath, time_arrange=time_arrange, scene=scene, gen_xlsx=False)
 
         ########################## 开始画图 ##########################
         cursors = []
@@ -1321,13 +1323,13 @@ class PlotGpsInsRawSyncData:
             print('Cannot plot gps解状态')
             msg_info += '无法绘制： gps解状态图\n'
             print(e)
-        try:
-            cursors.append(plot_time_diff(self.SyncRefInsData, self.SyncRefGpsData))
-            msg_info += '成功绘制图： time_diff\n'
-        except Exception as e:
-            print('Cannot plot time_diff')
-            msg_info += '无法绘制图： time_diff\n'
-            print(e)
+        # try:
+        #     cursors.append(plot_time_diff(self.SyncRefInsData, self.SyncRefGpsData))
+        #     msg_info += '成功绘制图： time_diff\n'
+        # except Exception as e:
+        #     print('Cannot plot time_diff')
+        #     msg_info += '无法绘制图： time_diff\n'
+        #     print(e)
         try:
             cursors.append(plot_path(self.RefGpsData, self.RefInsData, self.SyncRefInsData, self.SyncRefGpsData))
             msg_info += '成功绘制： 轨迹图\n'
@@ -1373,7 +1375,7 @@ class PlotGpsInsRawSyncData:
             msg_info += '无法绘制图： 姿态\n'
             print(e)
         try:
-            cursors.append(plot_ned_speed(self.RefInsData, self.SyncRefInsData))
+            cursors.append(plot_ned_speed(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
             msg_info += '成功绘制图： 速度（导航坐标系）\n'
         except Exception as e:
             print('Cannot plot ned_speed')
@@ -1386,7 +1388,6 @@ class PlotGpsInsRawSyncData:
             print('Cannot plot xyz_speed')
             msg_info += '无法绘制图： 速度（载体坐标系）\n'
             print(e)
-
         try:
             cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
             msg_info += '成功绘制图： 精度统计\n'
@@ -1465,22 +1466,36 @@ class PlotGpsInsRawSyncData:
             start_time = time_arrange[0]
             end_time = time_arrange[1]
             for file_name in list(SyncRefInsData.keys()):
+                # # Old Version
+                # gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
+                # # make sure end_time != 0
+                # gps_end_time = end_time if end_time > 0 else max(gps_time)
+                # start_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time >= start_time].index)[0]
+                # end_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time <= gps_end_time].index)[-1]
+                # SyncRefGpsData[file_name] = SyncRefGpsData[file_name][start_time_index:end_time_index][:]
+                #
+                # ins_time = SyncRefInsData[file_name]['sync_time'].values
+                # ins_end_time = end_time if end_time > 0 else max(ins_time)
+                # start_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time >= start_time].index)[0]
+                # end_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time <= ins_end_time].index)[-1]
+                # SyncRefInsData[file_name] = SyncRefInsData[file_name][start_time_index:end_time_index][:]
+
                 # find the time index in pandas.series
                 gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
                 # make sure end_time != 0
-                end_time = end_time if end_time > 0 else max(gps_time)
-                start_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time >= start_time].index)[0]
-                end_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time <= end_time].index)[-1]
-                SyncRefGpsData[file_name] = SyncRefGpsData[file_name][start_time_index:end_time_index][:]
+                gps_end_time = end_time if end_time > 0 else max(gps_time)
+                SyncRefGpsData[file_name] = SyncRefGpsData[file_name][(SyncRefGpsData[file_name]['sync_itow_pos'] >= start_time) & (SyncRefGpsData[file_name]['sync_itow_pos'] <= gps_end_time)]
+                SyncRefGpsData[file_name] = SyncRefGpsData[file_name].reset_index(drop=True)
 
+                ins_end_time = end_time if end_time > 0 else max(SyncRefInsData[file_name]['sync_time'].values)
+                SyncRefInsData[file_name] = SyncRefInsData[file_name][(SyncRefInsData[file_name]['sync_time'] >= start_time) & (SyncRefInsData[file_name]['sync_time'] <= ins_end_time)]
+                SyncRefInsData[file_name] = SyncRefInsData[file_name].reset_index(drop=True)
                 ins_time = SyncRefInsData[file_name]['sync_time'].values
-                end_time = end_time if end_time > 0 else max(ins_time)
                 start_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time >= start_time].index)[0]
-                end_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time <= end_time].index)[-1]
-                SyncRefInsData[file_name] = SyncRefInsData[file_name][start_time_index:end_time_index][:]
         else:
             gps_flag = self.gps_flag.copy()
 
+        # 最後一份數據
         data1 = SyncRefInsData[list(SyncRefInsData.keys())[-1]]
         pos0 = np.array([data1['lat_x'][start_time_index], data1['lon_x'][start_time_index], data1['height_x'][start_time_index]])  # 统一计算初始点
         for file_name in list(SyncRefInsData.keys()):
@@ -1513,6 +1528,7 @@ class PlotGpsInsRawSyncData:
                 if gps_flag[file_name]:
                     SyncRefGpsData_single = SyncRefGpsData[file_name]
                     RefGpsData[file_name] = DataStatistics()  # GPSs和参考数据统计计算
+                    RefGpsData[file_name].SpeedCalculation(SyncRefGpsData_single, 3)
                     RefGpsData[file_name].PosErrorCalculation(SyncRefGpsData_single, self.bpos_refgps[file_name], pos0, 1)
                     RefGpsData[file_name].Gpsflagstransfer(SyncRefGpsData_single)  # GPS解状态转换
 
@@ -1558,7 +1574,7 @@ class PlotGpsInsRawSyncData:
         else:
             self.time0_set = self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0] - self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0]
 
-    def gen_statistics_xlsx(self, filePath, time_arrange='全程', scene='全场景'):
+    def gen_statistics_xlsx(self, filePath, time_arrange='全程', scene='全场景', gen_xlsx=True):
         savedata = []
         statistic_gps_all = {}
         # statistics_ins, statistics_gps = {}, {}
@@ -1589,7 +1605,8 @@ class PlotGpsInsRawSyncData:
 
             savedata = [statistics_pos_ins, statistics_loc_ins, statistics_gps]
 
-            SaveStatisticToExcel(savedata, filePath)
+            if gen_xlsx:
+                SaveStatisticToExcel(savedata, filePath)
 
         return statistic_gps_all
 

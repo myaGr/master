@@ -69,7 +69,7 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF,
                                                                       self.HexDataParseObj.GpsDataDF, 'time',
                                                                       'itow_pos')
-            self.outputMsg1("时间同步完成，可生成统计图。")
+            self.outputMsg1("【绘图】时间同步完成，可生成统计图。")
         except Exception as e:
             self.outputMsg1(self.file_path + "文件解析失败...")
             self.outputMsg1('失败原因:' + str(e))
@@ -201,8 +201,8 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.DataPreProcess = DataPreProcess()
         self.Parse100CDataObj = Parse100CData()
 
+        # 1、解析基准数据
         try:
-            # 100C 数据解析
             # ps. self.Parse100CDataObj.ins100cdf 会被重置
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
@@ -227,37 +227,41 @@ class mainFunctionInsCompare(QtCore.QThread):
             if len(self.Parse100CDataObj.ins100cdf) == 0:
                 self.outputMsg2("数据无效，解析失败。")
                 return
+        except Exception as e:
+            self.outputMsg2("基准数据解析失败...")
+            self.outputMsg2('失败原因:' + str(e))
 
-            # INS 数据解析
-            self.name_list = []
-            for file in self.inspaths:
-                self.HexDataParseObj.filePath = file
-                file_name = file.split('/')[-1].split('.')[0]
-                self.name_list.append(file_name)
-                try:
-                    # 数据解析
-                    self.outputMsg2("开始解析：" + file)
-                    self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
-                    self.HexDataParseObj.saveDataToDF()
-                    if self.HexDataParseObj.InsDataDF is not None:
-                        self.outputMsg2("数据解析完成。")
-                        # 数据保存
-                        self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
-                        self.HexDataParseObj.InsDataDF = None
-                        self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
-                        self.HexDataParseObj.GpsDataDF = None
-                    else:
-                        self.outputMsg2("数据无效，解析失败。")
-                        continue
-                except Exception as e:
-                    self.inspaths.pop(file_name)
-                    self.name_list.pop(file_name)
-
-                    self.outputMsg2(file_name + "解析失败...")
-                    self.outputMsg2('失败原因:' + str(e))
+        # 解析测试数据
+        self.name_list = []
+        for file in self.inspaths:
+            self.HexDataParseObj.filePath = file
+            file_name = file.split('/')[-1].split('.')[0]
+            self.name_list.append(file_name)
+            try:
+                # 数据解析
+                self.outputMsg2("开始解析：" + file)
+                self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
+                self.HexDataParseObj.saveDataToDF()
+                if self.HexDataParseObj.InsDataDF is not None:
+                    self.outputMsg2("数据解析完成。")
+                    # 数据保存
+                    self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
+                    self.HexDataParseObj.InsDataDF = None
+                    self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
+                    self.HexDataParseObj.GpsDataDF = None
+                else:
+                    self.outputMsg2("数据无效，解析失败。")
                     continue
+            except Exception as e:
+                self.inspaths.pop(file_name)
+                self.name_list.pop(file_name)
 
-            # 时间同步
+                self.outputMsg2(file_name + "解析失败...")
+                self.outputMsg2('失败原因:' + str(e))
+                continue
+
+        # 2、时间同步
+        try:
             self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
             for file_name in self.name_list:
@@ -276,52 +280,63 @@ class mainFunctionInsCompare(QtCore.QThread):
                     self.outputMsg2(file_name + ": 时间同步失败...")
                     self.outputMsg2('失败原因:' + str(e))
                     continue
+        except Exception as e:
+            self.outputMsg2("时间同步失败...")
+            self.outputMsg2('失败原因:' + str(e))
 
-            # 分时段统计， time_dir仅服务于此
-            if len(list(self.time_dir.keys())) > 1:
-                for scene in self.time_dir.keys():
-                    try:
-                        time_arrange = self.time_dir[scene]['time_arrange']
-                        scene_dscribe = str(self.time_dir[scene]['scene_num']) + '_' + self.time_dir[scene]['scene']
-                        # 统计部分场景中，先把所有GPS的值都置上
-                        self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
-                        self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
+        # 3、分时段统计， time_dir仅被使用于此
+        if len(list(self.time_dir.keys())) >= 1:
+            for scene in self.time_dir.keys():
+                try:
+                    time_arrange = self.time_dir[scene]['time_arrange']
+                    scene_dscribe = str(self.time_dir[scene]['scene_num']) + '_' + self.time_dir[scene]['scene']
+                    # 统计部分场景中，先把所有GPS的值都置上
+                    self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
+                    self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
 
-                        if self.time_dir[scene]['scene'] != '全程':
-                            self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
-                            static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
-                            self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(),
-                                                                              time_arrange=time_arrange,
-                                                                              scene=scene_dscribe)
-                            self.outputMsg2(static_msg_info)
-                            static_msg_info = ''
-                    except Exception as e:
-                        self.outputMsg2(scene + ": 场景统计失败...")
-                        self.outputMsg2('失败原因:' + str(e))
-                        continue
+                    # if self.time_dir[scene]['scene'] != '全程':
+                    self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
+                    static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
+                    self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(),
+                                                                      time_arrange=time_arrange,
+                                                                      scene=scene_dscribe)
+                    self.outputMsg2(static_msg_info)
+                    static_msg_info = ''
+                except Exception as e:
+                    self.outputMsg2(scene + ": 场景统计失败...")
+                    self.outputMsg2('失败原因:' + str(e))
+                    continue
 
-                self.outputMsg2("完成场景统计！")
+            self.outputMsg2("场景统计完成！")
 
+        # 4、绘图参数配置
+        try:
             # 获取绘图的开始和结束时间
             self.DataPreProcess.t = self.plot_scene_time
+            print('time_range:', self.DataPreProcess.t)
             self.DataPreProcess.scene = self.plot_scene
             self.outputMsg2('绘制时间段设为：%s' % str(self.DataPreProcess.t))
+
+            # 【僅爲畫圖】如果仅有的画图时间段（plot_scene_time）不是全程（[0,0]），需要时间二次同步
             if self.DataPreProcess.t[0] != 0 or self.DataPreProcess.t[1] != 0:
                 self.outputMsg2('【绘图】同步时间段为%s的数据：' % str(self.DataPreProcess.t))
-                # 时间二次同步（僅爲畫圖)
                 self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
                 self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
+                self.PlotGpsInsRawSyncDataObj.SyncRefInsData_all = {}
+                self.PlotGpsInsRawSyncDataObj.SyncRefGpsData_all = {}
                 for file_name in self.name_list:
                     try:
-                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步...")
+                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步的时间段为: ", self.plot_scene_time)
                         self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
                         # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步...")
+                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步的时间段为: ",
+                                        self.plot_scene_time)
                         self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                     except Exception as e:
-                        self.outputMsg2(file_name + "【绘图】: 时间同步失败...")
+                        self.outputMsg2(file_name + "【绘图】: 时间同步失败，即将绘制全程图，同步失败的时间段为: ",
+                                        self.plot_scene_time)
                         self.outputMsg2('失败原因:' + str(e))
                         continue
 
@@ -339,8 +354,149 @@ class mainFunctionInsCompare(QtCore.QThread):
             # self.pushBtn_StartPlot2.setEnabled(True)
 
         except Exception as e:
-            self.outputMsg2("统计失败...")
+            self.outputMsg2("绘图参数配置失败...")
             self.outputMsg2('失败原因:' + str(e))
+
+        # # Old Version: one try
+        # try:
+        #     # 100C 数据解析
+        #     # ps. self.Parse100CDataObj.ins100cdf 会被重置
+        #     self.outputMsg2("开始解析：" + self.refpath)
+        #     self.Parse100CDataObj.filepath = self.refpath
+        #     ref_file_name = self.refpath.split('/')[-1].split('.')[0]
+        #     if self.ref_type == '320':
+        #         self.outputMsg2(ref_file_name + "为 POS320 设备输出格式。")
+        #         ref_flag = self.Parse100CDataObj.save_320_to_df()  # 开始参考数据解析
+        #     elif self.ref_type == '100C':
+        #         self.outputMsg2(ref_file_name + "为 100C 设备输出格式。")
+        #         ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
+        #     else:
+        #         self.outputMsg2("尚未兼容基准文件格式：" + self.ref_type)
+        #         # self.clear_handinput_scenes()
+        #         return
+        #     # 判断是否存在缺少的字段
+        #     print(ref_flag)
+        #     if type(ref_flag) == str:
+        #         self.outputMsg2(ref_flag)
+        #     elif ref_flag:
+        #         self.outputMsg2("缺少字段：" + str(ref_flag) + ", 解析失败。")
+        #         return
+        #     if len(self.Parse100CDataObj.ins100cdf) == 0:
+        #         self.outputMsg2("数据无效，解析失败。")
+        #         return
+        #
+        #     # INS 数据解析
+        #     self.name_list = []
+        #     for file in self.inspaths:
+        #         self.HexDataParseObj.filePath = file
+        #         file_name = file.split('/')[-1].split('.')[0]
+        #         self.name_list.append(file_name)
+        #         try:
+        #             # 数据解析
+        #             self.outputMsg2("开始解析：" + file)
+        #             self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
+        #             self.HexDataParseObj.saveDataToDF()
+        #             if self.HexDataParseObj.InsDataDF is not None:
+        #                 self.outputMsg2("数据解析完成。")
+        #                 # 数据保存
+        #                 self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
+        #                 self.HexDataParseObj.InsDataDF = None
+        #                 self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
+        #                 self.HexDataParseObj.GpsDataDF = None
+        #             else:
+        #                 self.outputMsg2("数据无效，解析失败。")
+        #                 continue
+        #         except Exception as e:
+        #             self.inspaths.pop(file_name)
+        #             self.name_list.pop(file_name)
+        #
+        #             self.outputMsg2(file_name + "解析失败...")
+        #             self.outputMsg2('失败原因:' + str(e))
+        #             continue
+        #
+        #     # 时间同步
+        #     self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
+        #     self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
+        #     for file_name in self.name_list:
+        #         try:
+        #             self.outputMsg2(file_name + ": INS和参考数据时间同步...")
+        #             self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
+        #                 self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
+        #             # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
+        #             self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
+        #             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
+        #                 self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+        #             if len(self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name]) == 0 or len(
+        #                     self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
+        #                 self.outputMsg2('时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
+        #         except Exception as e:
+        #             self.outputMsg2(file_name + ": 时间同步失败...")
+        #             self.outputMsg2('失败原因:' + str(e))
+        #             continue
+        #
+        #     # 分时段统计， time_dir仅服务于此
+        #     if len(list(self.time_dir.keys())) > 1:
+        #         for scene in self.time_dir.keys():
+        #             try:
+        #                 time_arrange = self.time_dir[scene]['time_arrange']
+        #                 scene_dscribe = str(self.time_dir[scene]['scene_num']) + '_' + self.time_dir[scene]['scene']
+        #                 # 统计部分场景中，先把所有GPS的值都置上
+        #                 self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
+        #                 self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
+        #
+        #                 if self.time_dir[scene]['scene'] != '全程':
+        #                     self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
+        #                     static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
+        #                     self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(),
+        #                                                                       time_arrange=time_arrange,
+        #                                                                       scene=scene_dscribe)
+        #                     self.outputMsg2(static_msg_info)
+        #                     static_msg_info = ''
+        #             except Exception as e:
+        #                 self.outputMsg2(scene + ": 场景统计失败...")
+        #                 self.outputMsg2('失败原因:' + str(e))
+        #                 continue
+        #
+        #         self.outputMsg2("完成场景统计！")
+        #
+        #     # 获取绘图的开始和结束时间
+        #     self.DataPreProcess.t = self.plot_scene_time
+        #     self.DataPreProcess.scene = self.plot_scene
+        #     self.outputMsg2('绘制时间段设为：%s' % str(self.DataPreProcess.t))
+        #     if self.DataPreProcess.t[0] != 0 or self.DataPreProcess.t[1] != 0:
+        #         self.outputMsg2('【绘图】同步时间段为%s的数据：' % str(self.DataPreProcess.t))
+        #         # 时间二次同步（僅爲畫圖)
+        #         self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
+        #         self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
+        #         for file_name in self.name_list:
+        #             try:
+        #                 self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步...")
+        #                 self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
+        #                     self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
+        #                 # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
+        #                 self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步...")
+        #                 self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
+        #                     self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+        #             except Exception as e:
+        #                 self.outputMsg2(file_name + "【绘图】: 时间同步失败...")
+        #                 self.outputMsg2('失败原因:' + str(e))
+        #                 continue
+        #
+        #     # 获取绘图中 GPS 显示数量
+        #     self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
+        #     if self.GpsNum > len(self.name_list):
+        #         self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
+        #         return
+        #     else:
+        #         for i in range(self.GpsNum):
+        #             self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
+        #         print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
+        #
+        #     self.outputMsg2("【绘图】时间同步完成，可生成图。")
+        #     # self.pushBtn_StartPlot2.setEnabled(True)
+        # except Exception as e:
+        #     self.outputMsg2("统计失败...")
+        #     self.outputMsg2('失败原因:' + str(e))
 
     def set_gps_bpos(self):
         # 配置杆臂值
@@ -468,7 +624,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.push_info_1.emit([self.path, self.types])
         self.thread_1.start()
-        self.pushBtn_StartPlot1.setEnabled(True)
+        # self.pushBtn_StartPlot1.setEnabled(True)
         # self.createDataParseThread()  # 创建数据解析线程，开始数据解析
 
     # 开始画图按钮按下
@@ -491,6 +647,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     # 输出提示消息
     def outputMsg1(self, msg_str):
+        if '开始解析：' in msg_str:
+            self.pushBtn_StartPlot1.setEnabled(False)
+        if '【绘图】时间同步完成，可生成图' in msg_str:
+            self.pushBtn_StartPlot1.setEnabled(True)
         msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
         self.textBrowser_showmsg1.append(msg)
 
@@ -801,7 +961,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.push_info_2.emit([self.refpath, self.ref_type, self.inspaths, self.time_dir, plot_time_range, plot_scene, GpsNum, self.InsBpos, self.GpsBpos])
         self.thread_2.start()
-        self.pushBtn_StartPlot2.setEnabled(True)
+        # self.pushBtn_StartPlot2.setEnabled(True)
         # self.createDataAnanlyseThread()  # 创建数据解析线程，开始数据解析
 
     # 画图
@@ -840,6 +1000,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 print('手动输入场景不止一条')
                 if len(list(self.scene_widget_add.keys())) > 0:
                     for key in list(self.scene_widget_add.keys()):
+                        print(key)
                         print('删除场景记录：' + str(self.time_dir[str(self.scene_cont)]))
                         self.time_dir.pop(str(self.scene_cont))
                         self.scene_cont -= 1
@@ -854,6 +1015,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.outputMsg2('场景输入有误，请点击清除场景键')
 
     def outputMsg2(self, msg_str):
+        if '开始解析：' in msg_str:
+            self.pushBtn_StartPlot2.setEnabled(False)
+        if '【绘图】时间同步完成，可生成图' in msg_str:
+            self.pushBtn_StartPlot2.setEnabled(True)
         msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
         self.textBrowser_showmsg2.append(msg)
 
