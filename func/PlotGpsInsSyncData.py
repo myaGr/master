@@ -15,7 +15,7 @@ plt.rc("font", family='MicroSoft YaHei', weight='bold')
 
 
 class PlotGpsInsData:
-    def __init__(self, parent=None):
+    def __init__(self):
         super().__init__()
         # 实例化数据解析对象，默认1个figure只有1个图像
         self.fig, self.ax = plt.subplots()
@@ -56,7 +56,7 @@ class PlotGpsInsData:
         # ax:绘图, x：自变量, y：因变量, label：因变量标签
         lines = ax.plot(x, y, label=label, linewidth=1, alpha=0.7)
         self.fig.canvas.mpl_connect('scroll_event', self.call_back)
-        mplcursors.cursor(lines, multiple=True)  # 数据游标
+        mplcursors.cursor(lines, multiple=True, bindings={'left':'shift+left', 'right':'shift+right'})  # 数据游标
 
     def PlotDataXY(self, ax, x, y, label, labels, color, linestyle, marker):
         # 绘制等比例图 + 游标显示标签信息
@@ -69,7 +69,7 @@ class PlotGpsInsData:
             lines = ax.plot(x, y, label=label, linewidth=1, linestyle=linestyle, marker=marker, alpha=0.7)
         self.fig.canvas.mpl_connect('scroll_event', self.call_back_xy)
         if labels:
-            cursor = mplcursors.cursor(lines, multiple=True)  # 数据游标
+            cursor = mplcursors.cursor(lines, multiple=True, bindings={'left':'shift+left', 'right':'shift+right'})  # 数据游标
             # cursor = mplcursors.cursor(lines, hover=True)
             cursor.connect("add", lambda sel: sel.annotation.set_text(labels[sel.target.index]))
 
@@ -90,9 +90,9 @@ class PlotGpsInsData:
 class PlotGpsInsRawSyncData:
     """
     plot INS数据与自身GPS对比画图 & INS数据与参考对比画图
-    @author: wenzixuan liqianwen
+    @author: liqianwen wenzixuan
     @version: for analyse db files
-    @date: 2022-11-15
+    @date: 2023-01-17
     """
 
     def __init__(self, ref_type='100C'):
@@ -122,6 +122,8 @@ class PlotGpsInsRawSyncData:
         self.SyncRefGpsINSData = {}
         self.RefInsData = {}
         self.RefGpsData = {}
+
+        self.msg_info = ''
 
     def PlotGpsInsRawSyncData(self):
         """
@@ -169,24 +171,43 @@ class PlotGpsInsRawSyncData:
         def plot_attitude(name='Angle'):
             Plotobj2 = PlotGpsInsData()
             Plotobj2.fig.suptitle(name)
+
             Plotobj2.ax1 = plt.subplot(2, 1, 1)
             Plotobj2.ax1.set_title('yaw')
-            Plotobj2.PlotData(Plotobj2.ax1, GpsData['itow_heading'] - self.time0_set, GpsData['Heading'], 'GPSYaw')
+            gps_itow_heading_time = GpsData[GpsData['itow_heading'] > self.time0_set].copy()
+            if len(gps_itow_heading_time) > 0:
+                Plotobj2.PlotData(Plotobj2.ax1, gps_itow_heading_time['itow_heading'] - self.time0_set, gps_itow_heading_time['Heading'], 'GPSYaw')
+            else:
+                print('GpsData[“itow_heading”]的值都小于 self.time0_set')
+                self.msg_info += '时间GpsData[“itow_heading”]的值都小于 开始时间点，姿态图Angle中的线段GPSYaw有误！\n'
             if 'headingStd' in GpsData.keys():
-                Plotobj2.PlotData(Plotobj2.ax1, GpsData['itow_pos'] - self.time0_set, GpsData['headingStd'],
-                                  'HeadingAccuracy')
-            Plotobj2.PlotData(Plotobj2.ax1, InsData['time'] - self.time0_set, InsData['yaw'], 'INSYaw')
+                Plotobj2.PlotData(Plotobj2.ax1, GpsData['itow_pos'] - self.time0_set, GpsData['headingStd'],'HeadingAccuracy')
+
+            ins_time = InsData[InsData['time'] > self.time0_set].copy()
+            if len(ins_time) > 0:
+                Plotobj2.PlotData(Plotobj2.ax1, ins_time['time'] - self.time0_set, ins_time['yaw'], 'INSYaw')
+            else:
+                print('ins_time[“time”]的值都小于 self.time0_set')
+                self.msg_info += '时间ins_time[“time”]的值都小于 开始时间点，姿态图Angle中的线段INSYaw有误！\n'
             Plotobj2.PlotData(Plotobj2.ax1, GpsData['itow_vel'] - self.time0_set, GpsData['TrackAngle'],
                               'GPSTrackAngle')
             Plotobj2.ShowPlotFormat('', 'unit:deg')
+
             Plotobj2.ax2 = plt.subplot(2, 1, 2)
             Plotobj2.ax2.set_title('att')
             GPSYaw_INSYaw = angele_standardization(np.array(InsGpsSyncData['Heading'] - InsGpsSyncData['yaw']))
-            GPSTrackAngle_INSYaw = angele_standardization(
-                np.array(InsGpsSyncData['TrackAngle'] - InsGpsSyncData['yaw']))
-            Plotobj2.PlotData(Plotobj2.ax2, InsData['time'] - self.time0_set, InsData['roll'], 'INSRoll')
-            Plotobj2.PlotData(Plotobj2.ax2, InsData['time'] - self.time0_set, InsData['pitch'], 'INSPitch')
-            Plotobj2.PlotData(Plotobj2.ax2, GpsData['itow_heading'] - self.time0_set, GpsData['Pitch'], 'GPSPitch')
+            GPSTrackAngle_INSYaw = angele_standardization(np.array(InsGpsSyncData['TrackAngle'] - InsGpsSyncData['yaw']))
+            if len(ins_time) > 0:
+                Plotobj2.PlotData(Plotobj2.ax2, ins_time['time'] - self.time0_set, ins_time['roll'], 'INSRoll')
+                Plotobj2.PlotData(Plotobj2.ax2, ins_time['time'] - self.time0_set, ins_time['pitch'], 'INSPitch')
+            else:
+                print('ins_time[“time”]的值都小于 self.time0_set')
+                self.msg_info += '时间ins_time[“time”]的值都小于 开始时间点，姿态图Angle中的线段INSRoll、INSPitch有误！\n'
+            if len(gps_itow_heading_time) > 0:
+                Plotobj2.PlotData(Plotobj2.ax2, gps_itow_heading_time['itow_heading'] - self.time0_set, gps_itow_heading_time['Pitch'], 'GPSPitch')
+            else:
+                print('GpsData[“itow_heading”]的值都小于 self.time0_set')
+                self.msg_info += '时间GpsData[“itow_heading”]的值都小于 开始时间点，姿态图Angle中的线段GPSPitch有误！\n'
             Plotobj2.PlotData(Plotobj2.ax2, InsGpsSyncData['time'] - self.time0_set, GPSYaw_INSYaw, 'GPSYaw-INSYaw')
             Plotobj2.PlotData(Plotobj2.ax2, InsGpsSyncData['time'] - self.time0_set, GPSTrackAngle_INSYaw,
                               'GPSTrackAngle-INSYaw')
@@ -561,26 +582,76 @@ class PlotGpsInsRawSyncData:
 
         self.checkTimeType1()
 
-        # figure1: DataDiff
-        plot_data_diff()
-        # figure2: Att
-        plot_attitude()
-        # figure3: Velocity
-        plot_velocity()
-        # figure4: Pos
-        plot_position()
-        # figure5: Pos Error
-        plot_pos_error()
-        # figure6: Mileage
-        plot_mileage()
-        # figure7: Car Path
-        plot_path()
-        # figure8: Error零偏
-        plot_zero_error()
-        # figure9: Kalman.P
-        plot_kalman_p()
-        # figure10: Kalman.X
-        plot_kalman_x()
+        try:
+            # figure1: DataDiff
+            plot_data_diff()
+        except Exception as e:
+            print('Cannot plot DataDiff')
+            self.msg_info += '无法绘制： DataDiff\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure2: Att
+            plot_attitude()
+        except Exception as e:
+            print('Cannot plot attitude')
+            self.msg_info += '无法绘制： attitude\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure3: Velocity
+            plot_velocity()
+        except Exception as e:
+            print('Cannot plot velocity')
+            self.msg_info += '无法绘制： velocity\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure4: Pos
+            plot_position()
+        except Exception as e:
+            print('Cannot plot position')
+            self.msg_info += '无法绘制： position\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure5: Pos Error
+            plot_pos_error()
+        except Exception as e:
+            print('Cannot plot pos_error')
+            self.msg_info += '无法绘制： pos_error\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure6: Mileage
+            plot_mileage()
+        except Exception as e:
+            print('Cannot plot mileage')
+            self.msg_info += '无法绘制： mileage\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure7: Car Path
+            plot_path()
+        except Exception as e:
+            print('Cannot plot Car Path')
+            self.msg_info += '无法绘制： Car Path\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure8: Error零偏
+            plot_zero_error()
+        except Exception as e:
+            print('Cannot plot Error零偏')
+            self.msg_info += '无法绘制： Error零偏\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure9: Kalman.P
+            plot_kalman_p()
+        except Exception as e:
+            print('Cannot plot Kalman.P')
+            self.msg_info += '无法绘制： Kalman.P\n失败原因：'+e+'\n'
+            print(e)
+        try:
+            # figure10: Kalman.X
+            plot_kalman_x()
+        except Exception as e:
+            print('Cannot plot Kalman.x')
+            self.msg_info += '无法绘制： Kalman.x\n失败原因：'+e+'\n'
+            print(e)
 
         plt.show()  # 显示所有图像
 
@@ -599,7 +670,7 @@ class PlotGpsInsRawSyncData:
 
         def plot_add_nonius(line, labels=None, show_formate='xy', hover=False, multiple=True):
             """添加游标"""
-            cursor = mplcursors.cursor(line, hover=hover, multiple=multiple)
+            cursor = mplcursors.cursor(line, hover=hover, multiple=multiple, bindings={'left':'shift+left', 'right':'shift+right'})
             if 'time' == show_formate:
                 if labels:
                     cursor.connect("add", lambda sel: sel.annotation.set_text(
@@ -1046,10 +1117,11 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].INSSpeed["NorthVelocity"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
-                line = ax61.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
-                                ref_gps_data[f_name].GPSSpeed['NorthVelocity'],
-                                 label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
-                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                if self.gps_flag[f_name]:
+                    line = ax61.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].GPSSpeed['NorthVelocity'],
+                                     label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
+                    cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax61 = self.set_ax(ax61, '', 'unit:m/s', '北向速度')
 
             ax62 = fig.add_subplot(322)
@@ -1058,10 +1130,11 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].error["vel_n"],
                                  label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
-                line = ax62.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
-                                ref_gps_data[f_name].RefGpsSpeedDiff['NorthVelocity'],
-                                label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
-                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                if self.gps_flag[f_name]:
+                    line = ax62.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].RefGpsSpeedDiff['NorthVelocity'],
+                                    label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax62 = self.set_ax(ax62, '', 'unit:m/s', '北向速度对比')
 
             ax63 = fig.add_subplot(323)
@@ -1076,10 +1149,11 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].INSSpeed["EastVelocity"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
-                line = ax63.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
-                                ref_gps_data[f_name].GPSSpeed['EastVelocity'],
-                                 label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
-                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                if self.gps_flag[f_name]:
+                    line = ax63.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].GPSSpeed['EastVelocity'],
+                                     label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
+                    cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax63 = self.set_ax(ax63, '', 'unit:m/s', '东向速度')
 
             ax64 = fig.add_subplot(324)
@@ -1088,10 +1162,11 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].error["vel_e"],
                                  label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
-                line = ax64.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
-                                ref_gps_data[f_name].RefGpsSpeedDiff['EastVelocity'],
-                                label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
-                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                if self.gps_flag[f_name]:
+                    line = ax64.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].RefGpsSpeedDiff['EastVelocity'],
+                                    label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax64 = self.set_ax(ax64, '', 'unit:m/s', '东向速度对比')
 
             ax65 = fig.add_subplot(325)
@@ -1106,10 +1181,11 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].INSSpeed["GroundVelocity"],
                                  label=str(f_name + '_INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
-                line = ax65.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
-                                ref_gps_data[f_name].GPSSpeed['GroundVelocity'],
-                                 label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
-                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                if self.gps_flag[f_name]:
+                    line = ax65.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].GPSSpeed['GroundVelocity'],
+                                     label=str(f_name + '_GPS'), linewidth=1, alpha=0.7)
+                    cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax65 = self.set_ax(ax65, '', 'unit:m/s', '地向速度')
 
             ax66 = fig.add_subplot(326)
@@ -1118,10 +1194,11 @@ class PlotGpsInsRawSyncData:
                                  ref_ins_data[f_name].error["vel_g"],
                                  label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
                 cursor_6.append(plot_add_nonius(line, show_formate='xy'))
-                line = ax66.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
-                                ref_gps_data[f_name].RefGpsSpeedDiff['GroundVelocity'],
-                                label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
-                cursor_6.append(plot_add_nonius(line, show_formate='xy'))
+                if self.gps_flag[f_name]:
+                    line = ax66.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].RefGpsSpeedDiff['GroundVelocity'],
+                                    label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_6.append(plot_add_nonius(line, show_formate='xy'))
             ax66 = self.set_ax(ax66, '', 'unit:m/s', '地向速度对比')
 
             fig.subplots_adjust(hspace=0.7)
@@ -1138,7 +1215,7 @@ class PlotGpsInsRawSyncData:
                 index = list(ref_ins_data.keys()).index(f_name)
                 if 0 == index:  # only plant the first Ref100C
                     line = ax71.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
-                                     ref_ins_data[f_name].INSSpeed["ForwardVelocity"],
+                                     ref_ins_data[f_name].REFSpeed["ForwardVelocity"],
                                      label='Ref' + self.ref_type, linewidth=1, alpha=0.7)
                     cursor_7.append(plot_add_nonius(line, show_formate='xy'))
                 line = ax71.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
@@ -1243,6 +1320,24 @@ class PlotGpsInsRawSyncData:
             fig.canvas.manager.window.showMaximized()
             return cursor_8
 
+        def plot_time_diff2(ref_ins_data, ref_gps_data, name='历元间隔分布图'):
+            fig = plt.figure(figsize=(8, 6))
+            ax9 = fig.add_subplot(111)
+            for f_name in ref_ins_data.keys():
+                ax9.plot((ref_ins_data[f_name]['time_x'] - self.time0_set)[:-1],
+                         np.diff(ref_ins_data[f_name]['time_x']),
+                         label=str(f_name + '_Ref-Ins'),
+                         linewidth=1, alpha=0.7)
+
+                if self.gps_flag[f_name]:
+                    ax9.plot((ref_gps_data[f_name]['time'] - self.time0_set)[:-1],
+                             np.diff(ref_gps_data[f_name]['time']),
+                             label=str(f_name + '_Ref-Gps'), linewidth=1, alpha=0.7)
+
+            ax9 = self.set_ax(ax9, '', 'unit:s', name)
+            cursor_9 = Cursor(ax9, horizOn=False, vertOn=True, useblit=False, color='grey', linewidth=1, linestyle='--')
+            return cursor_9
+
         def plot_gps_situation(statistic_gps_all, name='GPS解状态占比'):
             # 画GPS解状态
             flags = ['固定', '浮点', '差分', '单点', 'None']
@@ -1330,6 +1425,13 @@ class PlotGpsInsRawSyncData:
         #     print('Cannot plot time_diff')
         #     msg_info += '无法绘制图： time_diff\n'
         #     print(e)
+        try:
+            cursors.append(plot_time_diff2(self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制图： 历元间隔分布图\n'
+        except Exception as e:
+            print('Cannot plot time_diff')
+            msg_info += '无法绘制图： 历元间隔分布图\n'
+            print(e)
         try:
             cursors.append(plot_path(self.RefGpsData, self.RefInsData, self.SyncRefInsData, self.SyncRefGpsData))
             msg_info += '成功绘制： 轨迹图\n'
@@ -1575,7 +1677,6 @@ class PlotGpsInsRawSyncData:
             self.time0_set = self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0] - self.SyncRefInsData[list(self.SyncRefInsData.keys())[0]]['time_x'][0]
 
     def gen_statistics_xlsx(self, filePath, time_arrange='全程', scene='全场景', gen_xlsx=True):
-        savedata = []
         statistic_gps_all = {}
         # statistics_ins, statistics_gps = {}, {}
         statistics_pos_ins, statistics_loc_ins, statistics_gps = {}, {}, {}

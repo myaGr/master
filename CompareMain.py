@@ -159,7 +159,6 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             self.outputMsg1("时间同步失败。")
             self.outputMsg1('失败原因:' + str(e))
 
-
     def plot_insgps(self, second_of_week=False):
         self.outputMsg1("开始INS和GPS统计画图...")
         self.PlotGpsInsRawSyncDataObj.InsDataDF = self.HexDataParseObj.InsDataDF
@@ -271,8 +270,8 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.refpath = data_info[0]
         self.ref_type = data_info[1]
         self.inspaths = data_info[2]
-        # self.time_dir = data_info[3]
-        self.time_dir = {'1': {'scene': '内环高架上', 'scene_num': 2, 'time_arrange': [0.0, 281800.0]}, '2': {'scene': '林荫道', 'scene_num': 4, 'time_arrange': [281810.0, 282000.0]}, '3': {'scene': '高楼多径', 'scene_num': 5, 'time_arrange': [282010.0, 282200.0]}, '4': {'scene': '隧道', 'scene_num': 71, 'time_arrange': [282210.0, 0.0]}, '5': {'scene': '全程', 'scene_num': 0, 'time_arrange': [0, 0]}}
+        self.time_dir = data_info[3]
+        # self.time_dir = {'1': {'scene' : '内环高架上', 'scene_num': 2, 'time_arrange': [0.0, 281800.0]}, '2': {'scene': '林荫道', 'scene_num': 4, 'time_arrange': [281810.0, 282000.0]}, '3': {'scene': '高楼多径', 'scene_num': 5, 'time_arrange': [282010.0, 282200.0]}, '4': {'scene': '隧道', 'scene_num': 71, 'time_arrange': [282210.0, 0.0]}, '5': {'scene': '全程', 'scene_num': 0, 'time_arrange': [0, 0]}}
         self.plot_scene_time = data_info[4]  # 画图场景，将赋值给 self.DataPreProcess.t
         self.plot_scene = data_info[5]
         self.GpsNum = data_info[6]
@@ -489,7 +488,8 @@ if __name__ == "__main__":
         # 错误文件
         # path = r'D:/Files/test/dbFiles/test2/100/config1.txt'
         # 内容有误
-        path = r'D:\Files\test\dbFiles\test7_errordata\202212 08152309911\INS570D_0108_main_linux_didi_20221205.txt'
+        # path = r'D:\Files\test\dbFiles\test7_errordata\202212 08152309911\INS570D_0108_main_linux_didi_20221205.txt'
+        path = r'D:\Downloads\12311-0118-imu-2.txt'
         # types = ['csv', 'mat']
         types = []
 
@@ -507,10 +507,10 @@ if __name__ == "__main__":
         inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
         refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
 
-        # inspaths = [r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
-                    # ,r'D:\Files\test\dbFiles\test6_320\12311-1114-松组合.txt'
-                    # ]
-        # refpath = r'D:\Files\test\dbFiles\test6_320\1114到后轴320.txt'
+        inspaths = [r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
+                    ,r'D:\Files\test\dbFiles\test6_320\12311-1114-松组合.txt'
+                    ]
+        refpath = r'D:\Files\test\dbFiles\test6_320\1114到后轴320.txt'
         # inspaths = [r'D:\Downloads\12311-1114-紧组合.txt'
         #     ,r'D:\Downloads\12311-1114-松组合.txt'
         #             ]
@@ -521,8 +521,8 @@ if __name__ == "__main__":
         # refpath = r'D:\Files\test\dbFiles\test9_320\后轮轴中心320.txt'
 
         # 320 error data
-        inspaths = [r'D:\Files\test\dbFiles\test10_320\algo_bin.log']
-        refpath = r'D:\Files\test\dbFiles\test10_320\pos320.txt'
+        # inspaths = [r'D:\Files\test\dbFiles\test10_320\algo_bin.log']
+        # refpath = r'D:\Files\test\dbFiles\test10_320\pos320.txt'
 
         for file in inspaths:
             if not os.path.isfile(file):

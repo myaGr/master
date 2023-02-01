@@ -1,7 +1,6 @@
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import QDate, Qt, QObject
+from PyQt5.QtCore import QObject
 import webbrowser
-from PyQt5.QtCore import QCoreApplication
 
 from view.ui_MainWindow_DataAnalysis import Ui_MainWindow  # UI界面
 from func.HexDataParse import HexDataParse  # 导入自定义的类，数据解析
@@ -88,8 +87,9 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
 
         try:
             print("开始INS和GPS统计画图...")
-            msg_info = self.PlotGpsInsRawSyncDataObj.PlotGpsInsRawSyncData()
-            self.outputMsg1(msg_info)
+            self.PlotGpsInsRawSyncDataObj.PlotGpsInsRawSyncData()
+            self.outputMsg1(self.PlotGpsInsRawSyncDataObj.msg_info)
+            self.PlotGpsInsRawSyncDataObj.msg_info = ''
         except Exception as e:
             self.outputMsg1("画图失败...")
             self.outputMsg1('失败原因:' + str(e))
@@ -326,17 +326,15 @@ class mainFunctionInsCompare(QtCore.QThread):
                 self.PlotGpsInsRawSyncDataObj.SyncRefGpsData_all = {}
                 for file_name in self.name_list:
                     try:
-                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步的时间段为: ", self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步的时间段为: " + str(self.plot_scene_time))
                         self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
                         # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步的时间段为: ",
-                                        self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步的时间段为: " + str(self.plot_scene_time))
                         self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                     except Exception as e:
-                        self.outputMsg2(file_name + "【绘图】: 时间同步失败，即将绘制全程图，同步失败的时间段为: ",
-                                        self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: 时间同步失败，即将绘制全程图，同步失败的时间段为: " + str(self.plot_scene_time))
                         self.outputMsg2('失败原因:' + str(e))
                         continue
 
@@ -649,7 +647,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def outputMsg1(self, msg_str):
         if '开始解析：' in msg_str:
             self.pushBtn_StartPlot1.setEnabled(False)
-        if '【绘图】时间同步完成，可生成图' in msg_str:
+        if '【绘图】时间同步完成，可生成统计图' in msg_str:
             self.pushBtn_StartPlot1.setEnabled(True)
         msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
         self.textBrowser_showmsg1.append(msg)

@@ -406,12 +406,12 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
-        self.textBro_PrintMsg2.setCurrentIndex(1)
+        self.textBro_PrintMsg2.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V2.0.2   Powered by 算法部 2023/01/06"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V2.0.3   Powered by 算法部 2023/01/17"))
         self.label_2.setText(_translate("MainWindow", "文件路径* ："))
         self.pushBtn_SelectFile.setText(_translate("MainWindow", "选择文件"))
         self.label_3.setText(_translate("MainWindow", "保存文件类型："))

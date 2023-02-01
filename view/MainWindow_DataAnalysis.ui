@@ -18,7 +18,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>数据解析与分析工具V2.0.1   Powered by 算法部 2022/11/25</string>
+   <string>数据解析与分析工具V2.0.3   Powered by 算法部 2023/01/18</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -37,7 +37,7 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab1">
        <property name="font">
