@@ -933,7 +933,7 @@ class PlotGpsInsRawSyncData:
                                       ref_gps_data[f_name].Pos["PosXError"],
                                       label=str(f_name + '_Ref-Gps'), linewidth=1, alpha=0.7)
                     cursor_3.append(plot_add_nonius(line, show_formate='xy'))
-            ax311 = self.set_ax(ax311, '', 'unit:m', '横向偏差')
+            ax311 = self.set_ax(ax311, '', 'unit:m', '纵向偏差')
             # 限制纵坐标
             if plt.ylim()[0] < -5 or plt.ylim()[1] > 2:
                 ax311.set_ylim(-5, 5)
@@ -964,7 +964,7 @@ class PlotGpsInsRawSyncData:
                                       ref_gps_data[f_name].Pos["PosYError"],
                                       label=str(f_name + '_Ref-Gps'), linewidth=1, alpha=0.7)
                     cursor_3.append(plot_add_nonius(line, show_formate='xy'))
-            ax321 = self.set_ax(ax321, '', 'unit:m', '纵向偏差')
+            ax321 = self.set_ax(ax321, '', 'unit:m', '横向偏差')
             # 限制纵坐标
             if plt.ylim()[0] < -5 or plt.ylim()[1] > 2:
                 ax321.set_ylim(-5, 5)

@@ -153,8 +153,8 @@ class DataStatistics:
         self.Pos["Lat_Y"][1] = self.Pos["Lat_Y"][1] - pos_err[1][0]
         self.Pos["Lon_X"][1] = self.Pos["Lon_X"][1] - pos_err[1][1]
         self.Pos["Height_Z"][1] = self.Pos["Height_Z"][1] - pos_err[1][2]
-        self.Pos["PosXError"] = cos3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + sin3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 横向偏差
-        self.Pos["PosYError"] = -sin3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + cos3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 纵向偏差
+        self.Pos["PosXError"] = cos3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + sin3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 纵向偏差
+        self.Pos["PosYError"] = -sin3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + cos3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 横向偏差
         self.Pos["PosXYError"] = np.sqrt(self.Pos["PosXError"] * self.Pos["PosXError"] + self.Pos["PosYError"] * self.Pos["PosYError"])  # 水平偏差
 
     # GPS解状态转换
@@ -181,7 +181,7 @@ class DataStatistics:
     @staticmethod
     def sigma_err_cal(datalist):
         sigma_error = [0, 0, 0, 0]
-        sigma = [0.6827, 0.9544, 0.9974];
+        sigma = [0.6827, 0.9544, 0.9974]
         sorteddata = sorted(abs(datalist))
         sigma_error[0] = sorteddata[math.ceil(len(sorteddata) * sigma[0]) - 1]  # 1倍sigame
         sigma_error[1] = sorteddata[math.ceil(len(sorteddata) * sigma[1]) - 1]  # 2倍sigame
@@ -249,8 +249,8 @@ class DataStatistics:
                  '<0.5偏差占比', '<1偏差占比', '<1.5偏差占比', '<2偏差占比',
                  '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大',
                  '高程偏差1σ', '高程偏差2σ', '高程偏差3σ', '高程偏差最大',
-                 '横向偏差1σ', '横向偏差2σ', '横向偏差3σ', '横向偏差最大',
-                 '纵向偏差1σ', '纵向偏差2σ', '纵向偏差3σ', '纵向偏差最大']
+                 '纵向偏差1σ', '纵向偏差2σ', '纵向偏差3σ', '纵向偏差最大',
+                 '横向偏差1σ', '横向偏差2σ', '横向偏差3σ', '横向偏差最大',]
         percentage = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 1.5, 2]
         error = ["pos", "height", "PosXError", "PosYError"]
         self.error["pos"] = self.Pos["PosXYError"]

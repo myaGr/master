@@ -330,8 +330,8 @@ if __name__ == '__main__':
     # blf_dirs = r'D:/Files/FX11/data'
     # dbc_dirs = r'D:\Files\FX11\dbc\SDB22200_FX11_High_SafetyCANFD5_220728.dbc'
 
-    blf_dirs = r'D:\Files\test\fx11\test_data'
-    dbc_dirs = r'D:\Files\test\fx11\dbc'
+    blf_dirs = r'D:\Downloads\BLF (1)\BLF'
+    dbc_dirs = r'D:\Downloads\dbc'
 
     loader = canLoader(blf_dirs, dbc_dirs)
     loader.main()
