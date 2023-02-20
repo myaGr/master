@@ -32,6 +32,14 @@ class DataPreProcess(object):
         if 'flagsPos' in df.keys():
             df = df[df['flagsPos'] > 0]
 
+        # 时间跨周补偿
+        time_diff_list = np.diff(df[times])
+        index_list = df[times][1:][time_diff_list < 0].index.tolist()
+        if index_list:
+            print('存在跨周情况！')
+        for index in index_list:
+            df[times][index:] = df[times][index:] + 604800
+
         # 重置数据索引
         df = df.reset_index(drop=True)
         return df

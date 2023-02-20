@@ -1004,9 +1004,9 @@ class PlotGpsInsRawSyncData:
                                     label=str(f_name + '_Ref-Gps'), linewidth=1, alpha=0.7)
                     cursor_4.append(plot_add_nonius(line, show_formate='xy'))
             ax4 = self.set_ax(ax4, '', 'unit:m', '')
-            # 限制纵坐标
-            if plt.ylim()[1] > 10:
-                ax4.set_ylim(0, 10)
+            # # 限制纵坐标
+            # if plt.ylim()[1] > 10:
+            #     ax4.set_ylim(0, 10)
 
             ax42 = ax4.twinx()
             for f_name in ref_ins_data.keys():

@@ -98,8 +98,8 @@ class canLoader(object):
                 dbc_content = cantools.db.load_file(dbc)
                 for msg in dbc_content.messages:
                     for signal in msg.signal_tree:
-                        signal_dic[signal] = (num + 1, hex(msg.frame_id)[2:])
-                        # signal_dic[signal] = (num, hex(msg.frame_id)[2:])
+                        # signal_dic[signal] = (num + 1, hex(msg.frame_id)[2:])
+                        signal_dic[signal] = (5, hex(msg.frame_id)[2:])
 
             self.signals_dic = signal_dic
 

@@ -494,7 +494,7 @@ if __name__ == "__main__":
         # path = r'D:/Files/test/dbFiles/test2/100/config1.txt'
         # 内容有误
         # path = r'D:\Files\test\dbFiles\test7_errordata\202212 08152309911\INS570D_0108_main_linux_didi_20221205.txt'
-        path = r'D:\Downloads\12311-0118-imu-2.txt'
+        path = r'D:\Downloads\ins_2022_12_25_10_41_27.log'
         # types = ['csv', 'mat']
         types = []
 
@@ -513,8 +513,8 @@ if __name__ == "__main__":
         # inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
         # refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
 
-        inspaths = [r'D:\Files\test\dbFiles\test1\test1_LogINS.txt']
-        refpath = r'D:\Files\test\dbFiles\test1\100C_test.txt'
+        inspaths = [r'D:\Files\test\dbFiles\test13_pos\1208PM到后轴100C.txt']
+        refpath = r'D:\Files\test\dbFiles\test13_pos\algo_bin(1).log'
 
         # inspaths = [r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
         #             ,r'D:\Files\test\dbFiles\test6_320\12311-1114-松组合.txt'
@@ -569,8 +569,8 @@ if __name__ == "__main__":
         thread_2.plot_insgps_compare()
 
 
-    compare_test()
-    # analyze_single_file()
+    # compare_test()
+    analyze_single_file()
     print('over')
 
 
