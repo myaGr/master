@@ -59,23 +59,23 @@ def request_get(url_get, param_get):
     :return:
     """
     fails = 0
+    text = {}
     while True:
         try:
             if fails >= 5:
-                break
-
+                print('网络连接出现问题, 无法检查当前版本')
+                text['message'] = "网络连接失败,无法检查当前版本。"
+                return text
             ret = requests.get(url=url_get, params=param_get, timeout=10)
-
             if ret.status_code == 200:
                 text = json.loads(ret.text)
             else:
+                fails += 1
                 continue
         except Exception as e:
-            print(e)
-            print('网络连接出现问题, 正在尝试再次请求: ', fails)
             fails += 1
-        else:
-            break
+            print('网络连接出现问题', e)
+            text['message'] = '网络连接失败,无法检查当前版本。'
     return text
 
 
@@ -89,8 +89,10 @@ def request_post(url_post, param_post):
     fails = 0
     while True:
         try:
-            if fails >= 20:
-                break
+            if fails >= 5:
+                print('网络连接出现问题, 无法检查当前版本')
+                text['message'] = "网络连接失败,无法检查当前版本。"
+                return text
 
             headers = {'content-type': 'application/json'}
             ret = requests.post(url_post, json=param_post, headers=headers, timeout=10)
@@ -98,19 +100,25 @@ def request_post(url_post, param_post):
             if ret.status_code == 200:
                 text = json.loads(ret.text)
             else:
+                fails += 1
                 continue
         except Exception as e:
             fails += 1
             print(e)
             print('网络连接出现问题, 正在尝试再次请求: ', fails)
-        else:
-            break
+            text['message'] = '网络连接失败,无法检查当前版本。'
+
     return text
 
 
 if __name__ == "__main__":
     # Check whether the newest version
-    checkVersion('数据解析与分析工具V2.0.5.exe')
+    try:
+        checkVersion('数据解析与分析工具V2.0.5.exe')
+    except Exception as e:
+        print(e)
+        msgbox.showinfo('提示', '网络有问题，无法检测最新版本！')
+
 
     # # check License date
     # checkLicenseDate()

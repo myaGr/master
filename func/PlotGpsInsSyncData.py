@@ -565,6 +565,24 @@ class PlotGpsInsRawSyncData:
                                'YawError')
             Plotobj10.ShowPlotFormat('', 'unit:m', 0.8)
 
+        def plot_single_forwarrd_speed_VBX(name='Forward_Speed_VBX'):
+            Plotobj11 = PlotGpsInsData()
+            Plotobj11.fig.suptitle(name)
+            Plotobj11.ax4 = plt.subplot(1, 1, 1)
+            Plotobj11.PlotData(Plotobj11.ax4, InsGpsSyncData['time'] - self.time0_set,
+                              DataStatiObj.INSSpeed["ForwardVelocity"], 'INS')
+            Plotobj11.PlotData(Plotobj11.ax4, InsGpsSyncData['time'] - self.time0_set, InsGpsSyncData['HSpd'], 'GPS')
+            Plotobj11.PlotData(Plotobj11.ax4, VehicleData['ts'] - self.time0_set, DataStatiObj.VehSpd["DriR_L"], 'DriR_L')
+            Plotobj11.PlotData(Plotobj11.ax4, VehicleData['ts'] - self.time0_set, DataStatiObj.VehSpd["DriR_R"], 'DriR_R')
+            Plotobj11.PlotData(Plotobj11.ax4, VehicleData['ts'] - self.time0_set, DataStatiObj.VehSpd["NonDriR_L"],
+                              'NonDriR_L')
+            Plotobj11.PlotData(Plotobj11.ax4, VehicleData['ts'] - self.time0_set, DataStatiObj.VehSpd["NonDriR_R"],
+                              'NonDriR_R')
+            Plotobj11.PlotData(Plotobj11.ax4, VehicleData['ts'] - self.time0_set, VehicleData["gear"], 'Shifter')
+            Plotobj11.ShowPlotFormat('', 'unit:m/s')
+
+
+
         bpos = self.bpos_gpsins
         InsData = self.InsDataDF
         PData = self.PDataDict
@@ -599,6 +617,7 @@ class PlotGpsInsRawSyncData:
         try:
             # figure3: Velocity
             plot_velocity()
+            plot_single_forwarrd_speed_VBX()
         except Exception as e:
             print('Cannot plot velocity')
             self.msg_info += '无法绘制： velocity\n失败原因：'+e+'\n'

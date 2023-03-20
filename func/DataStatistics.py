@@ -108,7 +108,7 @@ class DataStatistics:
     # 步骤1. 地理坐标系转平面坐标坐标系
     # 步骤2. 北东地（平面）坐标系转 前右下（平面）坐标系
     def PosErrorCalculation(self, InsGpsSyncData, bpos, pos0, type):
-        global yaw
+        global yaw # 航向
         self.Pos["pos0"] = pos0
         if type == 1:  # GPS和INS同步数据
             self.Pos["lat"] = np.array([InsGpsSyncData['lat'], InsGpsSyncData['Lat']])

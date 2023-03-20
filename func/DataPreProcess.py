@@ -34,11 +34,18 @@ class DataPreProcess(object):
 
         # 时间跨周补偿
         time_diff_list = np.diff(df[times])
-        index_list = df[times][1:][time_diff_list < 0].index.tolist()
+        index_list = df[times][:-1][time_diff_list < 0].index.tolist()
         if index_list:
-            print('存在跨周情况！')
-        for index in index_list:
-            df[times][index:] = df[times][index:] + 604800
+            for i in range(len(index_list)):
+                index = index_list[i]
+                if df[times][index] > 604700 and df[times][index + 1] < 100:
+                    # 确实是跨周情况
+                    print('存在跨周情况！')
+                    df[times][index:] = df[times][index:] + 604800
+                else:
+                    print('第%d帧时间有误！' % (index - 1), df[times][index - 1], 's(周内秒)')
+                    df = df[df[times] != df[times][index_list[i]]]
+                    index_list.pop(i)
 
         # 重置数据索引
         df = df.reset_index(drop=True)
@@ -92,7 +99,8 @@ class DataPreProcess(object):
         for i in range(len(yaw1[0])):
             its = itime[(itime > time1[0][i][0]) & (itime < time1[1][i][0])]
             its = its.reset_index(drop=True)
-            interYaw = (np.interp(its, [time1[0][i][0], time1[1][i][0]], [yaw1[0][i][0], yaw1[1][i][0] - 360])).tolist()  # 航向角对应插值
+            interYaw = (np.interp(its, [time1[0][i][0], time1[1][i][0]],
+                                  [yaw1[0][i][0], yaw1[1][i][0] - 360])).tolist()  # 航向角对应插值
             for t in range(len(its)):
                 interpolation['yaw'][np.where(interpolation['time'] == its[t])] = interYaw[t]
 
@@ -102,7 +110,8 @@ class DataPreProcess(object):
         for i in range(len(yaw2[0])):
             its = itime[(itime > time2[0][i][0]) & (itime < time2[1][i][0])]
             its = its.reset_index(drop=True)
-            interYaw = (np.interp(its, [time2[0][i][0], time2[1][i][0]], [yaw2[0][i][0], yaw2[1][i][0] + 360])).tolist()  # 航向角对应插值
+            interYaw = (np.interp(its, [time2[0][i][0], time2[1][i][0]],
+                                  [yaw2[0][i][0], yaw2[1][i][0] + 360])).tolist()  # 航向角对应插值
             for t in range(len(its)):
                 interpolation['yaw'][np.where(interpolation['time'] == its[t])] = interYaw[t]
         return interpolation
