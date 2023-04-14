@@ -7,6 +7,7 @@ import mplcursors
 from matplotlib.pyplot import MultipleLocator
 from openpyxl.reader.excel import load_workbook
 
+from func.DataPreProcess import DataPreProcess
 from func.DataStatistics import DataStatistics
 import pandas as pd
 import math
@@ -111,6 +112,7 @@ class PlotGpsInsRawSyncData:
         self.bpos_refgps = {}
 
         self.InsDataDF = None
+        self.rtkDataDF = None
         self.PDataDict = None
         self.SyncDataDF = None
         self.VehicleDataDF = None
@@ -176,7 +178,7 @@ class PlotGpsInsRawSyncData:
             Plotobj2.ax1.set_title('yaw')
             gps_itow_heading_time = GpsData[GpsData['itow_heading'] > self.time0_set].copy()
             if len(gps_itow_heading_time) > 0:
-                Plotobj2.PlotData(Plotobj2.ax1, gps_itow_heading_time['itow_heading'] - self.time0_set, gps_itow_heading_time['Heading'], 'GPSYaw')
+                Plotobj2.PlotData(Plotobj2.ax1, gps_itow_heading_time['itow_heading'] - self.time0_set, gps_itow_heading_time['Heading'], 'GPSHeading')
             else:
                 print('GpsData[“itow_heading”]的值都小于 self.time0_set')
                 self.msg_info += '时间GpsData[“itow_heading”]的值都小于 开始时间点，姿态图Angle中的线段GPSYaw有误！\n'
@@ -185,7 +187,7 @@ class PlotGpsInsRawSyncData:
 
             ins_time = InsData[InsData['time'] > self.time0_set].copy()
             if len(ins_time) > 0:
-                Plotobj2.PlotData(Plotobj2.ax1, ins_time['time'] - self.time0_set, ins_time['yaw'], 'INSYaw')
+                Plotobj2.PlotData(Plotobj2.ax1, ins_time['time'] - self.time0_set, ins_time['yaw'], 'INSHeading(Yaw)')
             else:
                 print('ins_time[“time”]的值都小于 self.time0_set')
                 self.msg_info += '时间ins_time[“time”]的值都小于 开始时间点，姿态图Angle中的线段INSYaw有误！\n'
@@ -195,8 +197,8 @@ class PlotGpsInsRawSyncData:
 
             Plotobj2.ax2 = plt.subplot(2, 1, 2)
             Plotobj2.ax2.set_title('att')
-            GPSYaw_INSYaw = angele_standardization(np.array(InsGpsSyncData['Heading'] - InsGpsSyncData['yaw']))
-            GPSTrackAngle_INSYaw = angele_standardization(np.array(InsGpsSyncData['TrackAngle'] - InsGpsSyncData['yaw']))
+            # GPSYaw_INSYaw = angele_standardization(np.array(InsGpsSyncData['Heading'] - InsGpsSyncData['yaw']))
+            # GPSTrackAngle_INSYaw = angele_standardization(np.array(InsGpsSyncData['TrackAngle'] - InsGpsSyncData['yaw']))
             if len(ins_time) > 0:
                 Plotobj2.PlotData(Plotobj2.ax2, ins_time['time'] - self.time0_set, ins_time['roll'], 'INSRoll')
                 Plotobj2.PlotData(Plotobj2.ax2, ins_time['time'] - self.time0_set, ins_time['pitch'], 'INSPitch')
@@ -208,9 +210,8 @@ class PlotGpsInsRawSyncData:
             else:
                 print('GpsData[“itow_heading”]的值都小于 self.time0_set')
                 self.msg_info += '时间GpsData[“itow_heading”]的值都小于 开始时间点，姿态图Angle中的线段GPSPitch有误！\n'
-            Plotobj2.PlotData(Plotobj2.ax2, InsGpsSyncData['time'] - self.time0_set, GPSYaw_INSYaw, 'GPSYaw-INSYaw')
-            Plotobj2.PlotData(Plotobj2.ax2, InsGpsSyncData['time'] - self.time0_set, GPSTrackAngle_INSYaw,
-                              'GPSTrackAngle-INSYaw')
+            # Plotobj2.PlotData(Plotobj2.ax2, InsGpsSyncData['time'] - self.time0_set, GPSYaw_INSYaw, 'GPSYaw-INSYaw')
+            # Plotobj2.PlotData(Plotobj2.ax2, InsGpsSyncData['time'] - self.time0_set, GPSTrackAngle_INSYaw, 'GPSTrackAngle-INSYaw')
             Plotobj2.ShowPlotFormat('', 'unit:deg')
 
         def plot_velocity(name='Speed'):
@@ -339,7 +340,7 @@ class PlotGpsInsRawSyncData:
             Plotobj7 = PlotGpsInsData()
             Plotobj7.fig.suptitle(name)
             Plotobj7.ax1 = plt.subplot(111)
-            Plotobj7.ax1.set_title('行车轨迹')
+            Plotobj7.ax1.set_title('行车轨迹(同步后数据)')
             labels = list(InsGpsSyncData['time'] - self.time0_set)
             Plotobj7.PlotDataXY(Plotobj7.ax1, DataStatiObj.Pos["Lon_X"][1], DataStatiObj.Pos["Lat_Y"][1], None, None,
                                 'silver', '-', '')
@@ -581,8 +582,6 @@ class PlotGpsInsRawSyncData:
             Plotobj11.PlotData(Plotobj11.ax4, VehicleData['ts'] - self.time0_set, VehicleData["gear"], 'Shifter')
             Plotobj11.ShowPlotFormat('', 'unit:m/s')
 
-
-
         bpos = self.bpos_gpsins
         InsData = self.InsDataDF
         PData = self.PDataDict
@@ -617,7 +616,7 @@ class PlotGpsInsRawSyncData:
         try:
             # figure3: Velocity
             plot_velocity()
-            plot_single_forwarrd_speed_VBX()
+            # plot_single_forwarrd_speed_VBX()
         except Exception as e:
             print('Cannot plot velocity')
             self.msg_info += '无法绘制： velocity\n失败原因：'+e+'\n'
@@ -677,7 +676,7 @@ class PlotGpsInsRawSyncData:
     # INS数据与参考对比画图
     def PlotRefGpsInsSyncData(self, filePath, ref_type='100C', time_arrange='[0,0]', scene='全程'):
         """
-
+        INS数据与参考对比画图
         @author: wenzixuan liqianwen
         :param scene:
         :param time_arrange:
@@ -728,6 +727,7 @@ class PlotGpsInsRawSyncData:
 
             # 先画ins图
             for f_name in self.gps_flag.keys():
+                index = list(ref_ins_data_before.keys()).index(f_name)
                 # 参考和INS
                 if 0 == index:
                     ax1.plot(RefInsData[f_name].Pos["Lon_X"][0].tolist(),
@@ -774,7 +774,7 @@ class PlotGpsInsRawSyncData:
                     ax1.plot(RefGpsData[f_name].Pos["GpsFix"][1], RefGpsData[f_name].Pos["GpsFix"][0]
                              , label=str(f_name + '_Gps_Fix'), linestyle='', marker='.', color='limegreen', alpha=0.6)
 
-                index += 1
+            # index += 1
 
             ax1 = self.set_ax(ax1, '经度 unit:meter', '纬度 unit:meter', name)
             ax1.axis('equal')
@@ -1521,6 +1521,68 @@ class PlotGpsInsRawSyncData:
 
         plt.show()  # 显示所有图像
         return msg_info
+
+    def plot_raw_path(self, name='Car Trajectory', type='self'):
+        Plotobj_path = PlotGpsInsData()
+        Plotobj_path.fig.suptitle(name)
+        Plotobj_path.ax1 = plt.subplot(111)
+        Plotobj_path.ax1.set_title('行车轨迹（同步前）')
+
+        if type == 'self':
+            ins_df = DataPreProcess().Datafilter(self.InsDataDF, 'time')
+            pos0 = [ins_df['lat'][0], ins_df['lon'][0], ins_df['height'][0]]
+            lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
+                lat_list=ins_df['lat'], lon_list=ins_df['lon'], height_list=ins_df['height'],
+                yaw=ins_df['yaw'], bpos=self.bpos_gpsins, pos0=pos0)
+            if len(lat_translated) > 0:
+                labels = list(ins_df['time'] - self.time0_set)
+                Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'INS', labels,
+                                    'b', '', '.')
+
+            gps_df = DataPreProcess().Datafilter(self.GpsDataDF, 'itow_pos')
+            pos0 = [gps_df['Lat'][0], gps_df['Lon'][0], gps_df['hMSL'][0]]
+            lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
+                lat_list=gps_df['Lat'], lon_list=gps_df['Lon'], height_list=gps_df['hMSL'],
+                yaw=[], bpos=self.bpos_gpsins, pos0=pos0)
+            if len(lat_translated) > 0:
+                labels = list(gps_df['itow_pos'] - self.time0_set)
+                Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'GPS', labels,
+                                    'limegreen', '', '.')
+        else:
+            for item in self.InsDataDF.keys():
+                ins_df = DataPreProcess().Datafilter(self.InsDataDF[item], 'time')
+                pos0 = [ins_df['lat'][0], ins_df['lon'][0], ins_df['height'][0]]
+                lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
+                    lat_list=ins_df['lat'], lon_list=ins_df['lon'], height_list=ins_df['height'],
+                    yaw=ins_df['yaw'], bpos=self.bpos_gpsins, pos0=pos0)
+                if len(lat_translated) > 0:
+                    labels = list(ins_df['time'] - self.time0_set)
+                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'INS', labels,
+                                            color=None, linestyle='', marker='.')
+
+            for item in self.GpsDataDF.keys():
+                gps_df = DataPreProcess().Datafilter(self.GpsDataDF[item], 'itow_pos')
+                pos0 = [gps_df['Lat'][0], gps_df['Lon'][0], gps_df['hMSL'][0]]
+                lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
+                    lat_list=gps_df['Lat'], lon_list=gps_df['Lon'], height_list=gps_df['hMSL'],
+                    yaw=[], bpos=self.bpos_gpsins, pos0=pos0)
+                if len(lat_translated) > 0:
+                    labels = list(gps_df['itow_pos'] - self.time0_set)
+                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'GPS', labels,
+                                            color=None, linestyle='', marker='.')
+
+            ref_df = DataPreProcess().Datafilter(self.rtkDataDF, 'time')
+            pos0 = [ref_df['lat'][0], ref_df['lon'][0], ref_df['height'][0]]
+            lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
+                lat_list=ref_df['lat'], lon_list=ref_df['lon'], height_list=ref_df['height'],
+                yaw=ref_df['yaw'], bpos=self.bpos_gpsins, pos0=pos0)
+            if len(lat_translated) > 0:
+                labels = list(ref_df['time'] - self.time0_set)
+                Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'RTK', labels,
+                                    color=None, linestyle='', marker='.')
+
+        Plotobj_path.ShowPlotFormat('经度 unit:meter', '纬度 unit:meter')
+        print()
 
     @staticmethod
     def close_plot():

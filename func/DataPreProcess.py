@@ -135,7 +135,20 @@ class DataPreProcess(object):
         SyncInsGpsData = pd.merge(interSyncdata1, syncdata2, left_on=time1, right_on='sync_' + time2)
         return SyncInsGpsData
 
-    # 旧版本：
+    def dm2d(self, dm):
+        """
+        经纬度 度分格式转度
+        :param dm: 输入经纬度值，格式为 dddmm.mmmm
+        :return : 输出经纬度值，格式为 ddd.dddddd
+        """
+        d = None
+        if type(dm) == np.ndarray:
+            int_d = np.floor(dm / 100)
+            point_d = (dm - int_d * 100) / 60
+            d = int_d + point_d
+        return d
+
+    ########################################## 旧版本 ##########################################
     # 数据线性差值为1hz（时间、位置、速度、姿态）
     def Datainterpolation1(self, RawData):
         interpolation = {"time": [], "yaw": []}

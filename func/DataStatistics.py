@@ -157,6 +157,57 @@ class DataStatistics:
         self.Pos["PosYError"] = -sin3 * (self.Pos["Lat_Y"][0] - self.Pos["Lat_Y"][1]) + cos3 * (self.Pos["Lon_X"][0] - self.Pos["Lon_X"][1])  # 横向偏差
         self.Pos["PosXYError"] = np.sqrt(self.Pos["PosXError"] * self.Pos["PosXError"] + self.Pos["PosYError"] * self.Pos["PosYError"])  # 水平偏差
 
+    @staticmethod
+    def transCoordinates(lat_list=None, lon_list=None, height_list=None, pos0=None, yaw=None, bpos=None):
+        """
+
+        :param lat_list: npArray
+        :param lon_list: npArray
+        :param height_list: npArray
+        :param pos0:
+        :param yaw:
+        :param bpos:
+        :return:
+        """
+        lat_result = np.array([])
+        lon_result = np.array([])
+        height_result = np.array([])
+        if not pos0:
+            print('没写初始位置')
+            return lat_result, lon_result, height_result
+
+        # 1. 地理坐标系转平面坐标坐标系
+        # (1) 基础公式计算
+        R = 6378137.0  # 地球长半轴
+        f = 1 / 298.257223563  # 地球椭球扁率
+        e2 = f * (2 - f)  # 椭球偏心率的平方
+        L_value = lat_list * math.pi / 180
+        sinL = np.sin(L_value)
+        cosL = np.cos(L_value)
+        temp = np.sqrt(1 - e2 * sinL * sinL)
+        Rn = R * (1 - e2) / (temp * temp * temp)  # 子午面曲率半径
+        Re = R / temp
+        RnhINS = Rn + height_list
+        RehINS = (Re + height_list) * cosL
+        # (2) 经纬度单位转为米
+        lat_result = (lat_list - pos0[0]) / 180 * math.pi * RnhINS
+        lon_result = (lon_list - pos0[1]) / 180 * math.pi * RehINS
+        height_result = height_list
+
+        # 2. 载体坐标系（前右下）转地理坐标系（北东地）
+        # (1) 北东地坐标系下杆臂值校正:
+        if len(yaw) > 0:
+            sin3 = np.sin(yaw / 180 * math.pi)
+            cos3 = np.cos(yaw / 180 * math.pi)
+            pos_err = [[cos3 * bpos[0, 0] - sin3 * bpos[0, 1], sin3 * bpos[0, 0] + cos3 * bpos[0, 1], - bpos[0, 2]],
+                       [cos3 * bpos[1, 0] - sin3 * bpos[1, 1], sin3 * bpos[1, 0] + cos3 * bpos[1, 1], - bpos[1, 2]]]
+
+            lat_result = lat_result - pos_err[0][0]
+            lon_result = lon_result - pos_err[0][1]
+            height_result = height_result - pos_err[0][2]
+
+        return lat_result, lon_result, height_result
+
     # GPS解状态转换
     def Gpsflagstransfer(self, InsGpsSyncData):
         flagsPos = InsGpsSyncData['flagsPos']

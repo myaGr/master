@@ -34,7 +34,7 @@ def checkVersion(now_exe_name):
     :param now_exe_name:
     :return:
     """
-    url = 'http://10.1.135.74/solutions/tools/version_test/' + now_exe_name
+    url = 'http://10.1.135.6/solutions/tools/version_test/' + now_exe_name
     # param = {'tool':now_exe_name}
     param = {}
     res_info = request_get(url, param)
@@ -42,7 +42,7 @@ def checkVersion(now_exe_name):
         yes_download = msgbox.askyesno(title='版本更新',
                                        message='最新版本为 %s ，是否更新？\n（若使用此版本，请选否）' % res_info['fileName'])
         if yes_download:
-            download_url = 'http://10.1.135.74/solutions/download/tools/' + res_info['fileName']
+            download_url = 'http://10.1.135.6/solutions/download/tools/' + res_info['fileName']
             res = requests.get(download_url, param)
             with open(res_info['fileName'], 'wb') as code:
                 code.write(res.content)
@@ -66,9 +66,11 @@ def request_get(url_get, param_get):
                 print('网络连接出现问题, 无法检查当前版本')
                 text['message'] = "网络连接失败,无法检查当前版本。"
                 return text
+
             ret = requests.get(url=url_get, params=param_get, timeout=10)
             if ret.status_code == 200:
                 text = json.loads(ret.text)
+                return text
             else:
                 fails += 1
                 continue
@@ -114,7 +116,7 @@ def request_post(url_post, param_post):
 if __name__ == "__main__":
     # Check whether the newest version
     try:
-        checkVersion('数据解析与分析工具V2.0.5.exe')
+        checkVersion('数据解析与分析工具V2.0.6.exe')
     except Exception as e:
         print(e)
         msgbox.showinfo('提示', '网络有问题，无法检测最新版本！')

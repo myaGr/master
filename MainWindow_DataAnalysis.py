@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QDate, Qt, QObject
 import webbrowser
+from PyQt5.QtCore import QCoreApplication
 
 from view.ui_MainWindow_DataAnalysis import Ui_MainWindow  # UI界面
 from func.HexDataParse import HexDataParse  # 导入自定义的类，数据解析
@@ -84,6 +85,13 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
         self.PlotGpsInsRawSyncDataObj.SyncInsGpsData = self.SyncInsGpsData
         # 繪圖橫坐標為周内秒: 默認False
         self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week
+
+        try:
+            print("轨迹生图..")
+            self.PlotGpsInsRawSyncDataObj.plot_raw_path()
+        except Exception as e:
+            self.outputMsg1("轨迹生图失败...")
+            self.outputMsg1('失败原因:' + str(e))
 
         try:
             print("开始INS和GPS统计画图...")
@@ -201,12 +209,14 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.DataPreProcess = DataPreProcess()
         self.Parse100CDataObj = Parse100CData()
 
-        # 1、解析基准数据
+        ##################################### 1、解析基准数据 #####################################
         try:
             # ps. self.Parse100CDataObj.ins100cdf 会被重置
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
             ref_file_name = self.refpath.split('/')[-1].split('.')[0]
+
+            ##################################### POS320
             if self.ref_type == '320':
                 self.outputMsg2(ref_file_name + "为 POS320 设备输出格式。")
                 try:
@@ -215,9 +225,16 @@ class mainFunctionInsCompare(QtCore.QThread):
                     print(e)
                     self.outputMsg2("尝试解析另一种 POS320 设备输出格式。")
                     ref_flag = self.Parse100CDataObj.save_320_to_df_1()  # 开始参考数据解析
+            ##################################### 100C
             elif self.ref_type == '100C':
                 self.outputMsg2(ref_file_name + "为 100C 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
+            ##################################### NMEA
+            elif self.ref_type == 'NMEA':
+                self.outputMsg2(ref_file_name + "为 NMEA 设备输出格式。")
+                self.outputMsg2(ref_file_name + "为 NMEA 设备输出格式。\n 该格式待重构版本开发。")
+
+                # ref_flag = self.Parse100CDataObj.save_nmea_to_df()  # 开始参考数据解析
             else:
                 self.outputMsg2("尚未兼容基准文件格式：" + self.ref_type)
                 # self.clear_handinput_scenes()
@@ -265,7 +282,7 @@ class mainFunctionInsCompare(QtCore.QThread):
                 self.outputMsg2('失败原因:' + str(e))
                 continue
 
-        # 2、时间同步
+        ##################################### 2、时间同步 #####################################
         try:
             self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
@@ -374,6 +391,17 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.set_gps_bpos()
 
         self.outputMsg2("开始INS和参考对比统计画图...")
+
+        self.PlotGpsInsRawSyncDataObj.InsDataDF = self.InsDataDF
+        self.PlotGpsInsRawSyncDataObj.GpsDataDF = self.GpsDataDF
+        self.PlotGpsInsRawSyncDataObj.rtkDataDF = self.Parse100CDataObj.ins100cdf
+        try:
+            print("轨迹生图..")
+            self.PlotGpsInsRawSyncDataObj.plot_raw_path(type='ref')
+        except Exception as e:
+            self.outputMsg1("轨迹生图失败...")
+            self.outputMsg1('失败原因:' + str(e))
+
         try:
             self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week
             msg_info = self.PlotGpsInsRawSyncDataObj.PlotRefGpsInsSyncData(os.getcwd()
@@ -668,28 +696,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             config_file_path = ''
             self.time_dir_config = {}
         else:
-            with open(config_file_path, 'r', encoding='utf-8') as file_t:
-                for line in file_t:
+            try:
+                with open(config_file_path, 'r', encoding='utf-8') as file_t:
+                    for line in file_t:
+                        self.scene_cont += 1
+                        time_dir[str(self.scene_cont)] = {'scene_num': int(line.split(',')[0])
+                            , 'scene': line.split(',')[-1][:-1]
+                            , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
+                        have_all_scene = 1 if time_dir[str(self.scene_cont)]['time_arrange'] != [0,0] or have_all_scene else 0
+                if have_all_scene:
                     self.scene_cont += 1
-                    time_dir[str(self.scene_cont)] = {'scene_num': int(line.split(',')[0])
-                        , 'scene': line.split(',')[-1][:-1]
-                        , 'time_arrange': [float(line.split(',')[2]), float(line.split(',')[3])]}
-                    have_all_scene = 1 if time_dir[str(self.scene_cont)]['time_arrange'] != [0,
-                                                                                             0] or have_all_scene else 0
-            if have_all_scene:
-                self.scene_cont += 1
-                time_dir[str(self.scene_cont)] = {'scene_num': 0
-                    , 'scene': '全程'
-                    , 'time_arrange': [0, 0]}
+                    time_dir[str(self.scene_cont)] = {'scene_num': 0
+                        , 'scene': '全程'
+                        , 'time_arrange': [0, 0]}
 
-            output_info += '场景配置文件解析结果如下:\n'
-            for key in time_dir.keys():
-                output_info += '  场景 %s 的时间范围：' % time_dir[key]['scene'] + str(
-                    time_dir[key]['time_arrange']) + '\n'
-            output_info += 'PS. 全程的时间范围默认为：[0, 0]。\n'
-            output_info += '请确认信息，若有误请检查场景配置文件!\n'
-            self.outputMsg2(output_info)
-            self.time_dir_config = time_dir
+                output_info += '场景配置文件解析结果如下:\n'
+                for key in time_dir.keys():
+                    output_info += '  场景 %s 的时间范围：' % time_dir[key]['scene'] + str(
+                        time_dir[key]['time_arrange']) + '\n'
+                output_info += 'PS. 全程的时间范围默认为：[0, 0]。\n'
+                output_info += '请确认信息，若有误请检查场景配置文件!\n'
+                self.outputMsg2(output_info)
+                self.time_dir_config = time_dir
+            except Exception as e:
+                output_info += '场景配置文件解析有误:\n'
+                output_info += 'Exception: \n'
+                output_info += e
+                self.outputMsg2(output_info)
+                print(e)
 
     # 读取杆臂值
     def save_config_data(self, n):
@@ -737,7 +771,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # reset some value
         self.inspaths = []
-
+        ##################################### 取文件、判断是否为有效地址 #####################################
         self.inspath = self.lineEdit_GetInsFile.text()  # 获取INS文件路径
         self.refpath = self.lineEdit_GetRefFile.text()  # 获取参考文件路径
         self.inspaths.append(self.inspath)
@@ -762,7 +796,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ref_type = self.select_type.currentText()
         self.outputMsg2(self.refpath + "为 %s 文件" % self.ref_type)
 
-        #### 获取需要解析的场景信息 ###
+        ##################################### 获取需要解析的场景信息 #####################################
         self.time_dir = self.time_dir_config.copy()
         print(self.time_dir)
         self.scene_cont = len(self.time_dir.keys())
@@ -795,9 +829,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # 场景中没有填写东西，默认统计绘制全局 --> 在绘图前判断
         if len(list(self.time_dir)) == 0:
             self.scene_cont += 1
-            self.time_dir[str(self.scene_cont)] = {'scene_num': 0
-                , 'scene': '全程'
-                , 'time_arrange': [0, 0]}
+            self.time_dir[str(self.scene_cont)] = {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}
         # 打印场景信息
         if self.time_dir:
             output_info = '即将解析的场景:\n\n'
@@ -806,6 +838,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.time_dir[key]['time_arrange']) + '\n'
             self.outputMsg2(output_info)
 
+        ##################################### 判断画图的时间段 #####################################
         plot_time_range = [0, 0]
         plot_scene = '全程'
         # 1、有config.txt但文件内里没有东西--画全程
@@ -827,6 +860,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # 获取GPS显示数量
         GpsNum = self.showGPS_spinBox.value()
 
+        ##################################### 开启子线程 #####################################
         self.push_info_2.emit([self.refpath, self.ref_type, self.inspaths, self.time_dir, plot_time_range, plot_scene, GpsNum, self.InsBpos, self.GpsBpos])
         self.thread_2.start()
         # self.pushBtn_StartPlot2.setEnabled(True)
@@ -965,6 +999,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.output_can_msg("解析失败...")
             self.output_can_msg('失败原因:' + str(e))
 
+    ##################################### 使用说明 #####################################
     def open_help_web(self):
         try:
             url = 'https://asensing.feishu.cn/docx/doxcn0rUDcvflKKm5wPmmdisKab '

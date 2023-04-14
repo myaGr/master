@@ -1,3 +1,4 @@
+import pynmea2
 import pandas as pd
 import os
 import numpy as np
@@ -178,6 +179,9 @@ class Parse100CData(object):
         new_filepath = dir_path[0] + '/' + dir_path[1][:-4] + '_CsvData.csv'
         self.ins100cdf.to_csv(new_filepath)
         print(self.ins100cdf)
+
+    def save_nmea_to_df(self):
+        pass
 
 
 if __name__ == "__main__":
