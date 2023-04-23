@@ -654,39 +654,46 @@ class HexDataParse(object):
         # 将数据存成DataFrame格式
 
     # 所有数据存为DataFrame数格式
+
+    # @profile  # 内存分析修饰器，添加这句代码，表明对此函数进行内存分析，内存分析结果会打印输出
     def saveDataToDF(self):
-        # IMU数据
-        self.ImuDataDF = self.imuData
+        # PS: 为减少内存占用， 批量统计时不会用到的指标不保存到变量
+        self.imuData = None  # 释放内存!
+        self.vehicleData = None  # 释放内存!
+        self.syncData = None  # 释放内存!
+
+        # # IMU数据
+        # self.ImuDataDF = self.imuData
 
         # GPS数据
         self.GpsDataDF = self.gpsData
         self.GpsDataDF['ts'] = [self.insData['time'][i] for i in self.gpsInsTimeIndex]
-        self.GpsDataDF['RecMsgBin'] = self.Unit2Bin(self.gpsData['RecMsg'], 8)
+        # self.GpsDataDF['RecMsgBin'] = self.Unit2Bin(self.gpsData['RecMsg'], 8)
         self.GpsDataDF['flagsPos'] = np.array([self.gpsData['flags']]).T % 256
-        self.GpsDataDF['flagsVel'] = (np.array([self.gpsData['flags']]).T / 256) % 256
-        self.GpsDataDF['flagsHeading'] = (np.array([self.gpsData['flags']]).T / 256 / 256) % 256
-        self.GpsDataDF['flagsTime'] = (np.array([self.gpsData['flags']]).T / 256 / 256 / 256) % 256
+        # self.GpsDataDF['flagsVel'] = (np.array([self.gpsData['flags']]).T / 256) % 256
+        # self.GpsDataDF['flagsHeading'] = (np.array([self.gpsData['flags']]).T / 256 / 256) % 256
+        # self.GpsDataDF['flagsTime'] = (np.array([self.gpsData['flags']]).T / 256 / 256 / 256) % 256
 
-        # vehicle数据
-        self.VehicleDataDF = self.vehicleData
-        self.VehicleDataDF['ts'] = [self.insData['time'][i] for i in self.vehicleInsTimeIndex]
+        # # vehicle数据
+        # self.VehicleDataDF = self.vehicleData
+        # self.VehicleDataDF['ts'] = [self.insData['time'][i] for i in self.vehicleInsTimeIndex]
 
         # INS数据
         self.InsDataDF = self.insData
         self.InsDataDF['IMUstatusBin'] = self.Unit2Bin(self.insData['IMUstatus'], 8)
-        self.InsDataDF['LEKFstatusBin'] = self.Unit2Bin(self.insData['LEKFstatus'], 32)
+        # self.InsDataDF['LEKFstatusBin'] = self.Unit2Bin(self.insData['LEKFstatus'], 32)
         self.InsDataDF['GPSstatusBin'] = self.Unit2Bin(self.insData['GPSstatus'], 8)
 
-        # Sync数据
-        self.SyncDataDF = self.syncData
-        self.SyncDataDF['ts'] = [self.insData['time'][i] for i in self.syncInsTimeIndex]
+        # # Sync数据
+        # self.SyncDataDF = self.syncData
+        # self.SyncDataDF['ts'] = [self.insData['time'][i] for i in self.syncInsTimeIndex]
 
-        # Pdat(字典)
-        self.PDataDict = {}
-        PData = self.savePDataToMatFile()
-        for key in PData:
-            self.PDataDict[key] = PData[key].tolist()
-        # PDataDF = pd.DataFrame.from_dict(self.PDataDict)  # All arrays must be of the same length
+        # # Pdat(字典)
+        # self.PDataDict = {}
+        # PData = self.savePDataToMatFile()
+        # for key in PData:
+        #     self.PDataDict[key] = PData[key].tolist()
+        # # PDataDF = pd.DataFrame.from_dict(self.PDataDict)  # All arrays must be of the same length
 
     # 将数据存成.mat文件格式
     # IMU数据
@@ -990,6 +997,7 @@ class HexDataParse(object):
         folderPath = dir_path[0] + '/' + dir_path[1][:-4] + '_CsvData'
         if not os.path.exists(folderPath):
             os.mkdir(folderPath)
+        self.ImuDataDF.to_csv(folderPath + '/ImuData.csv')
         self.InsDataDF.to_csv(folderPath + '/InsData.csv')
         self.GpsDataDF.to_csv(folderPath + '/GpsData.csv')
         self.VehicleDataDF.to_csv(folderPath + '/vehicleData.csv')
@@ -1126,9 +1134,11 @@ if __name__ == "__main__":
     print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", obj.filePath)
     obj.startParseFileHexData()  # 开始数据解析
     print(time.strftime('%H:%M:%S', time.localtime()), "解析完成...")
+    obj.printDataFrameStatsResult()
     obj.saveDataToDF()
     if "csv" in types:
         print("存成Csv文件...")
+
         obj.SaveAllDataToCsvFile()
     if "mat" in types:
         print("存成Mat文件...")

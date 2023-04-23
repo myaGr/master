@@ -1557,7 +1557,7 @@ class PlotGpsInsRawSyncData:
                     yaw=ins_df['yaw'], bpos=self.bpos_gpsins, pos0=pos0)
                 if len(lat_translated) > 0:
                     labels = list(ins_df['time'] - self.time0_set)
-                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'INS', labels,
+                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'INS_'+item, labels,
                                             color=None, linestyle='', marker='.')
 
             for item in self.GpsDataDF.keys():
@@ -1568,7 +1568,7 @@ class PlotGpsInsRawSyncData:
                     yaw=[], bpos=self.bpos_gpsins, pos0=pos0)
                 if len(lat_translated) > 0:
                     labels = list(gps_df['itow_pos'] - self.time0_set)
-                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'GPS', labels,
+                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'GPS_'+item, labels,
                                             color=None, linestyle='', marker='.')
 
             ref_df = DataPreProcess().Datafilter(self.rtkDataDF, 'time')

@@ -42,10 +42,10 @@ class DataPreProcess(object):
                     # 确实是跨周情况
                     print('存在跨周情况！')
                     df[times][index:] = df[times][index:] + 604800
-                else:
-                    print('第%d帧时间有误！' % (index - 1), df[times][index - 1], 's(周内秒)')
-                    df = df[df[times] != df[times][index_list[i]]]
-                    index_list.pop(i)
+                # else:
+                #     print('第%d帧时间有误！' % (index - 1), df[times][index - 1], 's(周内秒)')
+                #     df = df[df[times] != df[times][index_list[i]]]
+                #     index_list.pop(i)
 
         # 重置数据索引
         df = df.reset_index(drop=True)

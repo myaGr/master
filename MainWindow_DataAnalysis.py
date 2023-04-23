@@ -399,8 +399,8 @@ class mainFunctionInsCompare(QtCore.QThread):
             print("轨迹生图..")
             self.PlotGpsInsRawSyncDataObj.plot_raw_path(type='ref')
         except Exception as e:
-            self.outputMsg1("轨迹生图失败...")
-            self.outputMsg1('失败原因:' + str(e))
+            self.outputMsg2("轨迹生图失败...")
+            self.outputMsg2('失败原因:' + str(e))
 
         try:
             self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week

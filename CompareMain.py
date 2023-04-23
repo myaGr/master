@@ -426,11 +426,11 @@ class mainFunctionInsCompare(QtCore.QThread):
                 self.PlotGpsInsRawSyncDataObj.SyncRefGpsData_all = {}
                 for file_name in self.name_list:
                     try:
-                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步失败的时间段为: ",self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
                         self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
                         # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步失败的时间段为: ",self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
                         self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                     except Exception as e:
@@ -477,8 +477,10 @@ class mainFunctionInsCompare(QtCore.QThread):
             print("轨迹生图..")
             self.PlotGpsInsRawSyncDataObj.plot_raw_path(type='ref')
         except Exception as e:
-            self.outputMsg1("轨迹生图失败...")
-            self.outputMsg1('失败原因:' + str(e))
+            # self.outputMsg1("轨迹生图失败...")
+            # self.outputMsg1('失败原因:' + str(e))
+            print("轨迹生图失败...")
+            print('失败原因:' + str(e))
 
         try:
             self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week
@@ -521,7 +523,6 @@ if __name__ == "__main__":
         thread_1.run()
         thread_1.plot_insgps()
 
-
     def compare_test():
         thread_2 = mainFunctionInsCompare()
 
@@ -529,16 +530,14 @@ if __name__ == "__main__":
         # inspaths = [r'D:\Downloads\algo_bin.log']
         # inspaths = [r'D:/Files/test/dbFiles/test2/100/config1.txt']
 
-        inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
-        refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
+        # inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
+        # refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
 
-        # inspaths = [r'D:\Files\test\dbFiles\test13_pos\algo_bin(1).log']
-        # refpath = r'D:\Files\test\dbFiles\test13_pos\1208PM到后轴100C.txt'
-
-        # inspaths = [r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
-        #             ,r'D:\Files\test\dbFiles\test6_320\12311-1114-松组合.txt'
-        #             ]
-        # refpath = r'D:\Files\test\dbFiles\test6_320\1114到后轴320.txt'
+        inspaths = [
+                    r'D:\Files\test\dbFiles\test13_pos\4\INS20230423102502169\001_1号_M级5711D.txt',
+                    r'D:\Files\test\dbFiles\test13_pos\4\INS20230423102502169\001_2号_M级5711D.txt'
+                    ]
+        refpath = r'D:\Files\test\dbFiles\test13_pos\4\INS20230423102502169\320.txt'
 
         # inspaths = [r'D:\Downloads\INS2023021715243554\INS_0217.log'
         #             ,r'D:\Downloads\INS2023021715243554\INS_0217_main.txt'
@@ -567,7 +566,7 @@ if __name__ == "__main__":
             return
 
         # 获取基准数据的数据类型
-        ref_type = '100C'  # '100C' '320'
+        ref_type = '320'  # '100C' '320'
 
         #### 获取需要解析的场景信息 ###
         time_dir = {'1': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}
@@ -587,8 +586,58 @@ if __name__ == "__main__":
         thread_2.run()
         thread_2.plot_insgps_compare()
 
+    def compare_multi_file():
+        ref_file_dict = [r'D:\Files\test\dbFiles\test13_pos\bigFile\INS20230412173845494\0308RCGS.txt',
+                         r'D:\Files\test\dbFiles\test13_pos\bigFile\INS20230412174147325\0309RCGS.txt',
+                         r'D:\Files\test\dbFiles\test13_pos\bigFile\INS20230412174411198\POS320.txt',]
+        ref_type_dict = ['320','320','320',]
+        test_file_dict = {0:r'D:\Files\test\dbFiles\test13_pos\bigFile\INS20230412173845494\大通.txt',
+                          1:r'D:\Files\test\dbFiles\test13_pos\bigFile\INS20230412174147325\大通.txt',
+                          2:r'D:\Files\test\dbFiles\test13_pos\bigFile\INS20230412174411198\大通.txt',}
+        thread_dict = {}
+
+        start_time = time.time()
+        for i in test_file_dict.keys():
+            this_file_start = time.time()
+            print('第 %d 趟开始时间：%d s' % (i, this_file_start))
+            ### 获取文件
+            thread_dict[i] = mainFunctionInsCompare()
+            inspaths = [test_file_dict[i]]
+            refpath = ref_file_dict[i]
+            for file in inspaths:
+                if not os.path.isfile(file):
+                    print(file + "文件不存在...")
+                    return
+            if not os.path.isfile(refpath):
+                print(refpath + "文件不存在...")
+                return
+
+            ### 获取基准数据的数据类型
+            ref_type = ref_type_dict[i]
+
+            ### 获取需要解析的场景信息 ###
+            time_dir = {'1': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}
+            plot_time_range = [0, 0]
+            plot_scene = '全程'
+            InsBpos = {'1': [0, 0, 0]}
+            GpsBpos = {'1': [0, 0, 0]}
+            ### 获取GPS显示数量
+            GpsNum = 1
+
+            ### 运行
+            thread_dict[i].get_info(
+                [refpath, ref_type, inspaths, time_dir, plot_time_range, plot_scene, GpsNum,
+                 InsBpos, GpsBpos])
+            thread_dict[i].run()
+            print('第 %d 趟解析用时：%d s' % (i, time.time()-this_file_start))
+            # thread_dict[i].plot_insgps_compare()
+            # print('第 %d 趟结束画图用时：%d s' % (i, time.time()-this_file_start))
+
+
+        print('总共用时：%d s' % time.time() - start_time)
 
     compare_test()
+    # compare_multi_file()
     # analyze_single_file()
     print('over')
 
