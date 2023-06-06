@@ -116,7 +116,7 @@ def request_post(url_post, param_post):
 if __name__ == "__main__":
     # Check whether the newest version
     try:
-        checkVersion('数据解析与分析工具V2.0.6.exe')
+        checkVersion('数据解析与分析工具V2.0.6.1.exe')
     except Exception as e:
         print(e)
         msgbox.showinfo('提示', '网络有问题，无法检测最新版本！')
