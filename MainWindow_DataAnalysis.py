@@ -229,6 +229,13 @@ class mainFunctionInsCompare(QtCore.QThread):
             elif self.ref_type == '100C':
                 self.outputMsg2(ref_file_name + "为 100C 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
+            ##################################### liuzhiqiang  华测
+            elif self.ref_type == '华测特制':
+                self.outputMsg2(ref_file_name + "为 刘志强版本 设备输出格式。")
+                self.outputMsg2("基准格式为：gps周、gps周内秒、纬度、经度、大地高、定位状态"
+                                "、使用卫星数、东向标准差、北向标准差、高程标准差、协方差、协方差、协方差"
+                                "、位置精度因子、静态动态状态、东向速度、北向速度、天向速度、横滚角、俯仰角、航向角")
+                ref_flag = self.Parse100CDataObj.save_lzq_to_df()  # 开始参考数据解析
             ##################################### NMEA
             elif self.ref_type == 'NMEA':
                 self.outputMsg2(ref_file_name + "为 NMEA 设备输出格式。")
@@ -271,6 +278,10 @@ class mainFunctionInsCompare(QtCore.QThread):
                     self.HexDataParseObj.InsDataDF = None
                     self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
                     self.HexDataParseObj.GpsDataDF = None
+                    # TODO: 刘志强要求删减，仅在 华测特制 有效
+                    self.InsDataDF[file_name]['roll'] = self.InsDataDF[file_name]['roll'] + 0.200680469
+                    self.InsDataDF[file_name]['pitch'] = self.InsDataDF[file_name]['pitch'] + 0.333099707
+                    self.InsDataDF[file_name]['yaw'] = self.InsDataDF[file_name]['yaw'] - 2.847532422
                 else:
                     self.outputMsg2("数据无效，解析失败。")
                     continue

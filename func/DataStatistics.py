@@ -18,6 +18,7 @@ class DataStatistics:
         self.statistics_list_loc = {}
         self.statistics_list_pos = {}
         self.statisticsgpsflag = {}
+        self.statisticsgps_info = {}
         self.error_statistic = {}
         self.error_statistic_loc = {}
         self.error_statistic_pos = {}
@@ -108,7 +109,7 @@ class DataStatistics:
     # 步骤1. 地理坐标系转平面坐标坐标系
     # 步骤2. 北东地（平面）坐标系转 前右下（平面）坐标系
     def PosErrorCalculation(self, InsGpsSyncData, bpos, pos0, type):
-        global yaw # 航向
+        global yaw  # 航向
         self.Pos["pos0"] = pos0
         if type == 1:  # GPS和INS同步数据
             self.Pos["lat"] = np.array([InsGpsSyncData['lat'], InsGpsSyncData['Lat']])
@@ -271,13 +272,13 @@ class DataStatistics:
 
     def statistic_sync_positions(self, SyncData, name, time_range='[0,0]', scene='全程'):
         items = ['名称', '时间范围', '场景', '统计帧数',
-                 '横滚偏差1σ', '横滚偏差2σ', '横滚偏差3σ', '横滚偏差最大',
-                 '俯仰偏差1σ', '俯仰偏差2σ', '俯仰偏差3σ', '俯仰偏差最大',
-                 '航向偏差1σ', '航向偏差2σ', '航向偏差3σ', '航向偏差最大',
-                 '速度偏差1σ', '速度偏差2σ', '速度偏差3σ', '速度偏差最大',
-                 'X速度偏差1σ', 'X速度偏差2σ', 'X速度偏差3σ', 'X速度偏差最大',
-                 'Y速度偏差1σ', 'Y速度偏差2σ', 'Y速度偏差3σ', 'Y速度偏差最大',
-                 'Z速度偏差1σ', 'Z速度偏差2σ', 'Z速度偏差3σ', 'Z速度偏差最大']
+                 '横滚偏差1σ', '横滚偏差2σ', '横滚偏差3σ', '横滚偏差最大', '横滚偏差标准差', '横滚偏差均值',
+                 '俯仰偏差1σ', '俯仰偏差2σ', '俯仰偏差3σ', '俯仰偏差最大', '俯仰偏差标准差', '俯仰偏差均值',
+                 '航向偏差1σ', '航向偏差2σ', '航向偏差3σ', '航向偏差最大', '航向偏差标准差', '航向偏差均值',
+                 '速度偏差1σ', '速度偏差2σ', '速度偏差3σ', '速度偏差最大', '速度偏差标准差', '速度偏差均值',
+                 'X速度偏差1σ', 'X速度偏差2σ', 'X速度偏差3σ', 'X速度偏差最大', 'X速度偏差标准差', 'X速度偏差均值',
+                 'Y速度偏差1σ', 'Y速度偏差2σ', 'Y速度偏差3σ', 'Y速度偏差最大', 'Y速度偏差标准差', 'Y速度偏差均值',
+                 'Z速度偏差1σ', 'Z速度偏差2σ', 'Z速度偏差3σ', 'Z速度偏差最大', 'Z速度偏差标准差', 'Z速度偏差均值', ]
         error = ["roll", "pitch", "yaw", "vel", "vel_x", "vel_y", "vel_z"]
 
         self.statistics_list_pos[items[0]] = [name]
@@ -287,10 +288,12 @@ class DataStatistics:
 
         for i in range(len(error)):
             sigma_err = self.sigma_err_cal(self.error[error[i]])
-            self.statistics_list_pos[items[3 + i * 4 + 1]] = [round(sigma_err[0], 4)]
-            self.statistics_list_pos[items[3 + i * 4 + 2]] = [round(sigma_err[1], 4)]
-            self.statistics_list_pos[items[3 + i * 4 + 3]] = [round(sigma_err[2], 4)]
-            self.statistics_list_pos[items[3 + i * 4 + 4]] = [round(sigma_err[3], 4)]
+            self.statistics_list_pos[items[3 + i * 6 + 1]] = [round(sigma_err[0], 4)]
+            self.statistics_list_pos[items[3 + i * 6 + 2]] = [round(sigma_err[1], 4)]
+            self.statistics_list_pos[items[3 + i * 6 + 3]] = [round(sigma_err[2], 4)]
+            self.statistics_list_pos[items[3 + i * 6 + 4]] = [round(sigma_err[3], 4)]
+            self.statistics_list_pos[items[3 + i * 6 + 5]] = [round(self.error[error[i]].std(), 4)]
+            self.statistics_list_pos[items[3 + i * 6 + 6]] = [round(self.error[error[i]].mean(), 4)]
             self.error_statistic[error[i]] = sigma_err
         return self.statistics_list_pos
 
@@ -298,10 +301,11 @@ class DataStatistics:
         items = ['名称', '时间范围', '场景', '统计帧数', 'RMS外符合精度',
                  '<0.02偏差占比', '<0.05偏差占比', '<0.1偏差占比', '<0.2偏差占比',
                  '<0.5偏差占比', '<1偏差占比', '<1.5偏差占比', '<2偏差占比',
-                 '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大',
-                 '高程偏差1σ', '高程偏差2σ', '高程偏差3σ', '高程偏差最大',
-                 '纵向偏差1σ', '纵向偏差2σ', '纵向偏差3σ', '纵向偏差最大',
-                 '横向偏差1σ', '横向偏差2σ', '横向偏差3σ', '横向偏差最大',]
+                 '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大', '位置偏差标准差', '位置偏差均值',
+                 '高程偏差1σ', '高程偏差2σ', '高程偏差3σ', '高程偏差最大', '高程偏差标准差', '高程偏差均值',
+                 '纵向偏差1σ', '纵向偏差2σ', '纵向偏差3σ', '纵向偏差最大', '纵向偏差标准差', '纵向偏差均值',
+                 '横向偏差1σ', '横向偏差2σ', '横向偏差3σ', '横向偏差最大', '横向偏差标准差', '横向偏差均值',
+                 ]
         percentage = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 1.5, 2]
         error = ["pos", "height", "PosXError", "PosYError"]
         self.error["pos"] = self.Pos["PosXYError"]
@@ -320,10 +324,12 @@ class DataStatistics:
 
         for i in range(len(error)):
             sigma_err = self.sigma_err_cal(self.error[error[i]])
-            self.statistics_list_loc[items[12 + i * 4 + 1]] = [round(sigma_err[0], 4)]
-            self.statistics_list_loc[items[12 + i * 4 + 2]] = [round(sigma_err[1], 4)]
-            self.statistics_list_loc[items[12 + i * 4 + 3]] = [round(sigma_err[2], 4)]
-            self.statistics_list_loc[items[12 + i * 4 + 4]] = [round(sigma_err[3], 4)]
+            self.statistics_list_loc[items[12 + i * 6 + 1]] = [round(sigma_err[0], 4)]
+            self.statistics_list_loc[items[12 + i * 6 + 2]] = [round(sigma_err[1], 4)]
+            self.statistics_list_loc[items[12 + i * 6 + 3]] = [round(sigma_err[2], 4)]
+            self.statistics_list_loc[items[12 + i * 6 + 4]] = [round(sigma_err[3], 4)]
+            self.statistics_list_loc[items[12 + i * 6 + 5]] = [round(self.error[error[i]].std(), 4)]
+            self.statistics_list_loc[items[12 + i * 6 + 6]] = [round(self.error[error[i]].mean(), 4)]
             self.error_statistic_loc[error[i]] = sigma_err
         return self.statistics_list_loc
 
@@ -339,7 +345,43 @@ class DataStatistics:
         self.statisticsgpsflag[items[4]] = [round(len(self.Pos["GpsDiff"][0]) / gps_len, 4)]
         self.statisticsgpsflag[items[5]] = [round(len(self.Pos["GpsSigle"][0]) / gps_len, 4)]
         self.statisticsgpsflag[items[6]] = [round(none_len / gps_len, 4)]
+
         return self.statisticsgpsflag
+
+    def StatisticGpsFlag_info(self, SyncRefGpsData, name):
+        items = ["名称", "统计帧数", 'RMS外符合精度',
+                 '位置偏差1σ', '位置偏差2σ', '位置偏差3σ', '位置偏差最大', '位置偏差标准差', '位置偏差均值',
+                 '高程偏差1σ', '高程偏差2σ', '高程偏差3σ', '高程偏差最大', '高程偏差标准差', '高程偏差均值',  # 字段：hMSL
+                 '速度偏差1σ', '速度偏差2σ', '速度偏差3σ', '速度偏差最大', '速度偏差标准差', '速度偏差均值',  # 字段：HSpd 为水平速度 （VSpd为垂直速度）
+                 '航迹偏差1σ', '航迹偏差2σ', '航迹偏差3σ', '航迹偏差最大', '航迹偏差标准差', '航迹偏差均值',  # 字段：TrackAngle 为航迹角
+                 '俯仰偏差1σ', '俯仰偏差2σ', '俯仰偏差3σ', '俯仰偏差最大', '俯仰偏差标准差', '俯仰偏差均值',  # 字段：Pitch
+                 '航向偏差1σ', '航向偏差2σ', '航向偏差3σ', '航向偏差最大', '航向偏差标准差', '航向偏差均值',  # 字段：Heading, 即为航向角 yaw或heading
+                 'RMS小于经度标准差的比例', 'RMS小于纬度标准差的比例', 'RMS小于高程标准差的比例', 'RMS小于俯仰标准差的比例',  # （即RMS-标准差＜0的比例）
+                 ]
+        gps_len = len(SyncRefGpsData)
+        error = ["pos", "hMSL", "VSpd", "TrackAngle", "Pitch", "Heading"]
+        SyncRefGpsData["pos"] = self.Pos["PosXYError"]
+
+        self.statisticsgps_info[items[0]] = [name]
+        self.statisticsgps_info[items[1]] = [gps_len]
+        self.statisticsgps_info[items[2]] = [
+            round(np.sqrt(sum(SyncRefGpsData["pos"] * SyncRefGpsData["pos"]) / gps_len), 4)]
+
+        for i in range(len(error)):
+            sigma_err = self.sigma_err_cal(SyncRefGpsData[error[i]])
+            self.statisticsgps_info[items[2 + i * 6 + 1]] = [round(sigma_err[0], 4)]
+            self.statisticsgps_info[items[2 + i * 6 + 2]] = [round(sigma_err[1], 4)]
+            self.statisticsgps_info[items[2 + i * 6 + 3]] = [round(sigma_err[2], 4)]
+            self.statisticsgps_info[items[2 + i * 6 + 4]] = [round(sigma_err[3], 4)]
+            self.statisticsgps_info[items[2 + i * 6 + 5]] = [round(SyncRefGpsData[error[i]].std(), 4)]
+            self.statisticsgps_info[items[2 + i * 6 + 6]] = [round(SyncRefGpsData[error[i]].mean(), 4)]
+
+        self.statisticsgps_info[items[39]] = [sum((abs(SyncRefGpsData['Lon'] - SyncRefGpsData['lon']) < SyncRefGpsData['LonStd']) == True) / gps_len]
+        self.statisticsgps_info[items[40]] = [sum((abs(SyncRefGpsData['Lat'] - SyncRefGpsData['lat']) < SyncRefGpsData['LatStd']) == True) / gps_len]
+        self.statisticsgps_info[items[41]] = [sum((abs(SyncRefGpsData['hMSL'] - SyncRefGpsData['height']) < SyncRefGpsData['hMSLStd']) == True) / gps_len]
+        self.statisticsgps_info[items[42]] = [sum((abs(SyncRefGpsData['Pitch'] - SyncRefGpsData['pitch']) < SyncRefGpsData['PitchStd']) == True) / gps_len]
+
+        return self.statisticsgps_info
 
 
 if __name__ == "__main__":

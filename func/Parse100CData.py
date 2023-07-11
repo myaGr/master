@@ -180,6 +180,50 @@ class Parse100CData(object):
         self.ins100cdf.to_csv(new_filepath)
         print(self.ins100cdf)
 
+    def save_lzq_to_df(self):
+        """
+        2023/06/19刘志强版本 文件数据向100C对齐，生成相同结构的数据结果
+        @author: liqianwen
+        @version: for V2.0.6.2
+        """
+        msg_info = ''
+        begin = 0
+        f = open(self.filepath, 'r')
+        lines = f.readlines()
+        # 320内应含有的字段
+        keys_name = ['GPSWeekTime','GPSTime', 'Latitude', 'Longitude', 'H-Ell', 'posQuality'
+                    , 'satnavsNum', 'deviation-E', 'deviation-N', 'deviation-H', 'CEN', 'CEH', 'CNH', 'PDOP', 'staticStatus'
+                    , 'Vel-E', 'Vel-N', 'Vel-U', 'Roll', 'Pitch', 'Heading']
+        required_keys = ['GPSWeekTime', "time", "lat", "lon", "height", "Q"
+                        , 'satnavsNum', 'deviation-E', 'deviation-N', 'deviation-H', 'CEN', 'CEH', 'CNH', 'PDOP', 'staticStatus'
+                        , "EastVelocity", "NorthVelocity","GroundVelocity", "roll", "pitch", "yaw"
+                        # , "H-Ell", "AccX", "GyroX", "AccY", "GyroY", "AccZ", "GyroZ"
+                         ]
+        values = {}
+        for line in lines:
+            li = line.replace('\n', '').split(" ")
+            while '' in li:
+                li.remove('')
+
+            # 该数据类型直接开始数据
+            if begin == 0:
+                begin = 1
+                for key in keys_name:
+                    values[required_keys[keys_name.index(key)]] = []
+
+            if begin == 1 and len(li) == 21:
+                for k in range(len(required_keys)):
+                    try:
+                        values[required_keys[k]].append(float(li[k]))
+                    except:
+                        values[required_keys[k]].append(li[k])
+
+        f.close()
+        values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
+
+        self.ins100cdf = pd.DataFrame(values)
+        return msg_info
+
     def save_nmea_to_df(self):
         pass
 

@@ -69,7 +69,8 @@ class DataPreProcess(object):
         interp_keys = ['roll', 'pitch', 'yaw', 'AccX', 'AccY', 'AccZ', 'NorthVelocity', 'EastVelocity',
                        'GroundVelocity', 'lat', 'lon', 'height']
         for key in interp_keys:
-            interpolation[key] = np.interp(interpolation['time'], rawData['time'], rawData[key])
+            if key in rawData.keys():
+                interpolation[key] = np.interp(interpolation['time'], rawData['time'], rawData[key])
 
         # 航向插值异常值处理
         interpolation = self.yawCorrect(rawData, itime, interpolation)

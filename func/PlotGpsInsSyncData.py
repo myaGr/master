@@ -1408,6 +1408,130 @@ class PlotGpsInsRawSyncData:
 
             # fig.canvas.manager.window.showMaximized()
 
+        def plot_single_velocity(ref_ins_data, ref_gps_data, ref_ins_data_before, ref_gps_data_before, name='速度对比图'):
+            cursor_single_velocity = []
+            fig = plt.figure()
+            fig.suptitle(name)
+
+            single_velocityax61 = fig.add_subplot(321)
+            for f_name in ref_ins_data.keys():
+                line = single_velocityax61.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
+                                 ref_ins_data[f_name].error["vel_n"],
+                                 label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
+                cursor_single_velocity.append(plot_add_nonius(line, show_formate='xy'))
+            single_velocityax61 = self.set_ax(single_velocityax61, '', 'unit:m/s', 'Ref-INS北向速度对比')
+
+            single_velocityax62 = fig.add_subplot(322)
+            for f_name in ref_ins_data.keys():
+                if self.gps_flag[f_name]:
+                    line = single_velocityax62.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].RefGpsSpeedDiff['NorthVelocity'],
+                                    label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_single_velocity.append(plot_add_nonius(line, show_formate='xy'))
+            single_velocityax62 = self.set_ax(single_velocityax62, '', 'unit:m/s', 'Ref-GPS北向速度对比')
+
+            single_velocityax63 = fig.add_subplot(323)
+            for f_name in ref_ins_data.keys():
+                line = single_velocityax63.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
+                                 ref_ins_data[f_name].error["vel_e"],
+                                 label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
+                cursor_single_velocity.append(plot_add_nonius(line, show_formate='xy'))
+            single_velocityax63 = self.set_ax(single_velocityax63, '', 'unit:m/s', 'Ref-INS东向速度对比')
+
+            single_velocityax64 = fig.add_subplot(324)
+            for f_name in ref_ins_data.keys():
+                if self.gps_flag[f_name]:
+                    line = single_velocityax64.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].RefGpsSpeedDiff['EastVelocity'],
+                                    label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_single_velocity.append(plot_add_nonius(line, show_formate='xy'))
+            single_velocityax64 = self.set_ax(single_velocityax64, '', 'unit:m/s', 'Ref-GPS东向速度对比')
+
+            single_velocityax65 = fig.add_subplot(325)
+            for f_name in ref_ins_data.keys():
+                line = single_velocityax65.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
+                                 ref_ins_data[f_name].error["vel_g"],
+                                 label=str(f_name + '_Ref-INS'), linewidth=1, alpha=0.7)
+                cursor_single_velocity.append(plot_add_nonius(line, show_formate='xy'))
+            single_velocityax65 = self.set_ax(single_velocityax65, '', 'unit:m/s', 'Ref-INS地向速度对比')
+
+            single_velocityax66 = fig.add_subplot(326)
+            for f_name in ref_ins_data.keys():
+                if self.gps_flag[f_name]:
+                    line = single_velocityax66.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                    ref_gps_data[f_name].RefGpsSpeedDiff['GroundVelocity'],
+                                    label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_single_velocity.append(plot_add_nonius(line, show_formate='xy'))
+            single_velocityax66 = self.set_ax(single_velocityax66, '', 'unit:m/s', 'Ref-GPS地向速度对比')
+
+            fig.subplots_adjust(hspace=0.7)
+            fig.canvas.manager.window.showMaximized()
+            return cursor_single_velocity
+
+            # fig.canvas.manager.window.showMaximized()
+
+        def plot_single_pos(ref_ins_data, ref_gps_data, ref_ins_data_before, ref_gps_data_before, name='位置对比图'):
+            cursor_single_pos = []
+            fig = plt.figure()
+            fig.suptitle(name)
+
+            pos_ax21 = fig.add_subplot(321)
+            for f_name in ref_ins_data.keys():
+                line = pos_ax21.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
+                                 ref_ins_data[f_name].Pos["Lon_X"][0] - ref_ins_data[f_name].Pos["Lon_X"][1],
+                                 label=str(f_name + '_Ref-Ins'), linewidth=1, alpha=0.7)
+                cursor_single_pos.append(plot_add_nonius(line, show_formate='xy'))
+            pos_ax21 = self.set_ax(pos_ax21, '', 'unit:m', 'Ref-INS纬度对比')
+
+            pos_ax22 = fig.add_subplot(323)
+            for f_name in ref_ins_data.keys():
+                line = pos_ax22.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
+                                 ref_ins_data[f_name].Pos["Lat_Y"][0] - ref_ins_data[f_name].Pos["Lat_Y"][1],
+                                 label=str(f_name + '_Ref-Ins'), linewidth=1, alpha=0.7)
+                cursor_single_pos.append(plot_add_nonius(line, show_formate='xy'))
+            pos_ax22 = self.set_ax(pos_ax22, '', 'unit:m', 'Ref-INS经度对比')
+
+            pos_ax23 = fig.add_subplot(325)
+            for f_name in ref_ins_data.keys():
+                line = pos_ax23.plot(ref_ins_data_before[f_name]['time_x'] - self.time0_set,
+                                 ref_ins_data[f_name].Pos["Height_Z"][0] - ref_ins_data[f_name].Pos["Height_Z"][1],
+                                 label=str(f_name + '_Ref-Ins'), linewidth=1, alpha=0.7)
+                cursor_single_pos.append(plot_add_nonius(line, show_formate='xy'))
+            pos_ax23 = self.set_ax(pos_ax23, '', 'unit:m', 'Ref-INS高度对比')
+
+            pos_ax24 = fig.add_subplot(322)
+            for f_name in ref_ins_data.keys():
+                if self.gps_flag[f_name]:
+                    line = pos_ax24.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     ref_gps_data[f_name].Pos["Lon_X"][0] - ref_gps_data[f_name].Pos["Lon_X"][1],
+                                     label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_single_pos.append(plot_add_nonius(line, show_formate='xy'))
+            ax24 = self.set_ax(pos_ax24, '', 'unit:m', 'Ref-GPS纬度对比')
+
+            pos_ax25 = fig.add_subplot(324)
+            for f_name in ref_ins_data.keys():
+                if self.gps_flag[f_name]:
+                    line = pos_ax25.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     ref_gps_data[f_name].Pos["Lat_Y"][0] - ref_gps_data[f_name].Pos["Lat_Y"][1],
+                                     label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_single_pos.append(plot_add_nonius(line, show_formate='xy'))
+            ax25 = self.set_ax(pos_ax25, '', 'unit:m', 'Ref-GPS经度对比')
+
+            pos_ax26 = fig.add_subplot(326)
+            for f_name in ref_ins_data.keys():
+                if self.gps_flag[f_name]:
+                    line = pos_ax26.plot(ref_gps_data_before[f_name]['time'] - self.time0_set,
+                                     ref_gps_data[f_name].Pos["Height_Z"][0] - ref_gps_data[f_name].Pos["Height_Z"][1],
+                                     label=str(f_name + '_Ref-GPS'), linewidth=1, alpha=0.7)
+                    cursor_single_pos.append(plot_add_nonius(line, show_formate='xy'))
+            ax26 = self.set_ax(pos_ax26, '', 'unit:m', 'Ref-GPS高度对比')
+
+            fig.subplots_adjust(hspace=0.7)
+            fig.canvas.manager.window.showMaximized()
+            return cursor_single_pos
+
+            # fig.canvas.manager.window.showMaximized()
+
         if 0 == len(self.SyncRefInsData.keys()):
             return print('no file required to show !!!')
         msg_info = ''
@@ -1508,6 +1632,15 @@ class PlotGpsInsRawSyncData:
         except Exception as e:
             print('Cannot plot xyz_speed')
             msg_info += '无法绘制图： 速度（载体坐标系）\n'
+            print(e)
+        # TODO: 华测特制
+        try:
+            cursors.append(plot_single_velocity(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+            cursors.append(plot_single_pos(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+            msg_info += '成功绘制图： 速度、位置对比图\n'
+        except Exception as e:
+            print('Cannot plot single_velocity single_pos')
+            msg_info += '无法绘制图： 速度、位置对比图\n'
             print(e)
         try:
             cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
@@ -1761,6 +1894,8 @@ class PlotGpsInsRawSyncData:
         statistic_gps_all = {}
         # statistics_ins, statistics_gps = {}, {}
         statistics_pos_ins, statistics_loc_ins, statistics_gps = {}, {}, {}
+        # 华测专供
+        statistics_gps_info = {}
 
         for file_name in self.gps_flag.keys():
             # INS数据与参考对比统计
@@ -1783,9 +1918,12 @@ class PlotGpsInsRawSyncData:
                 statistics_gps['场景'] = [scene]
                 statistics_gps.update(self.RefGpsData[file_name].StatisticGpsFlag(self.SyncRefGpsData[file_name],
                                                                              file_name + "_gps"))
+                # 华测专供：pitch heading 高度（HSpd） 位置 ，這五個個維度數據的7個方面統計：RMS<标准差的比例、123σ、最大、均值、標準差。
+                statistics_gps_info.update(self.RefGpsData[file_name].StatisticGpsFlag_info(self.SyncRefGpsData[file_name],
+                                                                             file_name + "_gps"))
                 statistic_gps_all[file_name] = statistics_gps
 
-            savedata = [statistics_pos_ins, statistics_loc_ins, statistics_gps]
+            savedata = [statistics_pos_ins, statistics_loc_ins, statistics_gps, statistics_gps_info]
 
             if gen_xlsx:
                 SaveStatisticToExcel(savedata, filePath)
@@ -1798,6 +1936,8 @@ def SaveStatisticToExcel(savedata, filePath):
     data_1_pos = pd.DataFrame.from_dict(savedata[0])
     data_1_loc = pd.DataFrame.from_dict(savedata[1])
     data_2 = pd.DataFrame.from_dict(savedata[2])
+    if len(savedata) > 3:
+        data_GPS_info = pd.DataFrame.from_dict(savedata[3])
 
     xlsx_path = filePath + '\statistic.xlsx'
     print("filePath:  ", xlsx_path)
@@ -1817,12 +1957,17 @@ def SaveStatisticToExcel(savedata, filePath):
         data_1_pos.to_excel(writer, sheet_name='INS姿态精度统计', startrow=ins_df_pos_rows+1, index=False, header=False)  # 不要行和列的标签
         data_1_loc.to_excel(writer, sheet_name='INS位置精度统计', startrow=ins_df_loc_rows+1, index=False, header=False)
         data_2.to_excel(writer, sheet_name='GPS解状态统计', startrow=gps_df_rows+1, index=False, header=False)
+        if len(savedata) > 3:
+            data_GPS_info.to_excel(writer, sheet_name='GPS帧相关信息', startrow=gps_df_rows+1, index=False, header=False)
     else:
         writer = pd.ExcelWriter(xlsx_path)
         data_1_pos.to_excel(writer, sheet_name='INS姿态精度统计', index=False)  # 不要行和列的标签
         data_1_loc.to_excel(writer, sheet_name='INS位置精度统计', index=False)
         data_2.to_excel(writer, sheet_name='GPS解状态统计', index=False)
+        if len(savedata) > 3:
+            data_GPS_info.to_excel(writer, sheet_name='GPS帧相关信息', index=False)
 
+        # 设置格式
         sheet = writer.sheets['INS姿态精度统计']
         sheet.column_dimensions["A"].width = 22
         sheet.column_dimensions["B"].width = 22

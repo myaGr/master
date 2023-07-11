@@ -178,6 +178,7 @@ class Ui_MainWindow(object):
         self.select_type.setObjectName("select_type")
         self.select_type.addItem("")
         self.select_type.addItem("")
+        self.select_type.addItem("")
         self.horizontalLayout_5.addWidget(self.select_type)
         self.verticalLayout_6.addWidget(self.widget_5)
         self.widget_10 = QtWidgets.QWidget(self.tab_2)
@@ -411,7 +412,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V2.0.6.1   Powered by 算法部 2023/04/23"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "数据解析与分析工具V2.0.6.5（华测特制）   Powered by 算法部 2023/07/03"))
         self.label_2.setText(_translate("MainWindow", "文件路径* ："))
         self.pushBtn_SelectFile.setText(_translate("MainWindow", "选择文件"))
         self.label_3.setText(_translate("MainWindow", "保存文件类型："))
@@ -425,10 +426,11 @@ class Ui_MainWindow(object):
         self.pushBtn_ClearMsg1.setText(_translate("MainWindow", "清空消息和所有绘制图"))
         self.textBro_PrintMsg2.setTabText(self.textBro_PrintMsg2.indexOf(self.tab1), _translate("MainWindow", "INS解析画图分析"))
         self.label_5.setText(_translate("MainWindow", "参考文件*  ："))
-        self.lineEdit_GetRefFile.setPlaceholderText(_translate("MainWindow", "文件名中含设备名(仅支持100C和320)，如：\"test_100C.txt\""))
+        self.lineEdit_GetRefFile.setPlaceholderText(_translate("MainWindow", ""))
         self.pushBtn_SelectRef.setText(_translate("MainWindow", "选择文件"))
         self.select_type.setItemText(0, _translate("MainWindow", "100C"))
         self.select_type.setItemText(1, _translate("MainWindow", "320"))
+        self.select_type.setItemText(2, _translate("MainWindow", "华测特制"))
         self.label.setText(_translate("MainWindow", "测试文件*  ："))
         self.pushBtn_SelectIns.setText(_translate("MainWindow", "选择文件"))
         self.toolButton.setWhatsThis(_translate("MainWindow", "<html><head/><body><p>参数设置</p></body></html>"))
