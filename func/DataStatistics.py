@@ -112,7 +112,7 @@ class DataStatistics:
         global yaw  # 航向
         self.Pos["pos0"] = pos0
         if type == 1:  # GPS和INS同步数据
-            self.Pos["lat"] = np.array([InsGpsSyncData['lat'], InsGpsSyncData['Lat']])
+            self.Pos["lat"] = np.array([InsGpsSyncData['lat'], InsGpsSyncData['Lat']])  # 类似Lat的大写字段一般来着GPS
             self.Pos["lon"] = np.array([InsGpsSyncData['lon'], InsGpsSyncData['Lon']])
             self.Pos["h"] = np.array([InsGpsSyncData['height'], InsGpsSyncData['hMSL']])
             yaw = np.array(InsGpsSyncData["yaw"])
@@ -376,8 +376,8 @@ class DataStatistics:
             self.statisticsgps_info[items[2 + i * 6 + 5]] = [round(SyncRefGpsData[error[i]].std(), 4)]
             self.statisticsgps_info[items[2 + i * 6 + 6]] = [round(SyncRefGpsData[error[i]].mean(), 4)]
 
-        self.statisticsgps_info[items[39]] = [sum((abs(SyncRefGpsData['Lon'] - SyncRefGpsData['lon']) < SyncRefGpsData['LonStd']) == True) / gps_len]
-        self.statisticsgps_info[items[40]] = [sum((abs(SyncRefGpsData['Lat'] - SyncRefGpsData['lat']) < SyncRefGpsData['LatStd']) == True) / gps_len]
+        self.statisticsgps_info[items[39]] = [sum((abs(self.Pos["Lon_X"][1] - self.Pos["Lon_X"][0]) < SyncRefGpsData['LonStd']) == True) / gps_len]
+        self.statisticsgps_info[items[40]] = [sum((abs(self.Pos["Lat_Y"][1] - self.Pos["Lat_Y"][0]) < SyncRefGpsData['LatStd']) == True) / gps_len]
         self.statisticsgps_info[items[41]] = [sum((abs(SyncRefGpsData['hMSL'] - SyncRefGpsData['height']) < SyncRefGpsData['hMSLStd']) == True) / gps_len]
         self.statisticsgps_info[items[42]] = [sum((abs(SyncRefGpsData['Pitch'] - SyncRefGpsData['pitch']) < SyncRefGpsData['PitchStd']) == True) / gps_len]
 
