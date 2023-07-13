@@ -80,6 +80,7 @@ class Parse100CData(object):
         f = open(self.filepath, 'r')
         lines = f.readlines()
         startflag = 0
+        GroundVelocity = False
         # 320内应含有的字段
         keys_name = ['GPSTime', 'Latitude', 'Longitude', 'H-Ell', 'Heading', 'Pitch', 'Roll', 'posQuality',
                  'Vel-N', 'Vel-E', 'Vel-U', 'AcclX', 'AngVelX', 'AcclY', 'AngVelY', 'AcclZ', 'AngVelZ']
@@ -93,7 +94,18 @@ class Parse100CData(object):
 
             if "GPSTime" in li and len(li) >= 17:  # 寻找320数据字头，共10列
                 diff_keys = set(keys_name) - set(li)
-                if len(diff_keys) > 0:  # 判断是否缺少字段， 如果缺少直接返回
+
+                # 兼容不同格式的垂直速度: 地向速度转天向速度
+                if diff_keys == {'Vel-U'} and "Vel-D" in line:  # 地向速度转天向速度
+                    GroundVelocity = True
+                    line = line.replace("Vel-D", "Vel-U")
+                    li = line.replace('\n', '').split(" ")
+                    while '' in li:
+                        li.remove('')
+                    diff_keys = set(keys_name) - set(li)
+
+                # 判断是否缺少字段， 如果缺少直接返回
+                if len(diff_keys) > 0:
                     print('missing values:', diff_keys)
                     return diff_keys
                 startflag = 1
@@ -107,9 +119,11 @@ class Parse100CData(object):
                     values[required_keys[k]].append(float(li[k]))
 
         f.close()
-
-        values['height'] = values['H-Ell']
-        values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
+        if "H-Ell" in values:
+            values['height'] = values['H-Ell']
+            msg_info += '采用字段为 H-Ell 的数据作为高程计算'
+        if "GroundVelocity" in values and GroundVelocity is False:
+            values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
         self.ins100cdf = pd.DataFrame(values)
         return msg_info
 
@@ -135,7 +149,23 @@ class Parse100CData(object):
             # print(len(li),li)
             if "GPSTime" in li and len(li) >= 18:  # 寻找100C数据字头
                 diff_keys = set(keys_name) - set(li)
-                if len(diff_keys) > 0:  # 判断是否缺少字段， 如果缺少直接返回
+
+                # 兼容不同格式的正高
+                if diff_keys == {'H-MSL'} and 'H-O' in line:
+                    line = line.replace("H-O", "H-MSL")
+                    li = line.replace('\n', '').split(" ")
+                    while '' in li:
+                        li.remove('')
+                    diff_keys = set(keys_name) - set(li)
+                elif diff_keys == {'H-MSL'} and 'H-N' in line:
+                    line = line.replace("H-N", "H-MSL")
+                    li = line.replace('\n', '').split(" ")
+                    while '' in li:
+                        li.remove('')
+                    diff_keys = set(keys_name) - set(li)
+
+                # 判断是否缺少字段， 如果缺少直接返回
+                if len(diff_keys) > 0:
                     print('missing values:', diff_keys)
                     return diff_keys
                 startflag = 1
@@ -149,21 +179,14 @@ class Parse100CData(object):
                 values[required_keys[1]].append(float(li[1]) + float(li[2]) / 60 + float(li[3]) / 3600)
                 values[required_keys[2]].append(float(li[4]) + float(li[5]) / 60 + float(li[6]) / 3600)
                 for k in range(3, len(required_keys)):
-                    if required_keys[k] == 'height':
-                        try:
-                            values[required_keys[k]].append(float(li[k + 12]))
-                            if msg_info:
-                                msg_info += '基准数据高程误差计算采用正高值（即H-MSL)'
-                        except Exception as e:
-                            print(e)
-                            values[required_keys[k]].append(float(li[k + 4]))
-                            if msg_info:
-                                msg_info += '基准数据H-MSL有误，高程误差计算采用椭球高（即H-ELL)'
-
-                    else:
-                        values[required_keys[k]].append(float(li[k + 4]))
+                    values[required_keys[k]].append(float(li[k + 4]))
         f.close()
-        values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
+
+        if "H-Ell" in values:
+            values['height'] = values['H-Ell']
+            msg_info += '采用字段为 H-Ell 的数据作为高程计算'
+        if "GroundVelocity" in values:
+            values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
 
         self.ins100cdf = pd.DataFrame(values)
         return msg_info
@@ -223,6 +246,37 @@ class Parse100CData(object):
 
         self.ins100cdf = pd.DataFrame(values)
         return msg_info
+
+    def beiYunDataToDataframe(self, filepath):
+        """
+        beiYunDataToDataframe：数据格式转成pandas数据
+        ：param filepath: 北云原始数据 INSPVAA
+        ：return：北云数据的dataframe
+        @auther：ZixuanWen
+        @date：2023-07-12
+       """
+        keys_name = ['gpsWeek', 'time', 'lat', 'lon', 'height', 'NorthVelocity', 'EastVelocity', 'GroundVelocity',
+                     'roll', 'pitch', 'yaw']
+        values = {}
+        for key in keys_name:
+            values[key] = []
+        # with判断文件是否存在
+        with open(filepath, 'r', encoding='gb18030', errors='ignore') as f:
+            lines = f.readlines()
+            for line in lines:
+                try:
+                    if line == '' or 'BKGGA' in line or "\x00" in line:  # 过滤包含乱码情况
+                        continue
+                    if "#INSPVAA" in line and len(line.split(",")) == 21 and len(
+                            line.split(";")[1].split(",")) == 12:  # 从$开启截取信息
+                        tmp = line.rstrip('\n').split(";")[1].split(",")
+                        for i in range(len(keys_name)):
+                            values[keys_name[i]].append(float(tmp[i]))
+                except Exception as e:
+                    print(line + ", 数据解析失败" + str(e))
+        f.close()
+        values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
+        return pd.DataFrame(values)
 
     def save_nmea_to_df(self):
         pass

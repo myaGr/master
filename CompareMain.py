@@ -270,6 +270,7 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.InsBpos = None
         self.GpsBpos = None
         self.ref_type = '100C'
+        self.test_type = '导远自定义'
 
         self.InsDataDF = {}
         self.GpsDataDF = {}
@@ -285,6 +286,7 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.GpsNum = data_info[6]
         self.InsBpos = data_info[7]
         self.GpsBpos = data_info[8]
+        self.test_type = data_info[9]
 
     def outputMsg2(self, msg_str):
         print(msg_str)
@@ -341,28 +343,38 @@ class mainFunctionInsCompare(QtCore.QThread):
         # 解析测试数据
         self.name_list = []
         for file in self.inspaths:
-            self.HexDataParseObj.filePath = file
             file_name = file.split('/')[-1].split('.')[0]
             self.name_list.append(file_name)
             try:
                 # 数据解析
-                self.outputMsg2("开始解析：" + file)
-                self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
-                self.HexDataParseObj.saveDataToDF()
-                if self.HexDataParseObj.InsDataDF is not None:
-                    self.outputMsg2("数据解析完成。")
-                    # 数据保存
-                    self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
-                    self.HexDataParseObj.InsDataDF = None
-                    self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
-                    self.HexDataParseObj.GpsDataDF = None
-                    # TODO: 刘志强要求删减，仅在  华测特制  有效
-                    self.InsDataDF[file_name]['roll'] = self.InsDataDF[file_name]['roll'] + 0.200680469
-                    self.InsDataDF[file_name]['pitch'] = self.InsDataDF[file_name]['pitch'] + 0.333099707
-                    self.InsDataDF[file_name]['yaw'] = self.InsDataDF[file_name]['yaw'] - 2.847532422
+                if self.test_type == '导远自定义':
+                    self.HexDataParseObj.filePath = file
+                    self.outputMsg2("开始解析导远自定义测试文件：" + file)
+                    self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
+                    self.HexDataParseObj.saveDataToDF()
+                    if self.HexDataParseObj.InsDataDF is not None:
+                        self.outputMsg2("数据解析完成。")
+                        # 数据保存
+                        self.InsDataDF[file_name] = self.HexDataParseObj.InsDataDF
+                        self.HexDataParseObj.InsDataDF = None
+                        self.GpsDataDF[file_name] = self.HexDataParseObj.GpsDataDF
+                        self.HexDataParseObj.GpsDataDF = None
+                        # # TODO: 刘志强要求删减，仅在  华测特制  有效
+                        # self.InsDataDF[file_name]['roll'] = self.InsDataDF[file_name]['roll'] + 0.200680469
+                        # self.InsDataDF[file_name]['pitch'] = self.InsDataDF[file_name]['pitch'] + 0.333099707
+                        # self.InsDataDF[file_name]['yaw'] = self.InsDataDF[file_name]['yaw'] - 2.847532422
+                    else:
+                        self.outputMsg2("数据无效，解析失败。")
+                        continue
                 else:
-                    self.outputMsg2("数据无效，解析失败。")
-                    continue
+                    self.outputMsg2("开始解析北云测试文件：" + file)
+                    self.InsDataDF[file_name] = self.Parse100CDataObj.beiYunDataToDataframe(file)
+                    self.GpsDataDF[file_name] = {'Lon':[], 'LonStd':[], 'Lat':[], 'LatStd':[], 'hMSL':[], 'hMSLStd':[], 'gpsFix':[], 'flags':[],
+                                               'HSpd':[], 'TrackAngle':[], 'VSpd':[], 'LatencyVel':[], 'BaseLineLength':[], 'Heading':[],
+                                               'HeadingStd':[], 'Pitch':[], 'PitchStd':[], 'year':[], 'month':[], 'day':[], 'hour':[],
+                                               'minute':[], 'second':[], 'itow_pos':[], 'itow_vel':[], 'itow_heading':[], 'RecMsg':[],
+                                               'numSV':[], 'flagsPos':[], 'ts':[]}
+                    self.GpsDataDF[file_name] = pd.DataFrame(self.GpsDataDF[file_name])
             except Exception as e:
                 self.inspaths.pop(file_name)
                 self.name_list.pop(file_name)
@@ -384,9 +396,10 @@ class mainFunctionInsCompare(QtCore.QThread):
                     self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
                     self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
                         self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
-                    if len(self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name]) == 0 or len(
-                            self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
-                        self.outputMsg2('时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
+                    if len(self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name]) == 0:
+                        self.outputMsg2('INS和参考数据时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
+                    if len(self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
+                        self.outputMsg2('GPS和参考数据时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
                 except Exception as e:
                     self.outputMsg2(file_name + ": 时间同步失败...")
                     self.outputMsg2('失败原因:' + str(e))
@@ -401,16 +414,24 @@ class mainFunctionInsCompare(QtCore.QThread):
                 try:
                     time_arrange = self.time_dir[scene]['time_arrange']
                     scene_dscribe = str(self.time_dir[scene]['scene_num']) + '_' + self.time_dir[scene]['scene']
-                    # 统计部分场景中，先把所有GPS的值都置上
-                    self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
+
+                    self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
                     self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
 
-                    # if self.time_dir[scene]['scene'] != '全程':
-                    self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
-                    static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
-                    self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(),
-                                                                      time_arrange=time_arrange,
-                                                                      scene=scene_dscribe)
+                    if self.test_type == '导远自定义':
+                        # 统计部分场景中，先把所有GPS的值都置上
+                        self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
+                        static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
+                    else:
+                        self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
+                        static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange, test_type='北云')
+                        # self.PlotGpsInsRawSyncDataObj.SyncRefInsData = self.PlotGpsInsRawSyncDataObj.SyncRefInsData_all.copy()
+                        # self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = self.PlotGpsInsRawSyncDataObj.SyncRefGpsData_all.copy()
+                        # self.PlotGpsInsRawSyncDataObj.RefInsData = self.PlotGpsInsRawSyncDataObj.RefInsData_all.copy()
+                        # self.PlotGpsInsRawSyncDataObj.RefGpsData = self.PlotGpsInsRawSyncDataObj.RefGpsData_all.copy()
+
+                    self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange, scene=scene_dscribe)
+
                     self.outputMsg2(static_msg_info)
                     static_msg_info = ''
                 except Exception as e:
@@ -424,7 +445,7 @@ class mainFunctionInsCompare(QtCore.QThread):
         try:
             # 获取绘图的开始和结束时间
             self.DataPreProcess.t = self.plot_scene_time
-            print('time_arange:', self.DataPreProcess.t)
+            print('time_range:', self.DataPreProcess.t)
             self.DataPreProcess.scene = self.plot_scene
             self.outputMsg2('绘制时间段设为：%s' % str(self.DataPreProcess.t))
 
@@ -440,10 +461,10 @@ class mainFunctionInsCompare(QtCore.QThread):
                         self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
                         self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
-                        # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                        self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
-                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
-                            self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+                        if self.test_type == '导远自定义':
+                            self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
+                            self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
+                                self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                     except Exception as e:
                         self.outputMsg2(file_name + "【绘图】: 时间同步失败，即将绘制全程图，同步失败的时间段为: ",self.plot_scene_time)
                         self.outputMsg2('失败原因:' + str(e))
@@ -451,13 +472,14 @@ class mainFunctionInsCompare(QtCore.QThread):
 
             # 获取绘图中 GPS 显示数量
             self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
-            if self.GpsNum > len(self.name_list):
-                self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
-                return
-            else:
-                for i in range(self.GpsNum):
-                    self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
-                print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
+            if self.test_type == '导远自定义':
+                if self.GpsNum > len(self.name_list):
+                    self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
+                    return
+                else:
+                    for i in range(self.GpsNum):
+                        self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
+                    print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
 
             self.outputMsg2("【绘图】时间同步完成，可生成图。")
             # self.pushBtn_StartPlot2.setEnabled(True)
@@ -521,7 +543,8 @@ if __name__ == "__main__":
         thread_1 = mainFunctionAnalysicSingleFile()
 
         # 正常文件
-        path = r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
+        # path = r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
+        path = r'E:\Downloads\arc_001_(1).txt'
         # 错误文件
         # path = r'D:/Files/test/dbFiles/test2/100/config1.txt'
         # 内容有误
@@ -537,11 +560,19 @@ if __name__ == "__main__":
     def compare_test():
         thread_2 = mainFunctionInsCompare()
 
-        # 刘志强 华测
-        refpath = r'D:\Files\test\dbFiles\刘志强特殊数据\1\test_COM5-1.txt'
-        inspaths = [r'D:\Files\test\dbFiles\刘志强特殊数据\1\2023.06.16.txt']
+        # # 刘志强 华测
+        # refpath = r'D:\Files\test\dbFiles\刘志强特殊数据\1\test_COM5-1.txt'
+        # inspaths = [r'D:\Files\test\dbFiles\刘志强特殊数据\1\2023.06.16.txt']
         # refpath = r'D:\Files\test\dbFiles\刘志强特殊数据\20230617-20230620\真值参考数据\真值\0619\test_COM5_2-1.txt'
         # inspaths = [r'D:\Files\test\dbFiles\刘志强特殊数据\20230617-20230620\570D测试数据\2023.06.19\2023.06.19.txt']
+
+        # 测试：北云 华测
+        # refpath = r'D:\Files\test\dbFiles\北云\1\到测试天线自定义-0626PM.txt'
+        # inspaths = [r'D:\Files\test\dbFiles\北云\1\北云-原数据-0626PM.DAT']
+        # refpath = r'D:\Files\test\dbFiles\北云\2\到测试天线自定义-0710PM.txt'
+        # inspaths = [r'D:\Files\test\dbFiles\北云\2\北云-原数据-0710PM.DAT']
+        refpath = r'D:\Files\test\dbFiles\北云\3\到测试天线自定义-0711PM.txt'
+        inspaths = [r'D:\Files\test\dbFiles\北云\3\北云-原数据-0711PM.DAT']
 
         # inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
         # refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
@@ -579,7 +610,9 @@ if __name__ == "__main__":
             return
 
         # 获取基准数据的数据类型
-        ref_type = '华测特制'  # '100C' '320' 华测特制
+        ref_type = '320'  # '100C' '320' 华测特制
+        # 获取测试数据的数据类型
+        test_type = '北云'  # '导远自定义' '北云'
 
         #### 获取需要解析的场景信息 ###
         time_dir = {'1': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}
@@ -595,7 +628,7 @@ if __name__ == "__main__":
 
         thread_2.get_info(
             [refpath, ref_type, inspaths, time_dir, plot_time_range, plot_scene, GpsNum,
-             InsBpos, GpsBpos])
+             InsBpos, GpsBpos, test_type])
         thread_2.run()
         thread_2.plot_insgps_compare()
 
@@ -649,9 +682,9 @@ if __name__ == "__main__":
 
         print('总共用时：%d s' % time.time() - start_time)
 
-    compare_test()
+    # compare_test()
     # compare_multi_file()
-    # analyze_single_file()
+    analyze_single_file()
     print('over')
 
 

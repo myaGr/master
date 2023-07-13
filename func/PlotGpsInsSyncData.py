@@ -1633,15 +1633,15 @@ class PlotGpsInsRawSyncData:
             print('Cannot plot xyz_speed')
             msg_info += '无法绘制图： 速度（载体坐标系）\n'
             print(e)
-        # TODO: 华测特制
-        try:
-            cursors.append(plot_single_velocity(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
-            cursors.append(plot_single_pos(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
-            msg_info += '成功绘制图： 速度、位置对比图\n'
-        except Exception as e:
-            print('Cannot plot single_velocity single_pos')
-            msg_info += '无法绘制图： 速度、位置对比图\n'
-            print(e)
+        # # TODO: 华测特制
+        # try:
+        #     cursors.append(plot_single_velocity(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+        #     cursors.append(plot_single_pos(self.RefInsData, self.RefGpsData, self.SyncRefInsData, self.SyncRefGpsData))
+        #     msg_info += '成功绘制图： 速度、位置对比图\n'
+        # except Exception as e:
+        #     print('Cannot plot single_velocity single_pos')
+        #     msg_info += '无法绘制图： 速度、位置对比图\n'
+        #     print(e)
         try:
             cursors.append(plot_precision_statistics(self.RefInsData, self.RefGpsData))
             msg_info += '成功绘制图： 精度统计\n'
@@ -1765,7 +1765,7 @@ class PlotGpsInsRawSyncData:
             self.gps_flag[list(self.SyncRefInsData.keys())[0]] = 1
 
     # INS和GPS指标数据绘图预处理
-    def dataPreStatistics(self, time_arrange=None):
+    def dataPreStatistics(self, time_arrange=None, test_type='导远自定义'):
         msg_info = ''
         if not self.SyncRefInsData_all:
             self.SyncRefInsData_all = self.SyncRefInsData.copy()
@@ -1777,24 +1777,20 @@ class PlotGpsInsRawSyncData:
         RefGpsData = {}
         start_time_index = 1
 
-        if time_arrange:
-            gps_flag = dict.fromkeys(list(SyncRefInsData.keys()), 1)
+        if '导远自定义' not in test_type:
+            gps_flag = dict.fromkeys(list(SyncRefInsData.keys()), 0)
+            # not in test_type or not time_arrange:
+            # gps_flag = self.gps_flag.copy()
+        elif time_arrange:
+            gps_flag = dict.fromkeys(list(SyncRefInsData.keys()), 0)
+
             start_time = time_arrange[0]
             end_time = time_arrange[1]
             for file_name in list(SyncRefInsData.keys()):
-                # # Old Version
-                # gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
-                # # make sure end_time != 0
-                # gps_end_time = end_time if end_time > 0 else max(gps_time)
-                # start_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time >= start_time].index)[0]
-                # end_time_index = list(SyncRefGpsData[file_name]['sync_itow_pos'][gps_time <= gps_end_time].index)[-1]
-                # SyncRefGpsData[file_name] = SyncRefGpsData[file_name][start_time_index:end_time_index][:]
-                #
-                # ins_time = SyncRefInsData[file_name]['sync_time'].values
-                # ins_end_time = end_time if end_time > 0 else max(ins_time)
-                # start_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time >= start_time].index)[0]
-                # end_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time <= ins_end_time].index)[-1]
-                # SyncRefInsData[file_name] = SyncRefInsData[file_name][start_time_index:end_time_index][:]
+                if test_type[list(SyncRefInsData.keys()).index(file_name)] == '导远自定义':
+                    gps_flag[file_name] = 1
+                else:
+                    continue
 
                 # find the time index in pandas.series
                 gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
@@ -1808,8 +1804,6 @@ class PlotGpsInsRawSyncData:
                 SyncRefInsData[file_name] = SyncRefInsData[file_name].reset_index(drop=True)
                 ins_time = SyncRefInsData[file_name]['sync_time'].values
                 start_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time >= start_time].index)[0]
-        else:
-            gps_flag = self.gps_flag.copy()
 
         # 最後一份數據
         data1 = SyncRefInsData[list(SyncRefInsData.keys())[-1]]
