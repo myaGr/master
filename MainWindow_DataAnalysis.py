@@ -57,22 +57,29 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             self.HexDataParseObj.saveDataToDF()
             self.outputMsg1("解析完成。")
             self.outputDataFrameStatsResult()  # 输出数据帧统计结果
+        except Exception as e:
+            self.outputMsg1(self.file_path + "文件解析失败...")
+            self.outputMsg1('失败原因:' + str(e))
 
+        try:
             if "csv" in self.types:
                 self.outputMsg1("生成Csv文件...")
                 self.HexDataParseObj.SaveAllDataToCsvFile()
             if "mat" in self.types:
                 self.outputMsg1("生成Mat文件...")
                 self.HexDataParseObj.startSaveAllDataToMatFile()
+        except Exception as e:
+            self.outputMsg1("文件有误，无法生成csv/mat文件！")
 
-            # 时间同步
-            self.outputMsg1("开始INS和GPS时间同步...")
+        # 时间同步
+        self.outputMsg1("开始INS和GPS时间同步...")
+        try:
             self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF,
                                                                       self.HexDataParseObj.GpsDataDF, 'time',
                                                                       'itow_pos')
             self.outputMsg1("【绘图】时间同步完成，可生成统计图。")
         except Exception as e:
-            self.outputMsg1(self.file_path + "文件解析失败...")
+            self.outputMsg1(self.file_path + "时间同步失败。")
             self.outputMsg1('失败原因:' + str(e))
 
     def plot_insgps(self, second_of_week=False):
@@ -186,7 +193,7 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.InsBpos = None
         self.GpsBpos = None
         self.ref_type = '100C'
-        self.test_type = ['导远自定义']
+        self.test_type = []
 
         self.InsDataDF = {}
         self.GpsDataDF = {}
@@ -264,6 +271,7 @@ class mainFunctionInsCompare(QtCore.QThread):
             self.outputMsg2('失败原因:' + str(e))
 
         # 解析测试数据
+        self.outputMsg2('测试数据类型：'+str(self.test_type))
         self.name_list = []
         for file in self.inspaths:
             file_name = file.split('/')[-1].split('.')[0]
@@ -298,6 +306,7 @@ class mainFunctionInsCompare(QtCore.QThread):
                                                'minute':[], 'second':[], 'itow_pos':[], 'itow_vel':[], 'itow_heading':[], 'RecMsg':[],
                                                'numSV':[], 'flagsPos':[], 'ts':[]}
                     self.GpsDataDF[file_name] = pd.DataFrame(self.GpsDataDF[file_name])
+                    self.outputMsg2("数据解析完成。")
             except Exception as e:
                 self.inspaths.pop(file_name)
                 self.name_list.pop(file_name)
@@ -311,19 +320,27 @@ class mainFunctionInsCompare(QtCore.QThread):
             self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
             for file_name in self.name_list:
+                self.outputMsg2('%s 为 %s 类型测试数据' % (file_name, str(self.test_type[self.name_list.index(file_name)])))
                 try:
                     self.outputMsg2(file_name + ": INS和参考数据时间同步...")
                     self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                         self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
-                    # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                    self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
-                    self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
-                        self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
-
                     if len(self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name]) == 0:
-                        self.outputMsg2('INS和参考数据时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
-                    if len(self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
-                        self.outputMsg2('GPS和参考数据时间同步失败：数据不存在或是数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
+                        self.outputMsg2(file_name + ': INS和参考数据时间同步失败 (数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！)')
+                    else:
+                        self.outputMsg2(file_name + ': INS和参考数据时间同步完成')
+
+                    if self.test_type[self.name_list.index(file_name)] == '导远自定义':
+                        self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
+                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
+                            self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+                        if len(self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
+                            self.outputMsg2(file_name + ': GPS和参考数据时间同步失败 （数据不存在或是数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！)')
+                        else:
+                            self.outputMsg2(file_name + ': GPS和参考数据时间同步完成')
+                    else:
+                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = {}
+                        self.outputMsg2(file_name + '非自定义数据，默认无GPS数据 不进行同步GPS操作')
                 except Exception as e:
                     self.outputMsg2(file_name + ": 时间同步失败...")
                     self.outputMsg2('失败原因:' + str(e))
@@ -346,9 +363,10 @@ class mainFunctionInsCompare(QtCore.QThread):
                     static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange, test_type=self.test_type)
 
                     self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange, scene=scene_dscribe)
+
                     self.outputMsg2(static_msg_info)
                     static_msg_info = ''
-                    self.outputMsg2("场景 %s 统计完成！"% scene)
+                    self.outputMsg2("场景 %s 统计完成！" % scene)
                 except Exception as e:
                     self.outputMsg2("场景 %s 统计失败..." % scene)
                     self.outputMsg2('失败原因:' + str(e))
@@ -374,6 +392,7 @@ class mainFunctionInsCompare(QtCore.QThread):
                         self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步的时间段为: " + str(self.plot_scene_time))
                         self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
+
                         if self.test_type[self.name_list.index(file_name)] == '导远自定义':
                             self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步的时间段为: " + str(self.plot_scene_time))
                             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
@@ -385,7 +404,6 @@ class mainFunctionInsCompare(QtCore.QThread):
 
             # 获取绘图中 GPS 显示数量
             self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
-            # if self.test_type == '导远自定义':
             if self.GpsNum > len(self.name_list):
                 self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
                 return
@@ -821,7 +839,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             file = self.inspaths[i]
             if not os.path.isfile(file):
                 self.outputMsg2(file + "文件不存在...")
-                empty_file_index.append(i)
+                empty_file_index.insert(0, i)
                 continue
         # delete empty files
         for index in empty_file_index:

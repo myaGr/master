@@ -1804,8 +1804,10 @@ class PlotGpsInsRawSyncData:
                 SyncRefInsData[file_name] = SyncRefInsData[file_name].reset_index(drop=True)
                 ins_time = SyncRefInsData[file_name]['sync_time'].values
                 start_time_index = list(SyncRefInsData[file_name]['sync_time'][ins_time >= start_time].index)[0]
+        else:
+            gps_flag = self.gps_flag.copy()
 
-        # 最後一份數據
+        # 最後一份數據的坐标为 POS0
         data1 = SyncRefInsData[list(SyncRefInsData.keys())[-1]]
         pos0 = np.array([data1['lat_x'][start_time_index], data1['lon_x'][start_time_index], data1['height_x'][start_time_index]])  # 统一计算初始点
         for file_name in list(SyncRefInsData.keys()):

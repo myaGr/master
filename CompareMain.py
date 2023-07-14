@@ -155,7 +155,7 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF,
                                                                       self.HexDataParseObj.GpsDataDF, 'time',
                                                                       'itow_pos')
-            self.outputMsg1("时间同步完成，可生成统计图。")
+            self.outputMsg1("【绘图】时间同步完成，可生成统计图。")
         except Exception as e:
             self.outputMsg1("时间同步失败。")
             self.outputMsg1('失败原因:' + str(e))
@@ -270,7 +270,7 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.InsBpos = None
         self.GpsBpos = None
         self.ref_type = '100C'
-        self.test_type = '导远自定义'
+        self.test_type = []
 
         self.InsDataDF = {}
         self.GpsDataDF = {}
@@ -298,12 +298,14 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.DataPreProcess = DataPreProcess()
         self.Parse100CDataObj = Parse100CData()
 
-        # 1、解析基准数据
+        ##################################### 1、解析基准数据 #####################################
         try:
             # ps. self.Parse100CDataObj.ins100cdf 会被重置
             self.outputMsg2("开始解析：" + self.refpath)
             self.Parse100CDataObj.filepath = self.refpath
             ref_file_name = self.refpath.split('/')[-1].split('.')[0]
+
+            ##################################### POS320
             if self.ref_type == '320':
                 self.outputMsg2(ref_file_name + "为 POS320 设备输出格式。")
                 try:
@@ -312,6 +314,7 @@ class mainFunctionInsCompare(QtCore.QThread):
                     print(e)
                     self.outputMsg2("尝试解析另一种 POS320 设备输出格式。")
                     ref_flag = self.Parse100CDataObj.save_320_to_df_1()  # 开始参考数据解析
+            ##################################### 100C
             elif self.ref_type == '100C':
                 self.outputMsg2(ref_file_name + "为 100C 设备输出格式。")
                 ref_flag = self.Parse100CDataObj.save100Ctodf()  # 开始参考数据解析
@@ -322,6 +325,12 @@ class mainFunctionInsCompare(QtCore.QThread):
                                 "、使用卫星数、东向标准差、北向标准差、高程标准差、协方差、协方差、协方差"
                                 "、位置精度因子、静态动态状态、东向速度、北向速度、天向速度、横滚角、俯仰角、航向角")
                 ref_flag = self.Parse100CDataObj.save_lzq_to_df()  # 开始参考数据解析
+            ##################################### NMEA
+            elif self.ref_type == 'NMEA':
+                self.outputMsg2(ref_file_name + "为 NMEA 设备输出格式。")
+                self.outputMsg2(ref_file_name + "为 NMEA 设备输出格式。\n 该格式待重构版本开发。")
+
+                # ref_flag = self.Parse100CDataObj.save_nmea_to_df()  # 开始参考数据解析
             else:
                 self.outputMsg2("尚未兼容基准文件格式：" + self.ref_type)
                 # self.clear_handinput_scenes()
@@ -341,13 +350,14 @@ class mainFunctionInsCompare(QtCore.QThread):
             self.outputMsg2('失败原因:' + str(e))
 
         # 解析测试数据
+        self.outputMsg2('测试数据类型：'+str(self.test_type))
         self.name_list = []
         for file in self.inspaths:
             file_name = file.split('/')[-1].split('.')[0]
             self.name_list.append(file_name)
             try:
                 # 数据解析
-                if self.test_type == '导远自定义':
+                if self.test_type[self.inspaths.index(file)] == '导远自定义':
                     self.HexDataParseObj.filePath = file
                     self.outputMsg2("开始解析导远自定义测试文件：" + file)
                     self.HexDataParseObj.startParseFileHexData()  # 开始INS数据解析
@@ -383,7 +393,7 @@ class mainFunctionInsCompare(QtCore.QThread):
                 self.outputMsg2('失败原因:' + str(e))
                 continue
 
-        # 2、时间同步
+        ##################################### 2、时间同步 #####################################
         try:
             self.PlotGpsInsRawSyncDataObj.SyncRefInsData = {}
             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = {}
@@ -392,14 +402,22 @@ class mainFunctionInsCompare(QtCore.QThread):
                     self.outputMsg2(file_name + ": INS和参考数据时间同步...")
                     self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                         self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
-                    # if self.PlotGpsInsRawSyncDataObj.gps_flag[file_name]:
-                    self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
-                    self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
-                        self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                     if len(self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name]) == 0:
-                        self.outputMsg2('INS和参考数据时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
-                    if len(self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
-                        self.outputMsg2('GPS和参考数据时间同步失败：数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！')
+                        self.outputMsg2(file_name + ': INS和参考数据时间同步失败 (数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！)')
+                    else:
+                        self.outputMsg2(file_name + ': INS和参考数据时间同步完成')
+
+                    if self.test_type[self.name_list.index(file_name)] == '导远自定义':
+                        self.outputMsg2(file_name + ": GPS和参考数据时间同步...")
+                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
+                            self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
+                        if len(self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name]) == 0:
+                            self.outputMsg2(file_name + ': GPS和参考数据时间同步失败 （数据不存在或是数据都被过滤了，请检查数据中的IMUstatus和flagsPos值！)')
+                        else:
+                            self.outputMsg2(file_name + ': GPS和参考数据时间同步完成')
+                    else:
+                        self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = {}
+                        self.outputMsg2(file_name + '非自定义数据，默认无GPS数据 不进行同步GPS操作')
                 except Exception as e:
                     self.outputMsg2(file_name + ": 时间同步失败...")
                     self.outputMsg2('失败原因:' + str(e))
@@ -418,28 +436,18 @@ class mainFunctionInsCompare(QtCore.QThread):
                     self.outputMsg2('统计时间范围为%s的数据, 为场景：%s' % (str(time_arrange), scene_dscribe))
                     self.PlotGpsInsRawSyncDataObj.iniInsGpsBpos()
 
-                    if self.test_type == '导远自定义':
-                        # 统计部分场景中，先把所有GPS的值都置上
-                        self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 1)
-                        static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange)
-                    else:
-                        self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
-                        static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange, test_type='北云')
-                        # self.PlotGpsInsRawSyncDataObj.SyncRefInsData = self.PlotGpsInsRawSyncDataObj.SyncRefInsData_all.copy()
-                        # self.PlotGpsInsRawSyncDataObj.SyncRefGpsData = self.PlotGpsInsRawSyncDataObj.SyncRefGpsData_all.copy()
-                        # self.PlotGpsInsRawSyncDataObj.RefInsData = self.PlotGpsInsRawSyncDataObj.RefInsData_all.copy()
-                        # self.PlotGpsInsRawSyncDataObj.RefGpsData = self.PlotGpsInsRawSyncDataObj.RefGpsData_all.copy()
+                    self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
+                    static_msg_info = self.PlotGpsInsRawSyncDataObj.dataPreStatistics(time_arrange=time_arrange, test_type=self.test_type)
 
                     self.PlotGpsInsRawSyncDataObj.gen_statistics_xlsx(os.getcwd(), time_arrange=time_arrange, scene=scene_dscribe)
 
                     self.outputMsg2(static_msg_info)
                     static_msg_info = ''
+                    self.outputMsg2("场景 %s 统计完成！" % scene)
                 except Exception as e:
-                    self.outputMsg2(scene + ": 场景统计失败...")
+                    self.outputMsg2("场景 %s 统计失败..." % scene)
                     self.outputMsg2('失败原因:' + str(e))
                     continue
-
-            self.outputMsg2("场景统计完成。")
 
         # 4、绘图参数配置
         try:
@@ -458,31 +466,33 @@ class mainFunctionInsCompare(QtCore.QThread):
                 self.PlotGpsInsRawSyncDataObj.SyncRefGpsData_all = {}
                 for file_name in self.name_list:
                     try:
-                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: INS和参考数据时间同步，同步的时间段为: " + str(self.plot_scene_time))
                         self.PlotGpsInsRawSyncDataObj.SyncRefInsData[file_name] = self.DataPreProcess.timeSynchronize(
                             self.Parse100CDataObj.ins100cdf, self.InsDataDF[file_name], 'time', 'time')
-                        if self.test_type == '导远自定义':
-                            self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步时间段为: ",self.plot_scene_time)
+
+                        if self.test_type[self.name_list.index(file_name)] == '导远自定义':
+                            self.outputMsg2(file_name + "【绘图】: GPS和参考数据时间同步，同步的时间段为: " + str(self.plot_scene_time))
                             self.PlotGpsInsRawSyncDataObj.SyncRefGpsData[file_name] = self.DataPreProcess.timeSynchronize(
                                 self.Parse100CDataObj.ins100cdf, self.GpsDataDF[file_name], 'time', 'itow_pos')
                     except Exception as e:
-                        self.outputMsg2(file_name + "【绘图】: 时间同步失败，即将绘制全程图，同步失败的时间段为: ",self.plot_scene_time)
+                        self.outputMsg2(file_name + "【绘图】: 时间同步失败，即将绘制全程图，同步失败的时间段为: " + str(self.plot_scene_time))
                         self.outputMsg2('失败原因:' + str(e))
                         continue
 
             # 获取绘图中 GPS 显示数量
             self.PlotGpsInsRawSyncDataObj.gps_flag = dict.fromkeys(self.name_list, 0)
-            if self.test_type == '导远自定义':
-                if self.GpsNum > len(self.name_list):
-                    self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
-                    return
-                else:
-                    for i in range(self.GpsNum):
+            if self.GpsNum > len(self.name_list):
+                self.outputMsg2("参数无效： 显示GPS数量超过测试文件数量，请重新配置")
+                return
+            else:
+                for i in range(self.GpsNum):
+                    if self.test_type[i] == '导远自定义':
                         self.PlotGpsInsRawSyncDataObj.gps_flag[self.name_list[i]] = 1
-                    print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
+                    else:
+                        continue
+                print("gps_flag:", self.PlotGpsInsRawSyncDataObj.gps_flag)
 
             self.outputMsg2("【绘图】时间同步完成，可生成图。")
-            # self.pushBtn_StartPlot2.setEnabled(True)
 
         except Exception as e:
             self.outputMsg2("绘图参数配置失败...")
@@ -506,14 +516,12 @@ class mainFunctionInsCompare(QtCore.QThread):
         self.PlotGpsInsRawSyncDataObj.InsDataDF = self.InsDataDF
         self.PlotGpsInsRawSyncDataObj.GpsDataDF = self.GpsDataDF
         self.PlotGpsInsRawSyncDataObj.rtkDataDF = self.Parse100CDataObj.ins100cdf
-        # try:
-        #     print("轨迹生图..")
-        #     self.PlotGpsInsRawSyncDataObj.plot_raw_path(type='ref')
-        # except Exception as e:
-        #     # self.outputMsg1("轨迹生图失败...")
-        #     # self.outputMsg1('失败原因:' + str(e))
-        #     print("轨迹生图失败...")
-        #     print('失败原因:' + str(e))
+        try:
+            print("轨迹生图..")
+            self.PlotGpsInsRawSyncDataObj.plot_raw_path(type='ref')
+        except Exception as e:
+            self.outputMsg2("轨迹生图失败...")
+            self.outputMsg2('失败原因:' + str(e))
 
         try:
             self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week
@@ -572,7 +580,8 @@ if __name__ == "__main__":
         # refpath = r'D:\Files\test\dbFiles\北云\2\到测试天线自定义-0710PM.txt'
         # inspaths = [r'D:\Files\test\dbFiles\北云\2\北云-原数据-0710PM.DAT']
         refpath = r'D:\Files\test\dbFiles\北云\3\到测试天线自定义-0711PM.txt'
-        inspaths = [r'D:\Files\test\dbFiles\北云\3\北云-原数据-0711PM.DAT']
+        inspaths = [r'D:\Files\test\dbFiles\北云\3\03-INS570D-原数据-0711PM.txt',
+                    r'D:\Files\test\dbFiles\北云\3\北云-原数据-0711PM.DAT']
 
         # inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
         # refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
