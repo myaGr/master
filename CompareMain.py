@@ -580,7 +580,8 @@ if __name__ == "__main__":
         # refpath = r'D:\Files\test\dbFiles\北云\2\到测试天线自定义-0710PM.txt'
         # inspaths = [r'D:\Files\test\dbFiles\北云\2\北云-原数据-0710PM.DAT']
         refpath = r'D:\Files\test\dbFiles\北云\3\到测试天线自定义-0711PM.txt'
-        inspaths = [r'D:\Files\test\dbFiles\北云\3\03-INS570D-原数据-0711PM.txt',
+        inspaths = [
+            # r'D:\Files\test\dbFiles\北云\3\03-INS570D-原数据-0711PM.txt',
                     r'D:\Files\test\dbFiles\北云\3\北云-原数据-0711PM.DAT']
 
         # inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
@@ -621,10 +622,15 @@ if __name__ == "__main__":
         # 获取基准数据的数据类型
         ref_type = '320'  # '100C' '320' 华测特制
         # 获取测试数据的数据类型
-        test_type = '北云'  # '导远自定义' '北云'
+        test_type = ['北云明文']  # '导远自定义' '北云'
 
         #### 获取需要解析的场景信息 ###
-        time_dir = {'1': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}
+        # time_dir = {'1': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}
+        time_dir = {'1': {'scene_num': 1, 'scene': '延安高架上', 'time_arrange': [198524.0, 199799.0]},
+                    '2': {'scene_num': 2, 'scene': '林荫道', 'time_arrange': [200822.0, 201189.0]},
+                    '3': {'scene_num': 3, 'scene': '延安高架下', 'time_arrange': [201200.0, 201795.0]},
+                    '4': {'scene_num': 4, 'scene': '南京路', 'time_arrange': [201992.0, 203319.0]},
+                    '5': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}
 
         plot_time_range = [0,0]
         # plot_time_range = [203643, 203645]
@@ -691,9 +697,9 @@ if __name__ == "__main__":
 
         print('总共用时：%d s' % time.time() - start_time)
 
-    # compare_test()
+    compare_test()
     # compare_multi_file()
-    analyze_single_file()
+    # analyze_single_file()
     print('over')
 
 

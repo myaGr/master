@@ -1777,11 +1777,7 @@ class PlotGpsInsRawSyncData:
         RefGpsData = {}
         start_time_index = 1
 
-        if '导远自定义' not in test_type:
-            gps_flag = dict.fromkeys(list(SyncRefInsData.keys()), 0)
-            # not in test_type or not time_arrange:
-            # gps_flag = self.gps_flag.copy()
-        elif time_arrange:
+        if time_arrange:
             gps_flag = dict.fromkeys(list(SyncRefInsData.keys()), 0)
 
             start_time = time_arrange[0]
@@ -1789,15 +1785,14 @@ class PlotGpsInsRawSyncData:
             for file_name in list(SyncRefInsData.keys()):
                 if test_type[list(SyncRefInsData.keys()).index(file_name)] == '导远自定义':
                     gps_flag[file_name] = 1
-                else:
-                    continue
 
-                # find the time index in pandas.series
-                gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
-                # make sure end_time != 0
-                gps_end_time = end_time if end_time > 0 else max(gps_time)
-                SyncRefGpsData[file_name] = SyncRefGpsData[file_name][(SyncRefGpsData[file_name]['sync_itow_pos'] >= start_time) & (SyncRefGpsData[file_name]['sync_itow_pos'] <= gps_end_time)]
-                SyncRefGpsData[file_name] = SyncRefGpsData[file_name].reset_index(drop=True)
+                if gps_flag[file_name]:
+                    # find the time index in pandas.series
+                    gps_time = SyncRefGpsData[file_name]['sync_itow_pos']
+                    # make sure end_time != 0
+                    gps_end_time = end_time if end_time > 0 else max(gps_time)
+                    SyncRefGpsData[file_name] = SyncRefGpsData[file_name][(SyncRefGpsData[file_name]['sync_itow_pos'] >= start_time) & (SyncRefGpsData[file_name]['sync_itow_pos'] <= gps_end_time)]
+                    SyncRefGpsData[file_name] = SyncRefGpsData[file_name].reset_index(drop=True)
 
                 ins_end_time = end_time if end_time > 0 else max(SyncRefInsData[file_name]['sync_time'].values)
                 SyncRefInsData[file_name] = SyncRefInsData[file_name][(SyncRefInsData[file_name]['sync_time'] >= start_time) & (SyncRefInsData[file_name]['sync_time'] <= ins_end_time)]
