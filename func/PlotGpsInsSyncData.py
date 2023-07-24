@@ -1693,16 +1693,19 @@ class PlotGpsInsRawSyncData:
                     Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'INS_'+item, labels,
                                             color=None, linestyle='', marker='.')
 
-            for item in self.GpsDataDF.keys():
-                gps_df = DataPreProcess().Datafilter(self.GpsDataDF[item], 'itow_pos')
-                pos0 = [gps_df['Lat'][0], gps_df['Lon'][0], gps_df['hMSL'][0]]
-                lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
-                    lat_list=gps_df['Lat'], lon_list=gps_df['Lon'], height_list=gps_df['hMSL'],
-                    yaw=[], bpos=self.bpos_gpsins, pos0=pos0)
-                if len(lat_translated) > 0:
-                    labels = list(gps_df['itow_pos'] - self.time0_set)
-                    Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'GPS_'+item, labels,
-                                            color=None, linestyle='', marker='.')
+            try:
+                for item in self.GpsDataDF.keys():
+                    gps_df = DataPreProcess().Datafilter(self.GpsDataDF[item], 'itow_pos')
+                    pos0 = [gps_df['Lat'][0], gps_df['Lon'][0], gps_df['hMSL'][0]]
+                    lat_translated, lon_translated, h_translated = DataStatistics().transCoordinates(
+                        lat_list=gps_df['Lat'], lon_list=gps_df['Lon'], height_list=gps_df['hMSL'],
+                        yaw=[], bpos=self.bpos_gpsins, pos0=pos0)
+                    if len(lat_translated) > 0:
+                        labels = list(gps_df['itow_pos'] - self.time0_set)
+                        Plotobj_path.PlotDataXY(Plotobj_path.ax1, lon_translated, lat_translated, 'GPS_'+item, labels,
+                                                color=None, linestyle='', marker='.')
+            except Exception as e:
+                print('没有GPS数据')
 
             ref_df = DataPreProcess().Datafilter(self.rtkDataDF, 'time')
             pos0 = [ref_df['lat'][0], ref_df['lon'][0], ref_df['height'][0]]

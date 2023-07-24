@@ -103,6 +103,11 @@ class Parse100CData(object):
                     while '' in li:
                         li.remove('')
                     diff_keys = set(keys_name) - set(li)
+                # 兼容不同格式的正高
+                if diff_keys == {'H-Ell'} and 'H-O' in line:
+                    msg_info += '没有字段 H-Ell， 参考数据格式不对，请重新导出参考数据。'
+                    self.ins100cdf = pd.DataFrame({})
+                    return msg_info
 
                 # 判断是否缺少字段， 如果缺少直接返回
                 if len(diff_keys) > 0:
@@ -255,6 +260,7 @@ class Parse100CData(object):
         @auther：ZixuanWen
         @date：2023-07-12
        """
+        msg_ifo = ''
         keys_name = ['gpsWeek', 'time', 'lat', 'lon', 'height', 'NorthVelocity', 'EastVelocity', 'GroundVelocity',
                      'roll', 'pitch', 'yaw']
         values = {}
@@ -264,16 +270,23 @@ class Parse100CData(object):
         with open(filepath, 'r', encoding='gb18030', errors='ignore') as f:
             lines = f.readlines()
             for line in lines:
-                try:
-                    if line == '' or 'BKGGA' in line or "\x00" in line:  # 过滤包含乱码情况
-                        continue
-                    if "#INSPVAA" in line and len(line.split(",")) == 21 and len(
-                            line.split(";")[1].split(",")) == 12:  # 从$开启截取信息
-                        tmp = line.rstrip('\n').split(";")[1].split(",")
-                        for i in range(len(keys_name)):
+                if line == '' or 'BKGGA' in line or "\x00" in line:  # 过滤包含乱码情况
+                    continue
+                if len(line.split(";")) < 2:
+                    continue
+                if "#INSPVAA" in line and len(line.split(",")) == 21 and len(
+                        line.split(";")[1].split(",")) == 12:  # 从$开启截取信息
+                    tmp = line.rstrip('\n').split(";")[1].split(",")
+
+                    for i in range(len(keys_name)):
+                        try:
                             values[keys_name[i]].append(float(tmp[i]))
-                except Exception as e:
-                    print(line + ", 数据解析失败" + str(e))
+                        except Exception as e:
+                            print(line + ", 该帧数据解析失败。" + str(e))
+                            listlen = min([len(values[key]) for key in values.keys()])
+                            for key in values.keys():
+                                values[key] = values[key][:listlen]
+                            break
         f.close()
         values["GroundVelocity"] = -np.array(values["GroundVelocity"])  # 天向速度转地向速度
         return pd.DataFrame(values)
