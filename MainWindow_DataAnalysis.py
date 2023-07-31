@@ -25,6 +25,9 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
     # 参数初始化
     def __init__(self, parent: typing.Optional[QObject] = ...):
         super().__init__(parent)
+        self.InsDataDF = None
+        self.GpsDataDF = None
+
         self.HexDataParseObj = None
         self.Parse100CDataObj = None
         self.DataPreProcess = None
@@ -32,22 +35,44 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
 
         self.file_path = None
         self.types = []
+        self.sat_analysis = False
+        self.sat2_analysis = False
+
+        self.imu_freq = 200
+        self.vehicle_freq = 50
+        self.gps_freq = 10
+        self.freq_info = {}
+        self.full_info = ''
 
         self.SyncInsGpsData = None
-
-        self.InsDataDFInter = None
-        self.SyncRefInsData = None
-        self.SyncRefGpsData = None
 
     def get_info(self, data_info):
         self.file_path = data_info[0]
         self.types = data_info[1]
+        self.sat_analysis = data_info[2]
+        self.sat2_analysis = data_info[3]
+
+        # self.imu_freq = int(data_info[2])
+        # self.vehicle_freq = int(data_info[3])
+        # self.gps_freq = int(data_info[4])
 
     def outputMsg1(self, msg_str):
         self.updated.emit(msg_str)
 
     def run(self):
         self.HexDataParseObj = HexDataParse()
+        for key in list(self.HexDataParseObj.data_analysis_flag.keys())[:-2]:
+            self.HexDataParseObj.data_analysis_flag[key] = True
+        if self.sat_analysis:
+            self.HexDataParseObj.data_analysis_flag['sat'] = True
+        else:
+            self.HexDataParseObj.data_analysis_flag['sat'] = False
+        if self.sat2_analysis:
+            self.HexDataParseObj.data_analysis_flag['sat2'] = True
+        else:
+            self.HexDataParseObj.data_analysis_flag['sat2'] = False
+        print(self.HexDataParseObj.data_analysis_flag)
+
         self.PlotGpsInsRawSyncDataObj = PlotGpsInsRawSyncData()
         self.DataPreProcess = DataPreProcess()
         try:
@@ -55,7 +80,28 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             self.outputMsg1("开始解析：" + self.file_path)
             self.HexDataParseObj.startParseFileHexData()  # 开始数据解析
             self.HexDataParseObj.saveDataToDF()
+            self.InsDataDF = self.HexDataParseObj.InsDataDF
+            self.GpsDataDF = self.HexDataParseObj.GpsDataDF
             self.outputMsg1("解析完成。")
+
+            # 检查
+            self.outputMsg1("开始检查频率是否有误：")
+            imu_actual_len, self.freq_info['imu不同时间间隔帧数'] = self.HexDataParseObj.checkDataFreq(
+                self.HexDataParseObj.ImuDataDF, timeName='time', freq=self.imu_freq)
+            self.freq_info['imu数据长度'] = imu_actual_len + len(
+                self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])
+
+            vehicle_actual_len, self.freq_info['vehicle不同时间间隔帧数'] = self.HexDataParseObj.checkDataFreq(
+                self.HexDataParseObj.VehicleDataDF, timeName='ts', freq=self.vehicle_freq)
+            self.freq_info['vehicle数据长度'] = vehicle_actual_len + len(
+                self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])
+
+            gps_actual_len, self.freq_info['gps不同时间间隔帧数'] = self.HexDataParseObj.checkDataFreq(
+                self.HexDataParseObj.GpsDataDF, timeName='ts', freq=self.gps_freq)
+            self.freq_info['gps数据长度'] = gps_actual_len + len(
+                self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])
+            self.outputMsg1("检查完成。")
+
             self.outputDataFrameStatsResult()  # 输出数据帧统计结果
         except Exception as e:
             self.outputMsg1(self.file_path + "文件解析失败...")
@@ -65,18 +111,22 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             if "csv" in self.types:
                 self.outputMsg1("生成Csv文件...")
                 self.HexDataParseObj.SaveAllDataToCsvFile()
+                self.outputMsg1("已生成.")
             if "mat" in self.types:
                 self.outputMsg1("生成Mat文件...")
                 self.HexDataParseObj.startSaveAllDataToMatFile()
+                self.outputMsg1("已生成.")
         except Exception as e:
             self.outputMsg1("文件有误，无法生成csv/mat文件！")
 
         # 时间同步
         self.outputMsg1("开始INS和GPS时间同步...")
         try:
-            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF,
-                                                                      self.HexDataParseObj.GpsDataDF, 'time',
-                                                                      'itow_pos')
+            self.InsDataDF = self.InsDataDF.replace(np.nan,0)
+            self.GpsDataDF = self.GpsDataDF.replace(np.nan,0)
+            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.InsDataDF,
+                                                                      self.GpsDataDF,
+                                                                      'time', 'itow_pos')
             self.outputMsg1("【绘图】时间同步完成，可生成统计图。")
         except Exception as e:
             self.outputMsg1(self.file_path + "时间同步失败。")
@@ -93,6 +143,8 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
         self.PlotGpsInsRawSyncDataObj.SyncInsGpsData = self.SyncInsGpsData
         # 繪圖橫坐標為周内秒: 默認False
         self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week
+
+        self.HexDataParseObj.clear_cache()
 
         try:
             print("轨迹生图..")
@@ -112,61 +164,94 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
 
     def outputDataFrameStatsResult(self):
         try:
-            msg = "IMU数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['imuDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])))
+            msg = "IMU数据帧" \
+                  "：\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['imuFrameHeadNum_bdbd0a']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['imuDataTotalNum']) \
+                  + "，\n    " + str(self.imu_freq) + "Hz频率下应该有帧数：" + str(self.freq_info['imu数据长度']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['imuCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['imuCheckErrIndex']))) \
+                  + "，\n    不同时间间隔帧数:\n        " + str(self.freq_info['imu不同时间间隔帧数']) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info = msg
 
-            msg = "GPS数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['gpsFrameHeadNum_bdbd10']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['gpsDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])))
+            msg = "GPS数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['gpsFrameHeadNum_bdbd10']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['gpsDataTotalNum']) \
+                  + "，\n    " + str(self.gps_freq) + "Hz频率下应该有帧数：" + str(self.freq_info['gps数据长度']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['gpsCheckErrIndex']))) \
+                  + "，\n    不同时间间隔帧数:\n        " + str(self.freq_info['gps不同时间间隔帧数']) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
 
-            msg = "车辆数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['vehicleFrameHeadNum_bdbd20']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['vehicleDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])))
+            msg = "车辆数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['vehicleFrameHeadNum_bdbd20']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['vehicleDataTotalNum']) \
+                  + "，\n    " + str(self.vehicle_freq) + "Hz频率下应该有帧数：" + str(self.freq_info['vehicle数据长度']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['vehicleCheckErrIndex']))) \
+                  + "，\n    不同时间间隔帧数:\n        " + str(self.freq_info['vehicle不同时间间隔帧数']) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
 
-            msg = "INS数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['insFrameHeadNum_bdbd0b']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['insDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])))
+            msg = "INS数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['insFrameHeadNum_bdbd0b']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['insDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['insCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['insCheckErrIndex']))) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
 
-            msg = "同步时间数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['syncFrameHeadNum_bdbd0c']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['syncDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])))
+            msg = "同步时间数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['syncFrameHeadNum_bdbd0c']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['syncDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['syncCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['syncCheckErrIndex']))) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
 
-            msg = "IMU2数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['imu2FrameHeadNum_bdbd2a']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['imu2DataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])))
+            msg = "IMU2数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['imu2FrameHeadNum_bdbd2a']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['imu2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['imu2CheckErrIndex']))) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
 
-            msg = "INS2数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['ins2FrameHeadNum_bdbd1b']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['ins2DataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])))
+            msg = "INS2数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['ins2FrameHeadNum_bdbd1b']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['ins2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex']))) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
 
-            msg = "四轮转角数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['FourWSFrameHeadNum_bdbd30']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['FourWSDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])))
+            msg = "30卫星数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['satelliteFrameHeadNum_bdbd30']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['satelliteDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['satelliteCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['satelliteCheckErrIndex']))) \
+                  + "。\n\n"
             self.outputMsg1(msg)
+            self.full_info += msg
+
+            msg = "31卫星数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['satellite2FrameHeadNum_bdbd31']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['satellite2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['satellite2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['satellite2CheckErrIndex']))) \
+                  + "。\n\n"
+            self.outputMsg1(msg)
+            self.full_info += msg
+
+            self.outputMsg1('\nPS. 采用奇偶校验帧是否错误。')
 
         except Exception as e:
             self.outputMsg1('显示有误')
@@ -294,6 +379,8 @@ class mainFunctionInsCompare(QtCore.QThread):
                         # self.InsDataDF[file_name]['roll'] = self.InsDataDF[file_name]['roll'] + 0.200680469
                         # self.InsDataDF[file_name]['pitch'] = self.InsDataDF[file_name]['pitch'] + 0.333099707
                         # self.InsDataDF[file_name]['yaw'] = self.InsDataDF[file_name]['yaw'] - 2.847532422
+
+                        self.HexDataParseObj.clear_cache()
                     else:
                         self.outputMsg2("数据无效，解析失败。")
                         continue
@@ -473,6 +560,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.path = None
         self.types = []
+        self.sat_analysis = False
+        self.sat2_analysis = False
 
         self.inspath = None
         self.refpath = None
@@ -558,7 +647,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         self.checkOutputDataType()  # 获取生成文件类型
 
-        self.push_info_1.emit([self.path, self.types])
+        self.push_info_1.emit([self.path, self.types,self.sat_analysis,self.sat2_analysis])
         self.thread_1.start()
         # self.pushBtn_StartPlot1.setEnabled(True)
         # self.createDataParseThread()  # 创建数据解析线程，开始数据解析
@@ -576,10 +665,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     # 获取生成文件类型
     def checkOutputDataType(self):
+        self.types = []
         if self.checkBox_csv.isChecked():
             self.types.append("csv")
         if self.checkBox_mat.isChecked():
             self.types.append("mat")
+
+        if self.sat_flag.isChecked():
+            self.sat_analysis = True
+        else:
+            self.sat_analysis = False
+        if self.sat2_flag.isChecked():
+            self.sat2_analysis = True
+        else:
+            self.sat2_analysis = False
 
     # 输出提示消息
     def outputMsg1(self, msg_str):

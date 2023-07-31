@@ -102,6 +102,9 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
     # 参数初始化
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.InsDataDF = None
+        self.GpsDataDF = None
+
         self.HexDataParseObj = None
         self.Parse100CDataObj = None
         self.DataPreProcess = None
@@ -133,7 +136,10 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             self.outputMsg1("开始解析：" + self.file_path)
             self.HexDataParseObj.startParseFileHexData()  # 开始数据解析
             self.HexDataParseObj.saveDataToDF()
+            self.InsDataDF = self.HexDataParseObj.InsDataDF
+            self.GpsDataDF = self.HexDataParseObj.GpsDataDF
             self.outputMsg1("解析完成。")
+
             self.outputDataFrameStatsResult()  # 输出数据帧统计结果
         except Exception as e:
             self.outputMsg1(self.file_path + "文件解析失败...")
@@ -143,18 +149,22 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
             if "csv" in self.types:
                 self.outputMsg1("生成Csv文件...")
                 self.HexDataParseObj.SaveAllDataToCsvFile()
+                self.outputMsg1("已生成")
             if "mat" in self.types:
                 self.outputMsg1("生成Mat文件...")
                 self.HexDataParseObj.startSaveAllDataToMatFile()
+                self.outputMsg1("已生成")
         except Exception as e:
             self.outputMsg1("文件有误，无法生成csv/mat文件！")
 
         # 时间同步
         self.outputMsg1("开始INS和GPS时间同步...")
         try:
-            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.HexDataParseObj.InsDataDF,
-                                                                      self.HexDataParseObj.GpsDataDF, 'time',
-                                                                      'itow_pos')
+            self.InsDataDF = self.InsDataDF.replace(np.nan,0)
+            self.GpsDataDF = self.GpsDataDF.replace(np.nan,0)
+            self.SyncInsGpsData = self.DataPreProcess.timeSynchronize(self.InsDataDF,
+                                                                      self.GpsDataDF,
+                                                                      'time', 'itow_pos')
             self.outputMsg1("【绘图】时间同步完成，可生成统计图。")
         except Exception as e:
             self.outputMsg1("时间同步失败。")
@@ -162,8 +172,8 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
 
     def plot_insgps(self, second_of_week=False):
         self.outputMsg1("开始INS和GPS统计画图...")
-        self.PlotGpsInsRawSyncDataObj.InsDataDF = self.HexDataParseObj.InsDataDF
-        self.PlotGpsInsRawSyncDataObj.GpsDataDF = self.HexDataParseObj.GpsDataDF
+        self.PlotGpsInsRawSyncDataObj.InsDataDF = self.InsDataDF
+        self.PlotGpsInsRawSyncDataObj.GpsDataDF = self.GpsDataDF
         self.PlotGpsInsRawSyncDataObj.PDataDict = self.HexDataParseObj.PDataDict
         self.PlotGpsInsRawSyncDataObj.SyncDataDF = self.HexDataParseObj.SyncDataDF
         self.PlotGpsInsRawSyncDataObj.VehicleDataDF = self.HexDataParseObj.VehicleDataDF
@@ -171,6 +181,8 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
         self.PlotGpsInsRawSyncDataObj.SyncInsGpsData = self.SyncInsGpsData
         # 繪圖橫坐標為周内秒: 默認False
         self.PlotGpsInsRawSyncDataObj.second_of_week = second_of_week
+
+        self.HexDataParseObj.clear_cache()
 
         try:
             print("轨迹生图..")
@@ -238,11 +250,20 @@ class mainFunctionAnalysicSingleFile(QtCore.QThread):
                 list(set(self.HexDataParseObj.dataFrameStats['ins2CheckErrIndex'])))
             self.outputMsg1(msg)
 
-            msg = "四轮转角数据帧：纯帧头数量:" + str(
-                self.HexDataParseObj.dataFrameStats['FourWSFrameHeadNum_bdbd30']) + "，总帧数量:" + str(
-                self.HexDataParseObj.dataFrameStats['FourWSDataNum']) + "，错误帧数量:" + str(
-                len(self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])) + "，错误帧索引下标:" + str(
-                list(set(self.HexDataParseObj.dataFrameStats['FourWSCheckErrIndex'])))
+            msg = "30卫星数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['satelliteFrameHeadNum_bdbd30']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['satelliteDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['satelliteCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['satelliteCheckErrIndex']))) \
+                  + "。\n\n"
+            self.outputMsg1(msg)
+
+            msg = "31卫星数据帧：" \
+                  "\n    纯帧头数量:" + str(self.HexDataParseObj.dataFrameStats['satellite2FrameHeadNum_bdbd31']) \
+                  + "，\n    总帧数量:" + str(self.HexDataParseObj.dataFrameStats['satellite2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.HexDataParseObj.dataFrameStats['satellite2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.HexDataParseObj.dataFrameStats['satellite2CheckErrIndex']))) \
+                  + "。\n\n"
             self.outputMsg1(msg)
 
         except Exception as e:
@@ -552,14 +573,15 @@ if __name__ == "__main__":
 
         # 正常文件
         # path = r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'
-        path = r'E:\Downloads\arc_001_(1).txt'
+        # path = r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt'
+        path = r'D:\Files\test\dbFiles\北云\3\02-tight#2.txt'
         # 错误文件
         # path = r'D:/Files/test/dbFiles/test2/100/config1.txt'
         # 内容有误
         # path = r'D:\Files\test\dbFiles\test7_errordata\202212 08152309911\INS570D_0108_main_linux_didi_20221205.txt'
         # path = r'D:\Downloads\ins_2022_12_25_10_41_27.log'
-        # types = ['csv', 'mat']
-        types = []
+        types = ['csv','mat']
+        # types = [ ]
 
         thread_1.get_info([path, types])
         thread_1.run()
@@ -575,8 +597,8 @@ if __name__ == "__main__":
         # inspaths = [r'D:\Files\test\dbFiles\刘志强特殊数据\20230617-20230620\570D测试数据\2023.06.19\2023.06.19.txt']
 
         # 测试：北云 华测
-        refpath = r'E:\Downloads\到测试天线自定义格式-0717PM.txt'
-        inspaths = [r'E:\Downloads\北云-原数据-0714PM.DAT']
+        # refpath = r'E:\Downloads\到测试天线自定义格式-0717PM.txt'
+        # inspaths = [r'E:\Downloads\北云-原数据-0714PM.DAT']
         # refpath = r'D:\Files\test\dbFiles\北云\2\到测试天线自定义-0710PM.txt'
         # inspaths = [r'D:\Files\test\dbFiles\北云\2\北云-原数据-0710PM.DAT']
         # refpath = r'D:\Files\test\dbFiles\北云\3\到测试天线自定义-0711PM.txt'
@@ -584,8 +606,9 @@ if __name__ == "__main__":
             # r'D:\Files\test\dbFiles\北云\3\03-INS570D-原数据-0711PM.txt',
             #         r'D:\Files\test\dbFiles\北云\3\北云-原数据-0711PM.DAT']
 
-        # inspaths = [r'D:/Files/test/dbFiles/test2/100/12311-0928测试案例3.txt']
-        # refpath = 'D:/Files/test/dbFiles/test2/100/POS后轮轴_100C_test.txt'
+        refpath = r'D:\Files\test\dbFiles\北云\3\到测试天线自定义-0711PM.txt'
+        inspaths = [r'D:\Files\test\dbFiles\北云\3\02-tight#2.txt',
+                    r'D:\Files\test\dbFiles\北云\3\北云-原数据-0711PM.DAT']
 
         # inspaths = [
         #             r'D:\Files\test\dbFiles\test13_pos\4\INS20230423102502169\001_1号_M级5711D.txt',
@@ -622,7 +645,7 @@ if __name__ == "__main__":
         # 获取基准数据的数据类型
         ref_type = '320'  # '100C' '320' 华测特制
         # 获取测试数据的数据类型
-        test_type = ['北云明文']  # '导远自定义' '北云'
+        test_type = ['导远自定义', '北云']  # '导远自定义' '北云'
 
         #### 获取需要解析的场景信息 ###
         time_dir = {'1': {'scene_num': 0, 'scene': '全程', 'time_arrange': [0, 0]}}

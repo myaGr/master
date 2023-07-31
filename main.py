@@ -18,7 +18,7 @@ def checkLicenseDate():
     thisDay = '2023-02-03 0:0:0'  # 调用截止使用时间
     currentTime = time.mktime(time.strptime(thisDay, "%Y-%m-%d %H:%M:%S"))
 
-    lastDay = '2024-02-03 0:0:0'  # 调用截止使用时间
+    lastDay = '2024-07-19 0:0:0'  # 调用截止使用时间
     lastTime = time.mktime(time.strptime(lastDay, "%Y-%m-%d %H:%M:%S"))
 
     root = tkinter.Tk()
@@ -116,7 +116,7 @@ def request_post(url_post, param_post):
 if __name__ == "__main__":
     # Check whether the newest version
     try:
-        checkVersion('数据解析与分析工具V2.0.6.7.exe')
+        checkVersion('数据解析与分析工具V2.0.7.exe')
     except Exception as e:
         print(e)
         msgbox.showinfo('提示', '网络有问题，无法检测最新版本！')
