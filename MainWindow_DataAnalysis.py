@@ -395,8 +395,8 @@ class mainFunctionInsCompare(QtCore.QThread):
                     self.GpsDataDF[file_name] = pd.DataFrame(self.GpsDataDF[file_name])
                     self.outputMsg2("数据解析完成。")
             except Exception as e:
-                self.inspaths.pop(file_name)
-                self.name_list.pop(file_name)
+                self.inspaths.pop(self.inspaths.index(file_name))
+                self.name_list.pop(self.inspaths.index(file_name))
 
                 self.outputMsg2(file_name + "解析失败...")
                 self.outputMsg2('失败原因:' + str(e))

@@ -11,6 +11,7 @@ from scipy.io import savemat  # 存成.mat文件格式
 import numpy as np
 import csv
 import time
+import math
 
 
 class HexDataParse(object):
@@ -21,9 +22,9 @@ class HexDataParse(object):
 
         self.sysTimeFactor = 4000  # 系统时间系数，IMU数据、INS数据里会用到，570D除以1000，个别版本(234平台和377平台)是除以4000\
 
-        self.data_analysis_flag = {'ins':True, 'gps': True, 'ins2':True
-                                 , 'imu':False, 'imu2':False, 'vehicle':False, 'sync':False
-                                 , 'sat':False, 'sat2':False, 'ZeroBias':False, 'EKFhandle_type':False}
+        self.data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': True, 'imu': True
+                                , 'ins2': False, 'imu2': False, 'sync': False
+                                , 'sat': False, 'sat2': False, 'ZeroBias': False, 'EKFhandle_type': False}
 
         self.imuDataFrame = None  # IMU数据帧，列表数据类型，元素是十六进制字符串
         self.imuData = pd.DataFrame()  # 解析后的IMU数据，pandas数据类型，这样占用内存更小，由于pandas数据结构添加一行数据效率很低，所以先以字典数据类型收集好数据，然后转成pandas数据结构进行存储
@@ -152,7 +153,7 @@ class HexDataParse(object):
         time_diff_dict = {}
         dataLen = 0
 
-        if len(df)==0:
+        if len(df) == 0:
             time_diff_dict['帧数统计'] = '无该帧信息'
             return dataLen, time_diff_dict
         duration = df.iloc[-1][timeName] - df.iloc[0][timeName]
@@ -204,17 +205,21 @@ class HexDataParse(object):
     # dataHexStr：一帧数据包，十六进制字符串
     # 返回值：解析后的数据，列表数据类型，数据按照协议顺序排列
     def parseGPSDataOneFrame(self, dataHexStr):
-        if self.myXORCheck(dataHexStr):
+        # if self.myXORCheck(dataHexStr):
+        #     encode = '<iHiHihH2B4B9hH4BH3I3BhB'
+        # elif self.myXORCheck(dataHexStr[:-8]):
+        #     encode = '<iHiHihH2B4B9hH4BH3I2B'
+        #     dataHexStr = dataHexStr[:-8]
+        if len(dataHexStr[6:]) == 142:
             encode = '<iHiHihH2B4B9hH4BH3I3BhB'
-        elif self.myXORCheck(dataHexStr[:-8]):
+        elif len(dataHexStr[6:]) == 134:
             encode = '<iHiHihH2B4B9hH4BH3I2B'
-            dataHexStr = dataHexStr[:-8]
         else:
             return []
         data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
 
-        utc_year = (int(bytes.fromhex(dataHexStr[2 * 3:-2])[44:46][::-1].hex(), 16) & 0x3f)   # 年
-        gps_week = (int(bytes.fromhex(dataHexStr[2 * 3:-2])[44:46][::-1].hex(), 16) >> 6)   # GPS周
+        utc_year = (int(bytes.fromhex(dataHexStr[2 * 3:-2])[44:46][::-1].hex(), 16) & 0x3f)  # 年
+        gps_week = (int(bytes.fromhex(dataHexStr[2 * 3:-2])[44:46][::-1].hex(), 16) >> 6)  # GPS周
 
         data[0] *= 1e-7  # 经度
         data[1] *= 1e-3
@@ -256,37 +261,39 @@ class HexDataParse(object):
 
     # 解析GPS数据
     def parseGPSData(self):
-        dataDic = {'Lon': [], 'LonStd': [], 'Lat': [], 'LatStd': [], 'hMSL': [], 'hMSLStd': [], 'SAcc': [], 'RtkAge': [], 'gpsFix': [],
-                   # 'flags': [],
-                   'flagsPos': [],'flagsVel': [],'flagsHeading': [],'flagsTime': [],
+        dataDic = {'Lon': [], 'LonStd': [], 'Lat': [], 'LatStd': [], 'hMSL': [], 'hMSLStd': [], 'SAcc': [],
+                   'RtkAge': [], 'gpsFix': [],
+                   'flagsPos': [], 'flagsVel': [], 'flagsHeading': [], 'flagsTime': [],
                    'HSpd': [], 'TrackAngle': [], 'VSpd': [], 'LatencyVel': [], 'BaseLineLength': [],
                    'Heading': [], 'HeadingStd': [], 'Pitch': [], 'PitchStd': [], 'year': [], 'month': [],
                    'day': [], 'hour': [], 'minute': [], 'second': [], 'itow_pos': [], 'itow_vel': [],
                    'itow_heading': [], 'RecMsg': [], 'numSV': [], "DOP": [], "sub_sat_num": [], 'gpsWeek': []}
-        sorteddataDic = ['Lon', 'LonStd', 'Lat', 'LatStd', 'hMSL', 'hMSLStd',  'SAcc', 'RtkAge', 'gpsFix',
-                         'flagsPos', 'flagsVel','flagsHeading','flagsTime',
+        sorteddataDic = ['Lon', 'LonStd', 'Lat', 'LatStd', 'hMSL', 'hMSLStd', 'SAcc', 'RtkAge', 'gpsFix',
+                         'flagsPos', 'flagsVel', 'flagsHeading', 'flagsTime',
                          'HSpd', 'TrackAngle', 'VSpd', 'LatencyVel', 'BaseLineLength',
                          'Heading', 'HeadingStd', 'Pitch', 'PitchStd', 'year',
                          'month', 'day', 'hour', 'minute', 'second', 'itow_pos', 'itow_vel', 'itow_heading', 'RecMsg',
-                         'numSV',"DOP", "sub_sat_num", "gpsWeek"]
+                         'numSV', "DOP", "sub_sat_num", "gpsWeek"]
+        error_index = []
 
         for dataPkg in self.gpsDataFrame:
 
             data = self.parseGPSDataOneFrame(dataPkg)
+            if not data:
+                self.dataFrameStats['gpsCheckErrIndex'].append(self.gpsDataFrame.index(dataPkg))
+                error_index.append(self.gpsDataFrame.index(dataPkg))
+                continue
 
             for key in list(dataDic.keys())[:-1]:
-                if list(dataDic.keys()).index(key) < len(data)-1:
+                if list(dataDic.keys()).index(key) < len(data) - 1:
                     dataDic[key].append(data[list(dataDic.keys()).index(key)])
                 else:
                     dataDic[key].append(None)
             dataDic['gpsWeek'].append(data[-1])
 
+        self.gpsInsTimeIndex = np.delete(self.gpsInsTimeIndex, error_index)
         self.gpsDataFrame = None  # 释放内存
         self.gpsData = pd.DataFrame(dataDic)
-
-    # 找到车辆数据帧
-    # def findVehicleDataFrame(self):
-    #     self.vehicleDataFrame = re.findall(r'bddb20.{62}', self.fileHexData)  # 车辆数据帧头是BD DB 20，包括帧头一共34个字节
 
     # 解析一帧车辆数据
     # dataHexStr：一帧数据包，十六进制字符串
@@ -337,12 +344,16 @@ class HexDataParse(object):
     # 返回值：解析后的数据，列表数据类型，数据按照协议顺序排列
     def parseINSDataOneFrame(self, dataHexStr, sysTimeFactor=4000):
         # 数据依次为 按照协议顺序
-        if len(dataHexStr[2 * 3:]) == 120:
-            encode = '<9h3i3hBI2B3hI2BI'
-        elif len(dataHexStr[2 * 3:]) == 110:
-            encode = '<9h3i3hBI2B3hIB'
-        else:
-            return []
+        # 不定长 110 或 120
+        # if self.myXORCheck(dataHexStr):
+        #     encode = '<9h3i3hBI2B3hI2BI'
+        # elif self.myXORCheck(dataHexStr[:-10]):
+        #     encode = '<9h3i3hBI2B3hIB'
+        #     dataHexStr = dataHexStr[:-10]
+        # else:
+        #     return []
+        # 定长 110
+        encode = '<9h3i3hBI2B3hIB'
         data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
 
         data[0] *= 360.0 / 32768.0  # roll，横滚角，unit:deg
@@ -373,7 +384,7 @@ class HexDataParse(object):
         dataDic = {"roll": [], "pitch": [], "yaw": [], "GyroX": [], "GyroY": [], "GyroZ": [], "AccX": [],
                    "AccY": [], "AccZ": [], "lat": [], "lon": [], "height": [], "NorthVelocity": [],
                    "EastVelocity": [], "GroundVelocity": [], "IMUstatus": [], "LEKFstatus": [], "GPSstatus": [],
-                   "DebugBin": [],"PData1": [], "PData2": [], "PData3": [], "time": [], "Ptype": [], "gps_week": []}
+                   "DebugBin": [], "PData1": [], "PData2": [], "PData3": [], "time": [], "Ptype": [], "gps_week": []}
         sorteddataDic = ["roll", "pitch", "yaw", "GyroX", "GyroY", "GyroZ", "AccX", "AccY", "AccZ", "lat", "lon",
                          "height", "NorthVelocity", "EastVelocity", "GroundVelocity", "IMUstatus", "LEKFstatus",
                          "GPSstatus", "DebugBin", "PData1", "PData2", "PData3", "time", "Ptype", "gps_week"]
@@ -519,22 +530,24 @@ class HexDataParse(object):
     # @staticmethod
     def parseSatelliteDataOneFrame(self, dataHexStr):
         base_info = list(struct.unpack('<2HI2BHIHIHIHIHIHIH2B', bytes.fromhex(dataHexStr[2 * 3:2 * 53])))
+        sat_info = []
 
-        if base_info[-1] > 32:
-            return [], [], 0
-        if len(dataHexStr) < 6+100+base_info[-1]*148+2:
-            return [], [], 0
+        if base_info[-1] > 40:
+            return base_info, sat_info, base_info[-1]
+        if len(dataHexStr) < 6 + 100 + base_info[-1] * 148 + 2:
+            print(len(dataHexStr))
+            return base_info, sat_info, base_info[-1]
 
-        if not self.myXORCheck(dataHexStr[:6+100+base_info[-1]*148+2]):
+        if not self.myXORCheck(dataHexStr[:6 + 100 + base_info[-1] * 148 + 2]):
             # self.dataFrameStats['satelliteCheckErrIndex'].append(
             #     self.dataFrameStats['satelliteDataNum']+len(self.dataFrameStats['satelliteCheckErrIndex']))
-            return [],[],0
+            return base_info, sat_info, base_info[-1]
 
-        sat_encode = '<' + base_info[-1] * '4BI3H15I'
-        if len(dataHexStr) > base_info[-1]*148+106+2:
-            sat_info = list(struct.unpack(sat_encode, bytes.fromhex(dataHexStr[2 * 53:base_info[-1]*148+106])))
+        sat_encode = '<' + base_info[-1] * '4Bi3H15i'
+        if len(dataHexStr) > base_info[-1] * 148 + 106 + 2:
+            sat_info = list(struct.unpack(sat_encode, bytes.fromhex(dataHexStr[2 * 53:base_info[-1] * 148 + 106])))
         else:
-            return [],[],0
+            return base_info, sat_info, base_info[-1]
 
         base_info[2] /= 1000  # GPS second of week (s)
         base_info[-3] /= 1000  # epoch interval"(s)
@@ -558,12 +571,12 @@ class HexDataParse(object):
             sat_info[i * 23 + 9] /= 1e7  # y_unit_vector
             sat_info[i * 23 + 10] /= 1e7  # z_unit_vector
 
-            sat_info[i * 23 + 11] = sat_info[i * 23 + 11] + float('0.' + str(sat_info[i * 23 + 12]))  # cur_sat_pos0
-            sat_info[i * 23 + 13] = sat_info[i * 23 + 13] + float('0.' + str(sat_info[i * 23 + 14]))  # cur_sat_pos0
-            sat_info[i * 23 + 15] = sat_info[i * 23 + 15] + float('0.' + str(sat_info[i * 23 + 16]))  # cur_sat_pos0
-            sat_info[i * 23 + 17] = sat_info[i * 23 + 17] + float('0.' + str(sat_info[i * 23 + 18]))  # cur_sat_pos0
-            sat_info[i * 23 + 19] = sat_info[i * 23 + 19] + float('0.' + str(sat_info[i * 23 + 20]))  # cur_sat_pos0
-            sat_info[i * 23 + 21] = sat_info[i * 23 + 21] + float('0.' + str(sat_info[i * 23 + 22]))  # cur_sat_pos0
+            sat_info[i * 23 + 11] = sat_info[i * 23 + 11] + sat_info[i * 23 + 12]/1e8  # cur_sat_pos0
+            sat_info[i * 23 + 13] = sat_info[i * 23 + 13] + sat_info[i * 23 + 14]/1e8  # cur_sat_pos0
+            sat_info[i * 23 + 15] = sat_info[i * 23 + 15] + sat_info[i * 23 + 16]/1e8  # cur_sat_pos0
+            sat_info[i * 23 + 17] = sat_info[i * 23 + 17] + sat_info[i * 23 + 18]/1e8  # cur_sat_pos0
+            sat_info[i * 23 + 19] = sat_info[i * 23 + 19] + sat_info[i * 23 + 20]/1e8  # cur_sat_pos0
+            sat_info[i * 23 + 21] = sat_info[i * 23 + 21] + sat_info[i * 23 + 22]/1e8  # cur_sat_pos0
 
         sat_info_pop_index = [22, 20, 18, 16, 14, 12]
         for i in range(base_info[-1] - 1, -1, -1):
@@ -585,7 +598,7 @@ class HexDataParse(object):
             , "cur_sat_pos0", "cur_sat_pos1", "cur_sat_pos2", "cur_sat_vel0", "cur_sat_vel1", "cur_sat_vel2"]
         # 固定帧长 108=2*3(bddb30) + 2*50(固定字段) + 2*1(校验位)
         # sat_num_max = int((max([len(dataPkg) for dataPkg in self.satelliteDataFrame]) - 108) / 148)
-        sat_num_max = 32
+        sat_num_max = 40
 
         for dataPkg in self.satelliteDataFrame:
             try:
@@ -612,7 +625,8 @@ class HexDataParse(object):
 
                         if sat < sat_num:
                             # try:
-                            sat_info_dict['sat' + str(sat) + '_' + key].append(sat_info[sat * len(satellite_info) + satellite_info.index(key)])
+                            sat_info_dict['sat' + str(sat) + '_' + key].append(
+                                sat_info[sat * len(satellite_info) + satellite_info.index(key)])
                             # except Exception as e:
                             #     sat_info_dict['sat' + str(sat) + '_' + key].append(None)
                         else:
@@ -626,24 +640,24 @@ class HexDataParse(object):
     def parseSatellite2DataOneFrame(self, dataHexStr):
         base_info = list(struct.unpack('<HIBHIHIHIHIHIHIHIB', bytes.fromhex(dataHexStr[2 * 3:2 * 53])))
 
-        if base_info[-1] > 32:
-            return [], [], 0
-        if len(dataHexStr) < 6+100+base_info[-1]*200+2:
-            return [], [], 0
+        if base_info[-1] > 40:
+            return base_info, [], 0
+        if len(dataHexStr) < 6 + 100 + base_info[-1] * 200 + 2:
+            return base_info, [], 0
 
-        if not self.myXORCheck(dataHexStr[:6+100+base_info[-1]*200+2]):
+        if not self.myXORCheck(dataHexStr[:6 + 100 + base_info[-1] * 200 + 2]):
             # self.dataFrameStats['satelliteCheckErrIndex'].append(
             #     self.dataFrameStats['satelliteDataNum']+len(self.dataFrameStats['satelliteCheckErrIndex']))
-            return [],[],0
+            return base_info, [], 0
 
-        sat_encode = '<' + base_info[-1] * '4B8I2H15I'
-        sat_info = list(struct.unpack(sat_encode, bytes.fromhex(dataHexStr[2 * 53:base_info[-1]*200+106])))
+        sat_encode = '<' + base_info[-1] * '4B8i2H15i'
+        sat_info = list(struct.unpack(sat_encode, bytes.fromhex(dataHexStr[2 * 53:base_info[-1] * 200 + 106])))
 
         base_info[1] /= 1000  # GPS second of week (s)
-        base_info[3] = base_info[3] + float('0.' + str(base_info[4]))     # lat
-        base_info[5] = base_info[5] + float('0.' + str(base_info[6]))     # lon
-        base_info[7] = base_info[7] + float('0.' + str(base_info[8]))     # height
-        base_info[9] = base_info[9] + float('0.' + str(base_info[10]))    # receiver_clock_diff0
+        base_info[3] = base_info[3] + float('0.' + str(base_info[4]))  # lat
+        base_info[5] = base_info[5] + float('0.' + str(base_info[6]))  # lon
+        base_info[7] = base_info[7] + float('0.' + str(base_info[8]))  # height
+        base_info[9] = base_info[9] + float('0.' + str(base_info[10]))  # receiver_clock_diff0
         base_info[11] = base_info[11] + float('0.' + str(base_info[12]))  # receiver_clock_diff1
         base_info[13] = base_info[13] + float('0.' + str(base_info[14]))  # receiver_clock_diff2
         base_info[15] = base_info[15] + float('0.' + str(base_info[16]))  # receiver_clock_diff3
@@ -658,17 +672,17 @@ class HexDataParse(object):
             sat_info[i * 29 + 15] /= 1e7  # y_unit_vector
             sat_info[i * 29 + 16] /= 1e7  # z_unit_vector
 
-            sat_info[i * 29 + 4] = sat_info[i * 29 + 4] + float('0.' + str(sat_info[i * 29 + 5]))  # pseudo_range
-            sat_info[i * 29 + 6] = sat_info[i * 29 + 6] + float('0.' + str(sat_info[i * 29 + 7]))  # pseudo_noise
-            sat_info[i * 29 + 8] = sat_info[i * 29 + 8] + float('0.' + str(sat_info[i * 29 + 9]))  # doppler
-            sat_info[i * 29 + 10] = sat_info[i * 29 + 10] + float('0.' + str(sat_info[i * 29 + 11]))  # doppler_noise
+            sat_info[i * 29 + 4] = sat_info[i * 29 + 4] + sat_info[i * 23 + 5]/1e8  # pseudo_range
+            sat_info[i * 29 + 6] = sat_info[i * 29 + 6] + sat_info[i * 23 + 7]/1e8  # pseudo_noise
+            sat_info[i * 29 + 8] = sat_info[i * 29 + 8] + sat_info[i * 23 + 9]/1e8  # doppler
+            sat_info[i * 29 + 10] = sat_info[i * 29 + 10] + sat_info[i * 23 + 11]/1e8  # doppler_noise
 
-            sat_info[i * 29 + 17] = sat_info[i * 29 + 17] + float('0.' + str(sat_info[i * 29 + 18]))  # cur_sat_pos0
-            sat_info[i * 29 + 19] = sat_info[i * 29 + 19] + float('0.' + str(sat_info[i * 29 + 20]))  # cur_sat_pos1
-            sat_info[i * 29 + 21] = sat_info[i * 29 + 21] + float('0.' + str(sat_info[i * 29 + 22]))  # cur_sat_pos2
-            sat_info[i * 29 + 23] = sat_info[i * 29 + 23] + float('0.' + str(sat_info[i * 29 + 24]))  # cur_sat_vel0
-            sat_info[i * 29 + 25] = sat_info[i * 29 + 25] + float('0.' + str(sat_info[i * 29 + 26]))  # cur_sat_vel1
-            sat_info[i * 29 + 27] = sat_info[i * 29 + 27] + float('0.' + str(sat_info[i * 29 + 28]))  # cur_sat_vel2
+            sat_info[i * 29 + 17] = sat_info[i * 29 + 17] + sat_info[i * 23 + 18]/1e8  # cur_sat_pos0
+            sat_info[i * 29 + 19] = sat_info[i * 29 + 19] + sat_info[i * 23 + 20]/1e8  # cur_sat_pos1
+            sat_info[i * 29 + 21] = sat_info[i * 29 + 21] + sat_info[i * 23 + 22]/1e8  # cur_sat_pos2
+            sat_info[i * 29 + 23] = sat_info[i * 29 + 23] + sat_info[i * 23 + 24]/1e8  # cur_sat_vel0
+            sat_info[i * 29 + 25] = sat_info[i * 29 + 25] + sat_info[i * 23 + 26]/1e8  # cur_sat_vel1
+            sat_info[i * 29 + 27] = sat_info[i * 29 + 27] + sat_info[i * 23 + 28]/1e8  # cur_sat_vel2
 
         sat_info_pop_index = [28, 26, 24, 22, 20, 18, 11, 9, 7, 5]
         for i in range(base_info[-1] - 1, -1, -1):
@@ -682,7 +696,8 @@ class HexDataParse(object):
     def parseSatellite2Data(self):
         dataDic = {"message_len": [], "gps_week_s": [], "current_status": []
             , "current_lat": [], "current_lon": [], "current_height": []
-            , "receiver_clock_diff0": [], "receiver_clock_diff1": [], "receiver_clock_diff2": [], "receiver_clock_diff3": []
+            , "receiver_clock_diff0": [], "receiver_clock_diff1": [], "receiver_clock_diff2": [],
+                   "receiver_clock_diff3": []
             , "satellite_num": []
                    }
         satellite_info = ["satellite_system", "PRN", "dB", "effective"
@@ -717,7 +732,8 @@ class HexDataParse(object):
                             sat_info_dict['sat' + str(sat) + '_' + key] = []
 
                         if sat < sat_num:
-                            sat_info_dict['sat' + str(sat) + '_' + key].append(sat_info[sat * len(satellite_info) + satellite_info.index(key)])
+                            sat_info_dict['sat' + str(sat) + '_' + key].append(
+                                sat_info[sat * len(satellite_info) + satellite_info.index(key)])
                         else:
                             sat_info_dict['sat' + str(sat) + '_' + key].append(None)
             else:
@@ -865,7 +881,7 @@ class HexDataParse(object):
             if head == 'bddb0b':  # INS帧
                 if frameIndex[0] not in self.dataFrameStats['insCheckErrIndex']:
                     i += 1
-                    if flag == True:  # 首次进入
+                    if flag:  # 首次进入
                         flag = False
                         i = 0
                 frameIndex[0] += 1
@@ -891,16 +907,29 @@ class HexDataParse(object):
     # 所有数据存为DataFrame数格式
     def clear_cache(self):
         # PS: 为减少内存占用， 批量统计时不会用到的指标不保存到变量
-        self.imuData = None  # 释放内存!
+        self.imuData = pd.DataFrame()  # 释放内存!
         self.ImuDataDF = None
-        self.vehicleData = None
+        self.vehicleData = pd.DataFrame()
         self.VehicleDataDF = None
-        self.syncData = None  # 释放内存!
+        self.syncData = pd.DataFrame()  # 释放内存!
         self.SyncDataDF = None
-        self.satelliteData = None
+        self.satelliteData = pd.DataFrame()
         self.satellite2Data = None
+        self.insData = pd.DataFrame()
         self.InsDataDF = None
+        self.gpsData = pd.DataFrame()
         self.GpsDataDF = None
+
+        self.frameHeadStrLst = None  # 各帧头字符串列表
+        self.gpsInsTimeIndex = None  # GPS数据系统时间，使用上一帧INS时间，此处记录的是INS时间数据的下标
+        self.vehicleInsTimeIndex = None  # 车辆数据系统时间
+        self.syncInsTimeIndex = None  # 同步时间数据系统时间
+        self.imu2TimeIndex = None  # IMU2时间数据的下标
+        self.ins2TimeIndex = None  # INS2时间数据系统时间
+        self.satelliteTimeIndex = None  # 四轮转向时间数据系统时间
+        self.satellite2TimeIndex = None
+        self.EKFhandle_typeIndex = None  # ekfhandle时间数据系统时间
+        self.zeroBiasIndex = None  # 常值零偏系统时间
 
     # @profile  # 内存分析修饰器，添加这句代码，表明对此函数进行内存分析，内存分析结果会打印输出
     def saveDataToDF(self):
@@ -917,8 +946,9 @@ class HexDataParse(object):
         # self.GpsDataDF['flagsTime'] = (np.array([self.gpsData['flags']]).T / 256 / 256 / 256) % 256
 
         # vehicle数据
-        self.VehicleDataDF = self.vehicleData
-        self.VehicleDataDF['ts'] = [self.insData['time'][i] for i in self.vehicleInsTimeIndex]
+        if self.data_analysis_flag['vehicle']:
+            self.VehicleDataDF = self.vehicleData
+            self.VehicleDataDF['ts'] = [self.insData['time'][i] for i in self.vehicleInsTimeIndex]
 
         # INS数据
         self.InsDataDF = self.insData
@@ -927,8 +957,9 @@ class HexDataParse(object):
         self.InsDataDF['GPSstatusBin'] = self.Unit2Bin(self.insData['GPSstatus'], 8)
 
         # Sync数据
-        self.SyncDataDF = self.syncData
-        self.SyncDataDF['ts'] = [self.insData['time'][i] for i in self.syncInsTimeIndex]
+        if self.data_analysis_flag['sync']:
+            self.SyncDataDF = self.syncData
+            self.SyncDataDF['ts'] = [self.insData['time'][i] for i in self.syncInsTimeIndex]
 
         # Pdat(字典)
         self.PDataDict = {}
@@ -940,6 +971,9 @@ class HexDataParse(object):
     # 将数据存成.mat文件格式
     # IMU数据
     def saveImuDataToMatFile(self):
+        matDic = dict.fromkeys(['g', 'a', 'temp', 'ts'],[])
+        if len(self.imuData) == 0:
+            return matDic
         matDic = {'g': np.array([self.imuData['GyroX'], self.imuData['GyroY'], self.imuData['GyroZ']]).T,
                   'a': np.array([self.imuData['AccX'], self.imuData['AccY'], self.imuData['AccZ']]).T,
                   'temp': np.array([self.imuData['temperature']]).T, 'ts': np.array([self.imuData['time']]).T}
@@ -947,20 +981,30 @@ class HexDataParse(object):
 
     # GPS数据
     def saveGpsDataToMatFile(self):
-        gpsInsTime = [self.insData['time'][i] for i in self.gpsInsTimeIndex]
+        mat_key = ['Lon', 'LonStd', 'Lat', 'LatStd', 'hMSL', 'hMSLStd', 'SAcc', 'RtkAge'
+            , 'gpsFix', 'HSpd', 'Trk', 'VSpd', 'LatencyVel', 'BaseLineLength'
+            , 'heading', 'cAcc', 'pitch', 'pitchStd', 'RecMsg', 'RecMsgBin'
+            , 'NumSV', 't', 'gpsWeek', 'itow_pos', 'itow_vel', 'itow_heading'
+            , 'ts', 'flagsPos', 'flagsVel', 'flagsHeading', 'flagsTime']
+        if len(self.gpsData) == 0:
+            return dict.fromkeys(mat_key, [])
+        if len(self.insData) != 0:
+            gpsInsTime = [self.insData['time'][i] for i in self.gpsInsTimeIndex]
 
         matDic = {'Lon': np.array([self.gpsData['Lon']]).T, 'LonStd': np.array([self.gpsData['LonStd']]).T,
                   'Lat': np.array([self.gpsData['Lat']]).T, 'LatStd': np.array([self.gpsData['LatStd']]).T,
                   'hMSL': np.array([self.gpsData['hMSL']]).T, 'hMSLStd': np.array([self.gpsData['hMSLStd']]).T,
                   'SAcc': np.array([self.gpsData['SAcc']]).T,
                   'RtkAge': np.array([self.gpsData['RtkAge']]).T,
-                  'gpsFix': np.float64(np.array([self.gpsData['gpsFix']]).T), 'flags': np.float64(np.array([self.gpsData['flags']]).T),
+                  'gpsFix': np.float64(np.array([self.gpsData['gpsFix']]).T),
+                  # 'flags': np.float64(np.array([self.gpsData['flags']]).T),
                   'HSpd': np.array([self.gpsData['HSpd']]).T, 'Trk': np.array([self.gpsData['TrackAngle']]).T,
                   'VSpd': np.array([self.gpsData['VSpd']]).T, 'LatencyVel': np.array([self.gpsData['LatencyVel']]).T,
                   'BaseLineLength': np.array([self.gpsData['BaseLineLength']]).T,
                   'heading': np.array([self.gpsData['Heading']]).T, 'cAcc': np.array([self.gpsData['HeadingStd']]).T,
                   'pitch': np.array([self.gpsData['Pitch']]).T, 'pitchStd': np.array([self.gpsData['PitchStd']]).T,
-                  'RecMsg': np.float64(np.array([self.gpsData['RecMsg']]).T), 'RecMsgBin': self.Unit2Bin(self.gpsData['RecMsg'], 8),
+                  'RecMsg': np.float64(np.array([self.gpsData['RecMsg']]).T),
+                  'RecMsgBin': self.Unit2Bin(self.gpsData['RecMsg'], 8),
                   'NumSV': np.float64(np.array([self.gpsData['numSV']]).T),
                   't': np.array([self.gpsData['year'], self.gpsData['month'], self.gpsData['day'], self.gpsData['hour'],
                                  self.gpsData['minute'], self.gpsData['second']]).T,
@@ -968,16 +1012,23 @@ class HexDataParse(object):
                   'itow_pos': np.array([self.gpsData['itow_pos']]).T,
                   'itow_vel': np.array([self.gpsData['itow_vel']]).T,
                   'itow_heading': np.array([self.gpsData['itow_heading']]).T, 'ts': np.array([gpsInsTime]).T,
-                  'flagsPos': np.float64(np.array([self.gpsData['flags']]).T % 256),
-                  'flagsVel': (np.array([self.gpsData['flags']]).T / 256) % 256,
-                  'flagsHeading': (np.array([self.gpsData['flags']]).T / 256 / 256) % 256,
-                  'flagsTime': (np.array([self.gpsData['flags']]).T / 256 / 256 / 256) % 256}
+                  'flagsPos': np.float64(np.array([self.gpsData['flagsPos']]).T),
+                  'flagsVel': np.float64(np.array([self.gpsData['flagsVel']]).T),
+                  'flagsHeading': np.float64(np.array([self.gpsData['flagsHeading']]).T),
+                  'flagsTime': np.float64(np.array([self.gpsData['flagsTime']]).T)
+                  }
 
         return matDic
 
     # 车辆数据
     def saveVehicleDataToMatFile(self):
-        vehicleInsTime = [self.insData['time'][i] for i in self.vehicleInsTimeIndex]
+        if len(self.vehicleData) == 0 or not self.data_analysis_flag['vehicle']:
+            return dict.fromkeys(['ts','tsWheelAngle','WheelAngle','VehSpdDriL','VehSpdDriR','tsVehSpdDri',
+                                  'VehSpdNonDriL','VehSpdNonDriR','tsVehSpdNonDri','Shifter','tsShifter','flag']
+                                 , [])
+        if len(self.insData) != 0:
+            vehicleInsTime = [self.insData['time'][i] for i in self.vehicleInsTimeIndex]
+
         VehSpdDriL = np.array([self.vehicleData['WheelSpeedFrontLeft']]).T
         VehSpdDriR = np.array([self.vehicleData['WheelSpeedFrontRight']]).T
         VehSpdNonDriL = np.array([self.vehicleData['WheelSpeedBackLeft']]).T
@@ -999,6 +1050,11 @@ class HexDataParse(object):
 
     # INS数据
     def saveInsDataToMatFile(self):
+        mat_keys = ['angle', 'g', 'a', 'pos', 'v', 'IMUstatus'
+            , 'IMUstatusBin', 'LEKFstatus', 'LEKFstatusBin'
+            , 'GPSstatus', 'GPSstatusBin', 'DebugBin', 'P', 'ts', 'Ptype']
+        if len(self.insData) == 0:
+            return dict.fromkeys(mat_keys, [])
         matDic = {'angle': np.array([self.insData['roll'], self.insData['pitch'], self.insData['yaw']]).T,
                   'g': np.array([self.insData['GyroX'], self.insData['GyroY'], self.insData['GyroZ']]).T,
                   'a': np.array([self.insData['AccX'], self.insData['AccY'], self.insData['AccZ']]).T,
@@ -1018,7 +1074,10 @@ class HexDataParse(object):
 
     # 同步时间数据
     def saveSyncDataToMatFile(self):
-        syncInsTime = [self.insData['time'][i] for i in self.syncInsTimeIndex]
+        if len(self.syncData) == 0:
+            return dict.fromkeys(['timu', 'tgps', 'ts'], [])
+        if len(self.insData) != 0:
+            syncInsTime = [self.insData['time'][i] for i in self.syncInsTimeIndex]
 
         matDic = {'timu': np.float64(np.array([self.syncData['imuTime']]).T),
                   'tgps': np.float64(np.array([self.syncData['gpsTime']]).T),
@@ -1027,6 +1086,8 @@ class HexDataParse(object):
 
     # IMU2数据
     def saveImu2DataToMatFile(self):
+        if len(self.imu2Data) == 0:
+            return dict.fromkeys(['g', 'a', 'temp', 'ts'], [])
         # 为保证生成mat文件中的值均为double格式，在类似temp的值中转换成 np.float64
         matDic = {'g': np.float64(np.array([self.imu2Data['GyroX'], self.imu2Data['GyroY'], self.imu2Data['GyroZ']]).T),
                   'a': np.float64(np.array([self.imu2Data['AccX'], self.imu2Data['AccY'], self.imu2Data['AccZ']]).T),
@@ -1036,6 +1097,10 @@ class HexDataParse(object):
 
     # INS数据
     def saveIns2DataToMatFile(self):
+        if len(self.ins2Data) == 0:
+            return dict.fromkeys(['Quaternion', 'Odom_Position', 'Odom_V', 'Odom_AngV', 'Odom_Acc'
+                                     , 'LiOdometryStatu', 'sensor_status', 'temp_P', 'Index', 'frame_id', 'time']
+                                 , [])
         # 为保证生成mat文件中的值均为double格式，在类似status的值中转换成 np.float64
         matDic = {'Quaternion': np.array(
             [self.ins2Data['Quaternion1'], self.ins2Data['Quaternion2'], self.ins2Data['Quaternion3'],
@@ -1057,23 +1122,30 @@ class HexDataParse(object):
         return matDic
 
     def saveSatelliteDataToMatFile(self):
-        matDic = {}
+        matDic = dict.fromkeys(['base_info', 'sat_info'], [])
         if not self.satelliteData.empty:
             matDic = {
-                'base_info': np.float64(np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[:14]]).T),
-                'sat_info': np.float64(np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[14:]]).T)}
+                'base_info': np.float64(
+                    np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[:14]]).T),
+                'sat_info': np.float64(
+                    np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[14:]]).T)}
         return matDic
 
     def saveSatellite2DataToMatFile(self):
-        matDic = {}
+        matDic = dict.fromkeys(['base_info', 'sat_info'], [])
         if not self.satellite2Data.empty:
             matDic = {
-                'base_info': np.float64(np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[:11]]).T),
-                'sat_info': np.float64(np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[11:]]).T)}
+                'base_info': np.float64(
+                    np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[:11]]).T),
+                'sat_info': np.float64(
+                    np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[11:]]).T)}
         return matDic
 
     # 紧组合EE数据
     def saveEkfHandleDataToMatFile(self):
+        if len(self.EKFhandle_typeData) == 0:
+            return dict.fromkeys(
+                ['SysTime', 'Perrorflag', 'Obs_Valid_flag', 'Ekf_update_taskstate', 'Ekf_update_algostate', 'Rnum'], [])
         matDic = {'SysTime': np.array([self.EKFhandle_typeData['SysTime']]).T,
                   'Perrorflag': self.Unit2Bin(self.EKFhandle_typeData['Perrorflag'], 32),
                   'Obs_Valid_flag': np.array([self.EKFhandle_typeData['Obs_Valid_flag']]).T,
@@ -1084,6 +1156,8 @@ class HexDataParse(object):
 
     # 零偏数据
     def saveZeroBiasDataToMatFile(self):
+        if len(self.zeroBiasData) == 0:
+            return dict.fromkeys(['bgx', 'bgy', 'bgz', 'ValidFlag'], [])
         matDic = {'bgx': np.array([self.zeroBiasData['bgx']]).T, 'bgy': np.array([self.zeroBiasData['bgy']]).T,
                   'bgz': np.array([self.zeroBiasData['bgz']]).T,
                   'ValidFlag': np.array([self.zeroBiasData['ValidFlag']]).T}
@@ -1091,7 +1165,25 @@ class HexDataParse(object):
 
     # 轮循表数据
     def savePDataToMatFile(self):
-        matDic = {}
+        mat_key = ['Xp', 'Xv', 'Xatt', 'Xba', 'Xbg', 'Align', 'Xalign', 'Lbbg', 'Xlbbg', 'Lbbc', 'Xlbbc', 'Ba'
+            , 'Bg', 'Atttg', 'XAtttg', 'Lbgc', 'Attbg', 'StdAtttb', 'Dpos', 'Dvel', 'Tsover', 'Tsover2'
+            , 'DParkingpos', 'Pp', 'Pv', 'Patt', 'Pba', 'Pbg', 'Palign', 'Plbbg', 'Plbbc', 'PAtttg'
+            , 'Pkws', 'StdAtttg', 'SUIDAOTIME', 'StdLttg', 'PpT', 'PvT', 'PattT', 'PbaT', 'PbgT', 'XpT'
+            , 'XvT', 'XattT', 'XbaT', 'XbgT', 'AlignT', 'XalignT', 'PalignT', 'TimeGPS2IMUT'
+            , 'CalibrationFlagT', 'TimeLekfUpdateT', 'LbbgT', 'XlbbgT', 'PlbbgT', 'LbbcT', 'XlbbcT'
+            , 'PlbbcT', 'BaT', 'BgT', 'TempT', 'Gmean_Gvar_AvarT', 'AtttgT', 'PAtttgT', 'XAtttgT', 'KwsT'
+            , 'PkwsT', 'XkwsT', 'LbgcT', 'AttbgT', 'TrisQualityT', 'nStateT', 'Flag34T', 'State35T'
+            , 'StdAtttbT', 'StdAtttgT', 'SUIDAOTIMET', 'StdLttgT', 'StdKwsT', 'TimeT', 'DposT', 'DvelT'
+            , 'VelbT', 'TsoverT', 'Tsover2T', 'RposT', 'stdPosT', 'DposHpPpHT', 'TimeEdlayT'
+            , 'DParkingposT', 'TimeGPS2IMU', 'CalibrationFlag', 'TimeLekfUpdate', 'Temp', 'TimeNoW'
+            , 'TimeNoRTKINT', 'Gmean', 'TrisAbsmaxdposPspeed', 'TrisQuality', 'TrisMaxdpos', 'StateGPS'
+            , 'StateKWS', 'Ppostemp', 'State35', 'DposHorizontal', 'temptime', 'TimeNoPOS', 'tsOverRTKInt'
+            , 'tsOverVelb', 'Ra1', 'rabs', 'DposHpPpH', 'TimeGPS2IMUPos', 'TimeGPS2IMUHeading', 'TimeGPS2IMUCarVel'
+            , 'Avar', 'Gvar', 'Kws', 'Xkws', 'Flag34', 'StdKws', 'Velb', 'Rpos', 'stdPos']
+        matDic = dict.fromkeys(mat_key, [])
+        if len(self.insData) == 0:
+            return matDic
+
         p = np.array([self.insData['PData1'], self.insData['PData2'], self.insData['PData3'], self.insData['Ptype'],
                       self.insData['time']]).T
 
@@ -1178,25 +1270,20 @@ class HexDataParse(object):
 
     # 开始将数据存成.mat文件格式，总体整合
     def startSaveAllDataToMatFile(self):
-        # self.saveImuDataToMatFile()
-        # self.saveGpsDataToMatFile()
-        # self.saveVehicleDataToMatFile()
-        # self.saveInsDataToMatFile()
-        # self.saveSyncDataToMatFile()
         veh = self.saveVehicleDataToMatFile()
         sync = self.saveSyncDataToMatFile()
         raw = self.saveImuDataToMatFile()
         gps = self.saveGpsDataToMatFile()
         ins = self.saveInsDataToMatFile()
-        pdata = self.savePDataToMatFile()
-        Imu2Dta = self.saveImu2DataToMatFile()
-        Ins2Data = self.saveIns2DataToMatFile()
-        SatelliteData = self.saveSatelliteDataToMatFile()
-        Satellite2Data = self.saveSatellite2DataToMatFile()
-        EKFhandle_typeData = self.saveEkfHandleDataToMatFile()
-        ZeroBiasData = self.saveZeroBiasDataToMatFile()
 
-        # Imu3Dta = self.saveImu3DataToMatFile()
+        pdata = self.savePDataToMatFile() if self.data_analysis_flag['ins'] else {}
+        Imu2Dta = self.saveImu2DataToMatFile() if self.data_analysis_flag['imu2'] else {}
+        Ins2Data = self.saveIns2DataToMatFile() if self.data_analysis_flag['ins2'] else {}
+        SatelliteData = self.saveSatelliteDataToMatFile() if self.data_analysis_flag['sat'] else {}
+        Satellite2Data = self.saveSatellite2DataToMatFile() if self.data_analysis_flag['sat2'] else {}
+        EKFhandle_typeData = self.saveEkfHandleDataToMatFile() if self.data_analysis_flag['EKFhandle_type'] else {}
+        ZeroBiasData = self.saveZeroBiasDataToMatFile() if self.data_analysis_flag['ZeroBias'] else {}
+
         ins['Pdata'] = pdata
         matDic = {'GPSINSData': {'GPSData': gps, 'INSData': ins, 'RawData': raw, 'SyncData': sync,
                                  'EnvisionCanData': veh, 'Imu2Dta': Imu2Dta, 'Ins2Data': Ins2Data,
@@ -1290,8 +1377,24 @@ class HexDataParse(object):
         self.gpsInsTimeIndex = []
         self.vehicleInsTimeIndex = []
         self.syncInsTimeIndex = []
+
+        # 10帧 检查长短
+        frames = re.findall(r'bddb10.{142}', self.fileHexData)
+        long_db, short_db = 0, 0
+        for frame in frames:
+            head = frame[:6]
+            if head == 'bddb10':
+                if self.myXORCheck(frame):
+                    long_db += 1
+                elif self.myXORCheck(frame[:-8]):
+                    short_db += 1
+                else:
+                    continue
+        bd_len = '{142}' if long_db > short_db else '{134}'
+
         frames = re.findall(
-            r'bddb0a.{62}|bddb10.{142}|bddb20.{62}|bddb0b.{120}|bddb0c.{18}|bddb2a.{62}|bddb1b.{132}|bddbee.{26}|bddb6e.{28}',
+            # r'bddb0a.{62}|bddb20.{62}|bddb0b.{120}|bddb0c.{18}|bddb2a.{62}|bddb1b.{132}|bddbee.{26}|bddb6e.{28}',
+            r'bddb0a.{62}|bddb20.{62}|bddb0b.{110}|bddb0c.{18}|bddb2a.{62}|bddb1b.{132}|bddbee.{26}|bddb6e.{28}|bddb10.' + bd_len,
             self.fileHexData)
         for frame in frames:
             head = frame[:6]
@@ -1302,14 +1405,6 @@ class HexDataParse(object):
                     continue
                 self.dataFrameStats['imuDataNum'] += 1
                 frame0A.append(frame)
-            elif head == 'bddb10':
-                if not self.myXORCheck(frame) and not self.myXORCheck(frame[:-8]):
-                    self.dataFrameStats['gpsCheckErrIndex'].append(
-                        self.dataFrameStats['gpsDataNum']+len(self.dataFrameStats['gpsCheckErrIndex']))
-                    continue
-                self.dataFrameStats['gpsDataNum'] += 1
-                self.gpsInsTimeIndex.append(indexIns)
-                frame10.append(frame)
             elif head == 'bddb20':
                 if not self.myXORCheck(frame):
                     self.dataFrameStats['vehicleCheckErrIndex'].append(
@@ -1364,7 +1459,16 @@ class HexDataParse(object):
                     continue
                 self.dataFrameStats['zeroBiasNum'] += 1
                 frame6E.append(frame)
+            elif head == 'bddb10':
+                if not self.myXORCheck(frame):
+                    self.dataFrameStats['gpsCheckErrIndex'].append(
+                        self.dataFrameStats['gpsDataNum'] + len(self.dataFrameStats['gpsCheckErrIndex']))
+                    continue
+                self.gpsInsTimeIndex.append(indexIns)
+                self.dataFrameStats['gpsDataNum'] += 1
+                frame10.append(frame)
 
+        # 30 31帧
         # # method 0
         # frame_sat = re.findall(r'bddb30.{4838}|bddb31.{6502}', self.fileHexData)
         # for frame in frame_sat:
@@ -1383,21 +1487,19 @@ class HexDataParse(object):
         #             continue
         #         self.dataFrameStats['satellite2DataNum'] += 1
         #         frame31.append(frame[:-4])
-
         # method 1
-
         if self.data_analysis_flag['sat']:
-            for i in range(len(self.fileHexData[:-6])):
-                if self.fileHexData[i:i+6] == 'bddb30':
-                    frame30.append(self.fileHexData[i:i+4838])
+            for i in range(len(self.fileHexData[:-6]) - 6028):
+                if self.fileHexData[i:i + 6] == 'bddb30':
+                    frame30.append(self.fileHexData[i:i + 6028])
             for frame in frame30:
                 if head == 'bddb30':
                     frame30.append(frame)
             self.dataFrameStats['satelliteDataNum'] = len(frame30)
         if self.data_analysis_flag['sat2']:
-            for i in range(len(self.fileHexData[:-6])):
-                if self.fileHexData[i:i+6] == 'bddb31':
-                    frame31.append(self.fileHexData[i:i+6508])
+            for i in range(len(self.fileHexData[:-6]) - 8108):
+                if self.fileHexData[i:i + 6] == 'bddb31':
+                    frame31.append(self.fileHexData[i:i + 8108])
             for frame in frame31:
                 if head == 'bddb31':
                     frame31.append(frame)
@@ -1438,9 +1540,10 @@ class HexDataParse(object):
 
 if __name__ == "__main__":
     obj = HexDataParse()
-    obj.filePath = r"D:\Files\test\dbFiles\test1\test1_LogINS.txt"
+    # obj.filePath = r"D:\Files\test\dbFiles\test1\test1_LogINS.txt"
+    obj.filePath = r"E:\Downloads\bddb.bin"
     # types = ["csv", "mat"]
-    types = ["mat"]
+    types = ["csv"]
 
     print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", obj.filePath)
     obj.startParseFileHexData()  # 开始数据解析
@@ -1449,7 +1552,6 @@ if __name__ == "__main__":
     obj.saveDataToDF()
     if "csv" in types:
         print("存成Csv文件...")
-
         obj.SaveAllDataToCsvFile()
     if "mat" in types:
         print("存成Mat文件...")
