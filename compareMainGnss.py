@@ -144,6 +144,7 @@ class MainWindow:
                     self.output_msg("【提示】数据" + items[3] + "，场景：" + items[1] + "_" + items[2] + ", 无数据")
                 statiObj = gnssStatistics.GnssStatistics()
                 statiObj.percent = scene["percent"]
+                statiObj.percent_ksxt = scene["percent_ksxt"]  # 双天线
                 statiObj.scene_name = scene["name"]
                 statiObj.SyncRefGpsData = scene["data"]
                 statiObj.dataStatistics()  # 开始统计
@@ -202,8 +203,26 @@ class MainWindow:
         print(msg)
 
 
+def add_scene(fdir):
+    add_scenes = []
+    try:
+        with open(fdir, 'r', encoding='utf-8', errors='ignore') as fileObj:
+            data = fileObj.readlines()
+            for line in data:
+                line = line.strip().split(",")
+                scene = {"id": line[0],
+                         "name": line[-1],
+                         "time": [line[2], line[3]],
+                         "time_type": line[1]}
+                add_scenes.append(scene)
+        return add_scenes
+    except Exception as e:
+        return print("场景解析失败：", e)
+
+
 if __name__ == "__main__":
-    test_date = '2023-10-08'
+    test_date = '2023-10-18'
+    sim_dir = r"C:\Users\wenzixuan\Downloads\kxst\2"
     objMain = MainWindow()
     # 1. 参考数据解析
     objParseRef = ParseRef()
@@ -212,11 +231,11 @@ if __name__ == "__main__":
                             'date_time': test_date,
                             'ref_cal_type': '均值',
                             # 'file_path': r'C:\Users\wenzixuan\Downloads\0914-tunnel-1.txt',
-                            'file_path': r"C:\Users\wenzixuan\Downloads\双天线测试\到测试天线自定义-1008PM.txt",
+                            'file_path': sim_dir + r"\到POS320主天线自定义-1018PM.txt",
                             'file_type': 'POS320',  # 支持数据类型,  type: 【"NMEA", "100C", "POS320"】
                             'file_freq': None,
                             'csv_dict': {},
-                            'file_name': 'ref_220919.txt'}
+                            'file_name': 'ref_220919.txt'}  # os.path.basename(self.ref_data["file_path"])
     # objParseRef.ref_data = {'test_type': '静态', 'static_ref_type': '参考点坐标', 'latitude': '31.2078149109', 'longitude': '121.308974498', 'ellHeight': '14.494', 'bpox': [0, 0, 0], 'file_name': "['31.2078149109', '121.308974498', '14.494']"}
     objParseRef.run()
     objMain.ref_data = objParseRef.export_data
@@ -227,7 +246,7 @@ if __name__ == "__main__":
     objGnss.test_data = {'algorith_type': 'GNSS',
                          'date_time': test_date,
                          # 'file_path': r'C:\Users\wenzixuan\Downloads\RTK20230807175605783\凯芯模组2-0725PM.log',
-                         'file_path': r"C:\Users\wenzixuan\Downloads\双天线测试\凯芯新硬件-RTK-1008PM.log",
+                         'file_path': sim_dir + r"\NAV3120-DIA-RTK-1018PM.ppp.nmea",
                          'file_type': 'NMEA',  # 支持数据类型,  type: 【"NMEA", "北云明文", "导远自定义-GPS"】
                          'csv_dict': {},
                          'test_type': '动态',
@@ -240,13 +259,16 @@ if __name__ == "__main__":
 
     # 3.GNSS精度统计流程
     file_path = os.getcwd() + r"\statistics_test123.xlsx"
+    # # 方法1
+    # objMain.scene_list = add_scene(r"C:\Users\wenzixuan\Downloads\csw1227\场景配置文件.txt")
+    # # 方法2
     # objMain.scene_list = [{'id': '2', 'name': '内环高架上', 'time': ['0', '281800'], 'time_type': 'gps'},
     #                       {'id': '4', 'name': '林荫道', 'time': ['281810', '282000'], 'time_type': 'gps'},
-    #                       {'id': '5', 'name': '高楼多径', 'time': ['282010', '282200'], 'time_type': 'gps'},
-    #                       {'id': '71', 'name': '隧道1', 'time': ['282210', '0'], 'time_type': 'gps'}]
+    #                       # {'id': '5', 'name': '高楼多径', 'time': ['282010', '282200'], 'time_type': 'gps'},
+    #                       # {'id': '71', 'name': '隧道1', 'time': ['282210', '0'], 'time_type': 'gps'}
+    #                       ]
 
     objMain.export_gnss_statistics(file_path)  # 输出统计
-    objMain.gnss_multi_plot(["双天线航向误差历元分布图"])
-    # objMain.gnss_data_plot("统计误差CDF分布图")
+    # objMain.gnss_multi_plot(["高程误差历元分布图"])
+    objMain.gnss_data_plot("统计误差CDF分布图")
     # objMain.gnss_multi_plot(['历元间隔分布图', '差分龄期统计图', '位置水平误差历元分布图', '速度误差(前向)历元分布图', '姿态误差(航向)历元分布图'])
-

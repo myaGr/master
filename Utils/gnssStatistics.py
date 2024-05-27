@@ -16,6 +16,7 @@ class GnssStatistics(object):
     def __init__(self):
         self.SyncRefGpsData = None
         self.percent = 0
+        self.percent_ksxt = 0
         self.scene_name = None
         self.horizontal_error = {}
         self.longitudinal_error = {}
@@ -50,27 +51,28 @@ class GnssStatistics(object):
 
     # 计算精度统计指标
     def precisionStatistics(self, error_key):
+        error_item = self.SyncRefGpsData[error_key].dropna()  # 去Nan处理
         # 初始化统计字段dic
         key_list = ["场景", "解状态", "测试设备", "历元数", "占比", "RMS(外)", "CEP68(1σ)", "CEP95(2σ)", "CEP997(3σ)", "最大值", "最大值UTC", "STD"]
         precision = dict.fromkeys(key_list, "N/A")
         items = self.scene_name.split("_", 3)
         items[2] = gps_flag[items[2]]  # 转中文
         precision["场景"], precision["解状态"], precision["测试设备"] = items[1], items[2], items[3]
-        precision["历元数"] = str(len(self.SyncRefGpsData[error_key]))
+        precision["历元数"] = str(len(error_item))
         # 开始统计指标
-        if len(self.SyncRefGpsData[error_key]) > 0:
-            precision["占比"] = str(round(self.percent * 100, 2)) + "%"
-            precision["RMS(外)"] = round(DataStatistics.rms_cal(self.SyncRefGpsData[error_key]), 3)
-            precision["CEP68(1σ)"] = (DataStatistics.sigma_err_cal(self.SyncRefGpsData[error_key]))[0]
-            precision["CEP95(2σ)"] = (DataStatistics.sigma_err_cal(self.SyncRefGpsData[error_key]))[1]
-            precision["CEP997(3σ)"] = (DataStatistics.sigma_err_cal(self.SyncRefGpsData[error_key]))[2]
-            precision["最大值"] = (DataStatistics.sigma_err_cal(self.SyncRefGpsData[error_key]))[3]
-            precision["最大值UTC"] = str(self.SyncRefGpsData["utcTime"][self.SyncRefGpsData[error_key].idxmax()])[:10]
-            precision["STD"] = round(self.SyncRefGpsData[error_key].std(), 3)
+        if len(error_item) > 0:
+            precision["占比"] = str(round(self.percent * 100, 2)) + "%" if error_key != "double_heading_error" else str(round(self.percent_ksxt * 100, 2)) + "%"
+            precision["RMS(外)"] = round(DataStatistics.rms_cal(error_item), 3)
+            precision["CEP68(1σ)"] = (DataStatistics.sigma_err_cal(error_item))[0]
+            precision["CEP95(2σ)"] = (DataStatistics.sigma_err_cal(error_item))[1]
+            precision["CEP997(3σ)"] = (DataStatistics.sigma_err_cal(error_item))[2]
+            precision["最大值"] = (DataStatistics.sigma_err_cal(error_item))[3]
+            precision["最大值UTC"] = str(self.SyncRefGpsData["utcTime"][error_item.idxmax()])[:10]
+            precision["STD"] = round(error_item.std(), 3)
             # precision["RMS_2D(内)] = round(rms_cal(self.SyncRefGpsData["error_key"]), 3)
-            # precision["Max_unix时间"] = self.SyncRefGpsData["unixTime"][self.SyncRefGpsData[error_key].idxmax()
+            # precision["Max_unix时间"] = self.SyncRefGpsData["unixTime"][error_item.idxmax()
             if error_key in ["horizontal_error", "longitudinal_error", "lateral_error"]:
-                precision.update(DataStatistics.percent_statistic(self.SyncRefGpsData[error_key]))
+                precision.update(DataStatistics.percent_statistic(error_item))
         return precision
 
     # Hdop可用卫星数统计

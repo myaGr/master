@@ -175,11 +175,12 @@ class DataStatistics:
 
 
 # GNSS同步数据误差计算汇总
-def gnssErrorCal(sync_data, bpox):
+def gnssErrorCal(sync_data, bpox, bpox_heading=0):
     """
     GNSS同步数据误差计算
     :param sync_data: 同步数据dataframe
-    :param bpox: 测试数据杆臂值
+    :param bpox: 测试数据距离杆臂值
+    :param bpox_heading: 测试数据航向杆臂值（双天线），非必填
     return：sync_data 包含误差值的dataframe
     """
     pos0 = [sync_data["latitude_x"][0], sync_data["longitude_x"][0], sync_data["ellHeight_x"][0]]
@@ -206,7 +207,7 @@ def gnssErrorCal(sync_data, bpox):
     if "heading_x" in sync_data and "heading" in sync_data:
         sync_data["heading_error"] = DataStatistics.angele_standardization(np.array(sync_data['heading_x'] - sync_data['heading']))  # 航向偏差计算
     if "heading_x" in sync_data and "doubleHeading" in sync_data:
-        sync_data["double_heading_error"] = DataStatistics.angele_standardization(np.array(sync_data['heading_x'] - sync_data['doubleHeading']))  # 双天线航向偏差计算
+        sync_data["double_heading_error"] = DataStatistics.angele_standardization(np.array(sync_data['heading_x'] - sync_data['doubleHeading'] - bpox_heading))  # 双天线航向偏差计算
     return sync_data
 
 

@@ -46,6 +46,8 @@ def checkVersion(now_exe_name):
 
             msgbox.showinfo('提示', '最新工具已下载。')
             sys.exit()
+    # elif 'message' in res_info.keys():
+    #     msgbox.showinfo(res_info['message'].split(':')[0],res_info['message'].split(':')[1])
 
 
 def request_get(url_get, param_get):
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     # checkLicenseDate()
 
     # 工具版本设置
-    tool_version = '数据解析与分析工具V3.4'
+    tool_version = '数据解析与分析工具V3.6.15'
     global_var.set_value("TOOL_VERSION", tool_version)
 
     # 版本检测

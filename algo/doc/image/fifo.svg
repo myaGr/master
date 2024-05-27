@@ -1,0 +1,95 @@
+<svg viewBox="0 0 544 695" height="695" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="544">
+    <defs/>
+    <g transform="translate(-162.00,-72.91)">
+        <g id="group1" transform="translate(215.38,139.86)">
+            <path d="M59.3,22.3L59.3,453.1" fill="none" id="shape2" stroke="#3641d9"/>
+            <path d="M.0,.0L118.6,.0L118.6,44.5L.0,44.5L.0,.0z" fill="#3641d9" id="shape3" fill-rule="nonzero" stroke="#3641d9"/>
+            <text xml:space="preserve" style="fill:#ffffff;font-family:Arial;font-size:10.00pt">
+                <tspan x="17.8" y="27.3">Producer Task</tspan>
+            </text>
+        </g>
+        <g id="group4" transform="translate(585.98,139.86)">
+            <path d="M59.3,22.3L59.3,627.1" fill="none" id="shape5" stroke="#3641d9"/>
+            <path d="M.0,.0L118.6,.0L118.6,44.5L.0,44.5L.0,.0z" fill="#3641d9" id="shape6" fill-rule="nonzero" stroke="#3641d9"/>
+            <text xml:space="preserve" style="fill:#ffffff;font-family:Arial;font-size:10.00pt">
+                <tspan x="14.3" y="27.3">Consumer Task</tspan>
+            </text>
+        </g>
+        <path d="M22.5,33.3L22.5,.0L.0,.0L.0,33.3L22.5,33.3z" fill="#e9edf4" id="shape7" fill-rule="nonzero" transform="translate(263.45,198.80)" stroke="#4f81bd"/>
+        <g id="shape8" transform="translate(163.00,216.45)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="12.3" y="24.0">Start to </tspan>
+                <tspan x="9.3" y="43.0">transmit </tspan>
+                <tspan x="24.3" y="62.0">Data</tspan>
+            </text>
+        </g>
+        <path d="M22.5,80.9L22.5,.0L.0,.0L.0,80.9L22.5,80.9z" fill="#e9edf4" id="shape9" fill-rule="nonzero" transform="translate(263.45,249.94)" stroke="#4f81bd"/>
+        <path d="M22.5,80.9L22.5,.0L.0,.0L.0,80.9L22.5,80.9z" fill="#e9edf4" id="shape10" fill-rule="nonzero" transform="translate(634.05,330.82)" stroke="#4f81bd"/>
+        <g id="shape11" transform="translate(274.68,330.82)">
+            <path d="M.0,.0L370.6,-0.0" fill="none" stroke="#303030"/>
+            <path stroke-width="1" stroke-linecap="round" d="M358.6,-6.0L370.6,-0.0L358.6,6.0" fill="none" stroke-linejoin="round" stroke="#303030"/>
+        </g>
+        <g id="shape12" transform="translate(272.70,267.27)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="18.7" y="33.7">malloc memory </tspan>
+                <tspan x="21.2" y="52.7">and store data</tspan>
+            </text>
+        </g>
+        <g id="shape13" transform="translate(656.51,521.12)">
+            <path d="M.0,.0L20.8,.0L20.8,84.4L15.6,84.4" fill="none" stroke="#303030"/>
+            <path stroke-width="1" stroke-linecap="round" d="M.0,84.4L15.6,88.3L15.6,80.5L.0,84.4" fill="#303030" stroke="#303030"/>
+        </g>
+        <path d="M22.5,80.9L22.5,.0L.0,.0L.0,80.9L22.5,80.9z" fill="#e9edf4" id="shape14" fill-rule="nonzero" transform="translate(263.45,411.70)" stroke="#4f81bd"/>
+        <g id="shape15" transform="translate(645.28,411.70)">
+            <path d="M.0,.0L-370.6,.0" fill="none" stroke="#303030"/>
+            <path stroke-width="1" stroke-linecap="round" d="M-358.6,6.0L-370.6,.0L-358.6,-6.0" fill="none" stroke-linejoin="round" stroke="#303030"/>
+        </g>
+        <path d="M22.5,57.1L22.5,.0L.0,.0L.0,57.1L22.5,57.1z" fill="#e9edf4" id="shape16" fill-rule="nonzero" transform="translate(634.05,492.57)" stroke="#4f81bd"/>
+        <g id="shape17" transform="translate(274.68,492.57)">
+            <path d="M.0,.0L370.6,.0" fill="none" stroke="#303030"/>
+            <path stroke-width="1" stroke-linecap="round" d="M358.6,-6.0L370.6,.0L358.6,6.0" fill="none" stroke-linejoin="round" stroke="#303030"/>
+        </g>
+        <path d="M22.5,80.9L22.5,.0L.0,.0L.0,80.9L22.5,80.9z" fill="#e9edf4" id="shape18" fill-rule="nonzero" transform="translate(634.05,565.13)" stroke="#4f81bd"/>
+        <g id="shape19" transform="translate(263.45,215.45)">
+            <path d="M.0,.0L-19.2,.0L-19.2,74.9L-15.6,74.9" fill="none" stroke="#303030"/>
+            <path stroke-width="1" stroke-linecap="round" d="M.0,74.9L-15.6,71.0L-15.6,78.8L.0,74.9" fill="#303030" stroke="#303030"/>
+        </g>
+        <g id="shape20" transform="translate(518.49,587.72)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="19.3" y="24.3">Data Proc</tspan>
+            </text>
+        </g>
+        <path d="M22.5,80.9L22.5,.0L.0,.0L.0,80.9L22.5,80.9z" fill="#e9edf4" id="shape21" fill-rule="nonzero" transform="translate(634.05,666.22)" stroke="#4f81bd"/>
+        <g id="shape22" transform="translate(518.49,685.16)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="7.3" y="20.9">free memory</tspan>
+            </text>
+        </g>
+        <g id="shape23" transform="translate(263.45,315.94)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="35.7" y="33.5">write address to fifo</tspan>
+            </text>
+        </g>
+        <g id="shape24" transform="translate(487.38,376.50)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="30.6" y="24.1">write success</tspan>
+            </text>
+        </g>
+        <g id="shape25" transform="translate(276.70,448.91)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="16.7" y="35.0">notice consumer to read fifo</tspan>
+            </text>
+        </g>
+        <g id="shape26" transform="translate(461.00,484.43)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="17.5" y="33.7">Read fifo and get </tspan>
+                <tspan x="21.0" y="52.7">memory address</tspan>
+            </text>
+        </g>
+        <g id="shape27" transform="translate(292.42,73.91)">
+            <text xml:space="preserve" style="fill:#000000;font-family:宋体;font-size:12.00pt;font-weight:bold">
+                <tspan x="31.4" y="44.6">Fifo based Data Transmit time line</tspan>
+            </text>
+        </g>
+    </g>
+</svg>

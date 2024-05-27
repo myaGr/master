@@ -155,9 +155,9 @@ class insReport(object):
         output_info = ''
         try:
             statistic_name = {'horizontal_error': '水平误差', 'longitudinal_error': '纵向误差'
-                , 'lateral_error': '横向误差', 'height_error': '高程误差'
+                , 'lateral_error': '横向误差', 'elevation_error': '高程误差'
                 , 'pitch_diff': '俯仰偏差', 'heading_diff': '航向偏差', 'roll_diff': '横滚偏差'
-                , 'ground_vel_diff': 'Z（下）速度偏差', 'vel_diff': '速度误差'
+                , 'ground_vel_diff': 'Z（下）速度偏差', 'velocity_diff': '水平速度误差'
                 , 'forward_vel_diff': 'X（前）速度误差', 'right_vel_diff': 'Y（右）速度偏差'}
             # 姿态：横滚、俯仰、速度、x速度、y速度、z速度
             # 位置：123theta、0.02-2占比水平误差，横纵高误差
@@ -176,7 +176,7 @@ class insReport(object):
                         , '文件名': '_'.join(scene_base[3:])
                         , '数据类型': data_type
                         , '时间段': str(scene_df['time']) if 'time' in scene_df.keys() else ''
-                        , '帧数': len(scene_df)
+                        , '帧数': len(scene_df['data'])
                         # , '场景占比': str(scene_df['percent'] * 100) + '%' if 'percent' in scene_df.keys() else ''
                        }
                     if error_name in statistic_name.keys():
@@ -264,7 +264,7 @@ def pos_covert(df, pos0=None, yaw=None, bpos=None, val_name=None):
     :param df:
     :param pos0: 起始坐标点， 列表list
     :param yaw: 航向 数组array
-    :param bpos: 杆臂值（固定偏差）， 列表list[N、E、D]
+    :param bpos: 杆臂值（固定偏差）， 列表list[前、右、下]
     :param val_name:
     :return： 平面坐标系下N、E、D数组array
     """

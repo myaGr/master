@@ -27,35 +27,42 @@ class PlotData:
             print('down')
         self.fig.canvas.draw_idle()  # 绘图动作实时反映在图像上
 
-    def PlotData(self, ax, x, y, label, labels=None, labels_format='{}'):
+    def PlotData(self, ax, x, y, label, labels=None, labels_format='{}', scatter=False):
         # 线性图绘图
         # ax:绘图轴, x：自变量, y：因变量, label：因变量标签
-        lines = ax.plot(x, y, label=label, linewidth=1, alpha=0.55)
+        if scatter is True:
+            lines = ax.scatter(x, y, label=label, s=5)
+        else:
+            lines = ax.plot(x, y, label=label, linewidth=1, alpha=0.55)
         # self.fig.canvas.mpl_connect('scroll_event', self.call_back)
         cursor = mplcursors.cursor(lines, multiple=True, bindings={'left': "shift+left", 'right': "shift+right"})  # 数据游标
         if labels:
             cursor.connect("add", lambda sel: sel.annotation.set_text(labels_format.format(labels[int(sel.target.index)])))
 
-    def ShowPlotFormat(self, xlabel, ylabel, hspace=0.5, legend=True, legend_loc=None):
+    def ShowPlotFormat(self, xlabel, ylabel, hspace=0.5, legend=True, legend_loc=None, rotation=90):
         # 统一绘图样式设置
         # 设置（xlabel：X坐标轴名称，ylabel：Y坐标轴名称）
         plt.rc("font", family='MicroSoft YaHei', weight='bold')
         plt.subplots_adjust(hspace=hspace)
         plt.autoscale(enable=True, axis='y')
         plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        plt.ylabel(ylabel, rotation=rotation, x=-0.5, y=0.35)
         plt.grid()
         if legend:
             if not legend_loc:
-                plt.legend(loc='best')
+                leg = plt.legend(loc='best')
             else:
-                plt.legend(bbox_to_anchor=(1.05, 1.1), loc=legend_loc)
+                leg = plt.legend(bbox_to_anchor=(1.05, 1.1), loc=legend_loc, borderaxespad=0)
+            leg.set_draggable(state=True)
 
-    def PlotPoint(self, ax, x, y, label, marker='*', color='r', labels=None, labels_format='{}'):
+    def PlotPoint(self, ax, x, y, label, marker='*', color='r', labels=None, labels_format='{}', markersize=2):
         # 线性图绘图
         # ax:绘图轴, x：自变量, y：因变量, label：因变量标签
-        lines = ax.plot(x, y, label=label, linestyle="", marker=marker, alpha=0.3, color=color)
-        if labels:
+        lines = ax.plot(x, y, label=label, linestyle="", marker=marker, alpha=0.3, markersize=markersize, color=color)
+        if labels == 'self':
+            cursor = mplcursors.cursor(lines, multiple=True, bindings={'left': "shift+left", 'right': "shift+right"})  # 数据游标
+            cursor.connect("add", lambda sel: sel.annotation.set_text(labels_format.format(labels[int(sel.target.index)])))
+        elif labels:
             self.fig.canvas.mpl_connect('scroll_event', self.call_back)
             cursor = mplcursors.cursor(lines, multiple=True, bindings={'left': "shift+left", 'right': "shift+right"})  # 数据游标
             cursor.connect("add", lambda sel: sel.annotation.set_text(labels_format.format(labels[int(sel.target.index)])))
@@ -65,7 +72,7 @@ if __name__ == "__main__":
     data = pd.DataFrame(np.arange(18).reshape(3, 6), index=['a', 'b', 'c'], columns=['A', 'B', 'C', 'D', 'E', 'F'])
     obj = PlotData()
     obj.fig.suptitle('This is the main title')
-    obj.ax1 = plt.subplot(3, 2, 1)
+    obj.ax1 = plt.subplot(3, 1, 1)
     obj.ax1.set_title('This is the ax1 title')
     obj.PlotData(obj.ax1, data['A'], data['B'], 'test1')
     obj.PlotData(obj.ax1, data['C'], data['B'], 'test2')

@@ -26,6 +26,8 @@ class DialogGnssMultiPlot(QDialog, UI.ui_Dialog_gnss_multi_plot.Ui_Dialog):
             self.signal_list.append("位置纵向误差历元分布图")
         if self.checkBox_posHorizontalError.isChecked():
             self.signal_list.append("位置水平误差历元分布图")
+        if self.checkBox_elevationError.isChecked():
+            self.signal_list.append("高程误差历元分布图")
         if self.checkBox_velError.isChecked():
             self.signal_list.append("速度误差(前向)历元分布图")
         if self.checkBox_headingError.isChecked():

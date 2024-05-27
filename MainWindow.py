@@ -12,11 +12,15 @@ from Dialogs.DialogSetPlot import DialogSetPlot
 from Dialogs.DialogConvertTime import DialogConvertTime
 from Dialogs.DialogCalDistance import DialogCalDistance
 from Dialogs.DialogSetConfig import DialogSetConfig
+from Dialogs.DialogBddb2Mat import DialogBddb2Mat
+from Dialogs.DialogSotif import DialogSotif
+from Dialogs.DialogWireshark import DialogWireshark
 from Dialogs.DialogGnssMultiPlot import DialogGnssMultiPlot
 from Dialogs.DialogInsMultiPlot import DialogInsMultiPlot
 from Utils.dataStatistics import DataStatistics, gnssErrorCal
 from Standardize import dataParse, dataPreProcess
-from Utils import gnssStatistics, gnssPlot, insStatistic, insPlot
+from Utils import gnssStatistics, gnssPlot, insStatistic, insPlot, df2Nmea
+from Parse.HexDataParse import HexDataParse
 
 import pyqtgraph as pg
 import pandas as pd
@@ -29,12 +33,19 @@ import math
 import uuid
 import os
 
+import webbrowser
+import tkinter.messagebox as msgbox
+import requests
+import json
+
 
 # 工具主窗口
 class MainWindow(QMainWindow, Ui_MainWindow):
     refInfo = QtCore.pyqtSignal(dict)
     gnssInfo = QtCore.pyqtSignal(dict)
     insInfo = QtCore.pyqtSignal(dict)
+    bddbInfo = QtCore.pyqtSignal(dict)
+    signalInfo = QtCore.pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -50,11 +61,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_config_data = None
         self.label = ""
 
+        # 公用QT线程计数
+        self.thread_i = 0
+        self.thread_common = {}
+
         # 绘图配置初始化
         self.plot_config = {'time_type': 'gps', 'time': ['0', '0'],
                             'ins_plot_time_type': '计时时间（秒）', 'gnss_plot_time_type': 'utc时间',
                             'ins_plot_flags': {4: '固定解', 5: '浮点解', 2: '差分解', 1: '单点解', 0: '其他'},
-                            'ins_plot_freq': 10,
+                            'ins_plot_freq': 1,
                             'gnss_plot_flags': {4: '固定解', 5: '浮点解', 2: '差分解', 1: '单点解', 0: '其他'}}
 
         # loadUi("MainWindow.ui", self)
@@ -73,17 +88,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_loc_error.triggered.connect(lambda: self.ins_data_plot("位置偏差(水平、横向、纵向)历元分布图"))
         self.action_neg_vel_error.triggered.connect(lambda: self.ins_data_plot("速度误差(北东地)历元分布图"))
         self.action_frd_vel_error.triggered.connect(lambda: self.ins_data_plot("速度误差(前右下)历元分布图"))
+        self.action_wheel_speed.triggered.connect(lambda: self.ins_data_plot("轮速历元分布图"))
+        self.action_vel_wheelSpeed.triggered.connect(lambda: self.ins_data_plot("速度轮速对比历元分布图"))
         self.action_pos_error.triggered.connect(lambda: self.ins_data_plot("姿态误差(横滚、俯仰、航向)历元分布图"))
         self.action_coor_error.triggered.connect(lambda: self.ins_data_plot("坐标误差(经纬高)历元分布图"))
         self.action_mile_error.triggered.connect(lambda: self.ins_data_plot("里程(前右下)历元分布图"))
+        self.action_acc_xyz.triggered.connect(lambda: self.ins_data_plot("加表(XYZ)历元分布图"))
+        self.action_grox_xyz.triggered.connect(lambda: self.ins_data_plot("陀螺(XYZ)历元分布图"))
 
         self.action_ins_by_time.triggered.connect(lambda: self.ins_data_plot("历元间隔分布图"))
+        self.action_timeGap_acc_grox.triggered.connect(lambda: self.ins_data_plot("加表陀螺历元间隔分布图"))
+        self.action_timeGap_gps_imu.triggered.connect(lambda: self.ins_data_plot("相邻GPS-IMU时间间隔图"))
         self.action_traj.triggered.connect(lambda: self.ins_data_plot("同步数据轨迹图"))
         self.action_kalman_p.triggered.connect(lambda: self.ins_data_plot("Kalman.P历元分布图"))
         self.action_kalman_x.triggered.connect(lambda: self.ins_data_plot("Kalman.X历元分布图"))
         self.action_bias_by_time.triggered.connect(lambda: self.ins_data_plot("零偏历元分布图"))
         self.action_gps_status_precent.triggered.connect(lambda: self.ins_data_plot("GPS解状态占比饼状图"))
         self.action_errorbias.triggered.connect(lambda: self.ins_data_plot("统计误差分布图"))
+        self.action_gps_error.triggered.connect(lambda: self.ins_data_plot("GPS偏差对比图"))
+        self.action_INS_plot_all.triggered.connect(lambda: self.ins_data_plot("ALL"))
 
         # 2.2 INS 多图绘制
         self.actionINS_multiPlot.triggered.connect(lambda: self.open_dialog_ins_data_multiPlot())
@@ -97,6 +120,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionGNSS_velError.triggered.connect(lambda: self.gnss_data_plot("速度误差(前向)历元分布图"))
         self.actionGNSS_angleError.triggered.connect(lambda: self.gnss_data_plot("姿态误差(航向)历元分布图"))
         self.actionGNSS_cdfError.triggered.connect(lambda: self.gnss_data_plot("统计误差CDF分布图"))
+        self.action_GNSS_plot_all.triggered.connect(lambda: self.gnss_data_plot("ALL"))
 
         # 2.4 GNSS 多图绘制
         self.actionGNSS_multiPlot.triggered.connect(lambda: self.open_dialog_gnss_data_multiPlot())
@@ -108,6 +132,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 4. 小工具
         self.action_convertTime.triggered.connect(lambda: self.open_dialog(DialogConvertTime()))  # 点击导间转换工具
         self.action_calDistiance.triggered.connect(lambda: self.open_dialog(DialogCalDistance()))  # 点击距离转换工具
+        self.action_INS_mat.triggered.connect(lambda: self.open_dialog_bddb2mat())  # 点击 bddb2mat
+        self.action_sotif_statistics.triggered.connect(lambda: self.open_dialog(DialogSotif()))  # Sotif统计窗口
+        # self.action_pcpng2bin.triggered.connect(lambda: self.open_dialog(DialogWireshark()))  # 类似Wireshark
+        self.action_pcpng2bin.triggered.connect(lambda: self.open_dialog_pcapng2bin())
+
+        # 5.帮助
+        self.action_introduction.triggered.connect(lambda: self.open_help_web())
+        self.action_refresh.triggered.connect(lambda: self.download_new_version())
 
         #  绘图模块（pyqtgraph）
         win = pg.GraphicsLayoutWidget(show=True)  # 创建绘图区域
@@ -146,14 +178,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.thread_compare_ins.updated.connect(self.output_msg)  # B类（QT子线程）发送信号， 调用A类(主线程)的槽函数
         self.thread_compare_ins.test_signal.connect(self.receive_ins_dataframe)  # 更新主界面
 
+        # 解析INS数据转bddb
+        self.thread_bddb2mat = AnalysisBddb(self)  # 测试数据解析, QT子线程实例化
+        self.bddbInfo.connect(self.thread_bddb2mat.getInfo)  # A类(主线程)发送信号， 调用B类（QT子线程）的槽函数
+        self.thread_bddb2mat.updated.connect(self.output_msg)
+
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, '警告', "是否确认退出工具?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(self, '警告', "是否确认退出工具?", QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
 
         if reply == QMessageBox.Yes:
             for test_data in self.gnss_test_data + self.ins_test_data:
                 for key in test_data.keys():
                     if '_path' in key and key != 'file_path' and os.path.exists(test_data[key]):
                         os.remove(test_data[key])
+                if os.path.exists('./' + test_data["file_name"]):
+                    os.rmdir('./' + test_data["file_name"])
             event.accept()
         else:
             event.ignore()
@@ -162,6 +202,79 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         result = dialog.exec_()  # 显示对话框并等待用户响应
         if result:
             self.output_msg(str(result))
+
+    # open
+    def open_help_web(self):
+        try:
+            url = 'https://asensing.feishu.cn/docx/COJddHjGHolZ60xEDUGcCbEInHh'
+            webbrowser.open_new_tab(url)
+            self.output_msg('已打开软件说明书: ' + url)
+        except Exception as e:
+            self.output_msg('无法打开软件说明书')
+            self.output_msg(str(e))
+
+    def download_new_version(self):
+        def checkVersion(now_exe_name):
+            """
+            @author: liqianwen
+            :param now_exe_name:
+            :return:
+            """
+            url = 'http://10.1.135.105/solutions/tools/version_test/' + now_exe_name
+            # param = {'tool':now_exe_name}
+            param = {}
+            res_info = request_get(url, param)
+            if 'fileName' in res_info.keys():
+                yes_download = msgbox.askyesno(title='版本更新',
+                                               message='最新版本为 %s ，是否更新？\n（若使用此版本，请选否）' % res_info[
+                                                   'fileName'])
+                if yes_download:
+                    download_url = 'http://10.1.135.105/solutions/download/tools/' + res_info['fileName']
+                    res = requests.get(download_url, param)
+                    self.output_msg('工具下载中：' + download_url)
+                    with open(res_info['fileName'], 'wb') as code:
+                        code.write(res.content)
+
+                    self.output_msg('提示：最新工具已下载。')
+            else:
+                # msgbox.askyesno(title='版本更新', message=res_info.message)
+                msgbox.showinfo('Failed to check', res_info['message'])
+
+        def request_get(url_get, param_get):
+            """
+            @author: liqianwen
+            :param url_get:
+            :param param_get:
+            :return:
+            """
+            fails = 0
+            text = {}
+            while True:
+                try:
+                    if fails >= 5:
+                        print('网络连接出现问题, 无法检查当前版本')
+                        text['message'] = "网络连接失败,无法检查当前版本。"
+                        return text
+
+                    ret = requests.get(url=url_get, params=param_get, timeout=10)
+                    if ret.status_code == 200:
+                        text = json.loads(ret.text)
+                        return text
+                    else:
+                        fails += 1
+                        continue
+                except Exception as e:
+                    fails += 1
+                    print('网络连接出现问题', e)
+                    text['message'] = '网络连接失败,无法检查当前版本。'
+            return text
+
+        # 版本检测
+        tool_version = global_var.get_value("TOOL_VERSION")
+        try:
+            checkVersion(tool_version + '.exe')
+        except Exception as e:
+            self.output_msg(str(e))
 
     # 导入参考文件窗口
     def open_dialog_import_ref(self):
@@ -205,9 +318,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dialog.config_signal.connect(self.set_config_bpox)
         dialog.exec_()  # 显示对话框并等待用户响应
 
+    # 配置mat生成
+    def open_dialog_bddb2mat(self):
+        dialog = DialogBddb2Mat()
+        dialog.my_signal.connect(self.parse_bddb2mat)
+        dialog.exec_()  # 显示对话框并等待用户响应
+
+    def open_dialog_pcapng2bin(self):
+        self.output_msg('请注意，本机需安装wireshark才可使用该功能， 否则生成文件为空。'
+                        '\n如出现tshark.exe弹窗，属于正常情况，待数据分析完会自动关闭，请勿提前手动关闭窗口。'
+                        '\nWireshark安装包可通过网址下载：http://10.1.135.105/solutions/download/tools/Wireshark-4.2.3-x64.exe')
+        dialog = DialogWireshark()
+        result = dialog.exec_()  # 显示对话框并等待用户响应
+        if dialog.messages:
+            self.output_msg(str(dialog.messages))
+
     # 更新消息框内容
     def output_msg(self, msg_str):  # textBrowser打印消息
-        msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + msg_str
+        msg = time.strftime('%H:%M:%S', time.localtime()) + ' ' + str(msg_str)
         self.textBrowser_printLog.append(msg)
         if '【导入参考数据】' in msg_str or '【导入INS测试数据】' in msg_str or '【导入GNSS测试数据】' in msg_str:
             self.action_importRef.setEnabled(False)
@@ -248,7 +376,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         submenu = QMenu()
         submenu.addAction("配置杆臂值", lambda: self.on_action_set_config(data))
         submenu.addAction("导出csv", lambda: self.on_action_save2csv_clicked(data))
-        # submenu.addAction("导出mat", lambda: self.on_action_save2csv_clicked(data))
+        submenu.addAction("转为nmea", lambda: self.on_action_save2nmea_clicked(data))
         submenu.addAction("删除数据", lambda: self.on_action_delete_data_clicked(data))
 
         globalPos = self.treeWidget_dataManage.viewport().mapToGlobal(pos)  # 转换坐标系
@@ -258,6 +386,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_action_set_config(self, data):
         self.set_config_data = data
         self.open_dialog_set_config()
+
+    # 计算杆臂值
+    def cal_bpox(self, sync_df, config_signal):
+        utcDate = sync_df["utcDate"][0]  # 获取UTC日期
+        start = sync_df['unixTime'][0]  # 初始化开始时间
+        end = sync_df['unixTime'][len(sync_df['unixTime']) - 1]  # 初始化结束时间
+        try:
+            # 统一时间类型为unix时间
+            start, end = dataPreProcess.time_to_unix([config_signal[0], config_signal[1]], config_signal[2], utcDate,
+                                                     start, end)
+            # 根据指定时间段筛选
+            sync_df = sync_df[(sync_df['unixTime'] >= start) & (sync_df['unixTime'] <= end)].copy()
+            # 杆臂小于5厘米忽略
+            bpox_x = sync_df["longitudinal_error"].median() if abs(sync_df["longitudinal_error"].median()) > 0.05 else 0
+            bpox_y = sync_df["horizontal_error"].median() if abs(sync_df["horizontal_error"].median()) > 0.05 else 0
+            bpox_z = sync_df["horizontal_error"].median() if abs(sync_df["horizontal_error"].median()) > 0.05 else 0
+            bpox = [bpox_x, bpox_y, bpox_z]
+            # 计算双天线航向固定偏差
+            bpox_heading = 0
+            if "double_heading_error" in sync_df:
+                bpox_heading = sync_df["double_heading_error"].median() if not math.isnan(sync_df["double_heading_error"].median()) else 0
+            return bpox, bpox_heading
+        except Exception as e:
+            self.output_msg("【提示】杆臂值计算失败， 失败原因：" + str(e))
 
     # 补偿杆臂值计算
     def set_config_bpox(self, config_signal):
@@ -269,68 +421,109 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
         for test_data in self.gnss_test_data:
             if test_data["file_name"] == self.set_config_data:
-                test_data["bpox"] = config_signal
-                self.output_msg("【配置杆臂值】" + test_data["file_name"] + "已配置为：" + str(config_signal))
+                if "time" in config_signal:  # 输入的静态时间
+                    self.output_msg("【配置杆臂值】" + test_data["file_name"] + "静态时间段为：" + str(
+                        [config_signal["time"][0], config_signal["time"][1]]) + ", 时间类型为：" + config_signal["time"][2])
+                    test_data["bpox"], test_data["bpox_heading"] = self.cal_bpox(test_data["sync_df"], config_signal["time"])
+                    self.output_msg("计算杆臂值，距离为：" + str(test_data["bpox"]) + ", 双天线航向为：" + str(
+                        test_data["bpox_heading"]))
+                elif "bpos" in config_signal:  # 输入杆臂值
+                    test_data["bpox"] = config_signal["bpos"]
+                    test_data["bpox_heading"] = 0
+                    self.output_msg("【配置杆臂值】" + test_data["file_name"] + "已配置为：" + str(config_signal["bpos"]))
                 # 解析GNSS数据QT子线程
                 self.output_msg("【更新测试数据】" + test_data["file_name"] + "补偿杆臂后误差计算。")
-                self.test_data["sync_df"] = gnssErrorCal(self.test_data["sync_df"], test_data["bpox"])
+                test_data["sync_df"] = gnssErrorCal(test_data["sync_df"], test_data["bpox"], test_data["bpox_heading"])
                 self.output_msg("【更新完毕】" + "\n")
         for test_data in self.ins_test_data:
+            # self.output_msg("INS暂仅支持姿态杆臂值配置")
             if test_data["file_name"] == self.set_config_data:
-                test_data["bpox"] = config_signal
-                self.output_msg("【配置杆臂值】" + test_data["file_name"] + "已配置为：" + str(config_signal))
-            if test_data["file_name"] + "【gps】" == self.set_config_data:
-                test_data["bpox_gps"] = config_signal
-                self.output_msg("【配置杆臂值】" + test_data["file_name"] + "【gps】" + "已配置为：" + str(config_signal))
+                if "bpos" in config_signal:  # 输入杆臂值:
+                    test_data["bpox"] = config_signal["bpos"]
+                    # self.output_msg("【配置杆臂值】" + test_data["file_name"] + "已配置为：" + str(config_signal["bpos"]))
+                if "posture_bpox" in config_signal:  # [0,0,0],  # roll pitch yaw
+                    test_data["posture_bpox"] = config_signal["posture_bpox"]
+                    self.output_msg("【配置姿态杆臂值】" + test_data["file_name"] + "已配置为：" + str(config_signal["posture_bpox"]))
+            elif test_data["file_name"] + "【gps】" == self.set_config_data:
+                if "bpos" in config_signal:  # 输入杆臂值:
+                    test_data["bpox_gps"] = config_signal["bpos"]
+                    # self.output_msg("【配置杆臂值】" + test_data["file_name"] + "【gps】" + "已配置为：" + str(config_signal["bpos"]))
+                if "posture_bpox" in config_signal:  # [0,0,0],  # roll pitch yaw
+                    test_data["posture_bpox_gps"] = config_signal["posture_bpox"]
+                    self.output_msg("【配置姿态杆臂值】" + test_data["file_name"] + "【gps】" + "已配置为：" + str(config_signal["posture_bpox"]))
 
     # 导出csv
     def on_action_save2csv_clicked(self, data):
-        def save2csv(df, path):
-            with open(path, "w") as file:
-                df.to_csv(file)
-                self.output_msg("【csv导出完毕】" + "\n")
+        def save2csv(df, path, sync_df=None, sync_path=None):
+            # QT 线程初始化
+            self.thread_i = self.thread_i + 1
+            self.thread_common[self.thread_i] = CommonQtThread(self)
+            self.signalInfo.connect(self.thread_common[self.thread_i].getInfo)  # A类(主线程)发送信号， 调用B类（QT子线程）的槽函数
+            self.thread_common[self.thread_i].updated.connect(self.output_msg)
+
+            signal_dict = {
+                "function_type": "df2Csv",
+                "output_df": df,
+                "output_path": path,
+                "output_sync_df": sync_df,
+                "output_sync_path": sync_path
+            }
+            self.signalInfo.emit(signal_dict)  # 传递子线程参数
+            self.thread_common[self.thread_i].start()  # 子线程开始执行
 
         if self.ref_data:
-            if self.ref_data["file_name"] == data and "df" in self.ref_data:
-                output_path = self.ref_data["file_path"] + ".csv"
-                self.output_msg("【开始导出csv】导出路径为：" + output_path)
-                t = threading.Thread(target=save2csv, args=(self.ref_data["df"], output_path))
-                t.start()
+            if 'file_name' in self.ref_data and "df" in self.ref_data:
+                if self.ref_data["file_name"] == data:
+                    output_path = self.ref_data["file_path"] + ".csv"
+                    save2csv(self.ref_data["df"], output_path)
 
         for test_data in self.gnss_test_data + self.ins_test_data:
             if test_data["file_name"] == data:
                 output_path = test_data["file_path"] + ".csv"
-                self.output_msg("【开始导出csv】导出路径为：" + output_path)
-                t = threading.Thread(target=save2csv, args=(test_data["df"], output_path))
-                t.start()
+                output_path_sync = test_data["file_path"] + "_sync.csv"  # 同步数据导出
+                if 'sync_df' in test_data:
+                    save2csv(test_data["df"], output_path, sync_df=test_data["sync_df"], sync_path=output_path_sync)
+                else:
+                    save2csv(test_data["df"], output_path)
+
             if test_data["file_name"] + "【gps】" == data:
                 output_path = test_data["file_path"] + "【gps】.csv"
-                self.output_msg("【开始导出csv】导出路径为：" + output_path)
-                t = threading.Thread(target=save2csv, args=(test_data["df_gps"], output_path))
-                t.start()
+                output_path_sync = test_data["file_path"] + "_sync【gps】.csv"
+                if 'sync_df_gps' in test_data:
+                    save2csv(test_data["df"], output_path, sync_df=test_data["sync_df_gps"], sync_path=output_path_sync)
+                else:
+                    save2csv(test_data["df"], output_path)
 
-    def on_action_save2mat_clicked(self, data):
+    # 输出nmea
+    def on_action_save2nmea_clicked(self, data):
+        def save2Nmea(df, path):
+            # QT 线程初始化
+            self.thread_i = self.thread_i + 1
+            self.thread_common[self.thread_i] = CommonQtThread(self)
+            self.signalInfo.connect(self.thread_common[self.thread_i].getInfo)  # A类(主线程)发送信号， 调用B类（QT子线程）的槽函数
+            self.thread_common[self.thread_i].updated.connect(self.output_msg)
+
+            signal_dict = {
+                "function_type": "df2Nmea",
+                "output_df": df,
+                "output_path": path
+            }
+            self.signalInfo.emit(signal_dict)  # 传递子线程参数
+            self.thread_common[self.thread_i].start()  # 子线程开始执行
+
         if self.ref_data:
             if self.ref_data["file_name"] == data and "df" in self.ref_data:
-                output_path = self.ref_data["file_path"] + ".csv"
-                self.output_msg("【导出csv】导出路径为：" + output_path)
-                with open(output_path, "w") as f:
-                    self.ref_data["df"].to_csv(f)
-                self.output_msg("【导出完毕】" + "\n")
+                output_path = self.ref_data["file_path"] + ".nmea"
+                save2Nmea(self.ref_data["df"], output_path)
 
         for test_data in self.gnss_test_data + self.ins_test_data:
             if test_data["file_name"] == data:
-                output_path = test_data["file_path"] + ".csv"
-                self.output_msg("【导出csv】导出路径为：" + output_path)
-                with open(output_path, "w") as f:
-                    test_data["df"].to_csv(f)
-                self.output_msg("【导出完毕】" + "\n")
+                output_path = test_data["file_path"] + ".nmea"
+                save2Nmea(test_data["df"], output_path)
+
             if test_data["file_name"] + "【gps】" == data:
-                output_path = test_data["file_path"] + "【gps】.csv"
-                self.output_msg("【导出csv】导出路径为：" + output_path)
-                with open(output_path, "w") as f:
-                    test_data["df_gps"].to_csv(f)
-                self.output_msg("【导出完毕】" + "\n")
+                output_path = test_data["file_path"] + "【gps】.nmea"
+                save2Nmea(test_data["df_gps"], output_path)
 
     # 删除数据
     def on_action_delete_data_clicked(self, data):
@@ -356,8 +549,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             self.ins_test_data.remove(test_data)
                         if test_data["file_name"] + "【gps】" == data:
                             test_data.pop("df_gps")
-                            test_data.pop("sync_df_gps")
-                            test_data.pop("sync_gps_ins")
+                            if "sync_df_gps" in test_data:
+                                test_data.pop("sync_df_gps")
+                            if "sync_gps_ins" in test_data:
+                                test_data.pop("sync_gps_ins")
+                            if "df" not in test_data:
+                                self.ins_test_data.remove(test_data)
                 self.output_msg("【删除数据】已删除：" + data + "\n")
 
     # 参考数据解析
@@ -391,7 +588,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         exit_gnss_test, exit_ins_test = False, False
         self.thread_compare_gnss.test_data_all = []
         self.thread_compare_ins.test_data_all = []
-        print(signal_dict)
+        # print(signal_dict)
         for test_info in signal_dict:
             if "file_name" in self.ref_data:
                 if os.path.basename(test_info["file_path"]) == self.ref_data["file_name"]:
@@ -404,13 +601,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if test_info['algorithm_type'] == 'GNSS':
                 exit_gnss_test = True
-                test_info["test_type"] = self.ref_data["test_type"]
                 if self.ref_data == {}:
                     self.output_msg("【注意】请先选择参考数据！GNSS仅支持和参考对比")
                     return
-                elif self.ref_data["test_type"] == "静态":  # 静态
+                test_info["test_type"] = self.ref_data["test_type"]
+                if self.ref_data["test_type"] == "静态":  # 静态
                     test_info["ref_data"] = [self.ref_data["latitude"], self.ref_data["longitude"],
-                                               self.ref_data["ellHeight"]]
+                                             self.ref_data["ellHeight"]]
                 else:  # 动态
                     self.date_time = test_info["date_time"]
                     # 暂存为feather格式
@@ -456,9 +653,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.insInfo.emit(test_info)  # 传递子线程参数
         if exit_gnss_test:
             self.thread_compare_gnss.start()  # 子线程开始执行
-            # self.test_data = test_info
         if exit_ins_test:
             self.thread_compare_ins.start()  # 子线程开始执行
+
+    def parse_bddb2mat(self, signal_dict):
+        if len(signal_dict['data_info']) == 0:
+            self.output_msg("未选择文件")
+
+        self.bddbInfo.emit(signal_dict)  # 传递子线程参数
+        self.thread_bddb2mat.start()  # 子线程开始执行
 
     # 场景数据解析
     def parse_scenes(self, scene_list):
@@ -527,20 +730,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # 更新ins测试数解析结果
     def receive_ins_dataframe(self, test_info):
+        self.output_msg('该INS数据解析完成，数据接收中...')
         try:
             self.test_data = test_info
             # 更新ins数据
-            self.test_data["df"] = pd.read_feather(self.test_data['df_path'])
+            if self.test_data['df_path'] != "":
+                self.test_data["df"] = pd.read_feather(self.test_data['df_path'])
+            else:
+                self.test_data["df"] = pd.DataFrame()
             # os.remove(json_data)
             if self.test_data['sync_df_path'] != "":
                 self.test_data["sync_df"] = pd.read_feather(self.test_data['sync_df_path'])
 
-                scene_dict = {'name': '0_全程_all_'+'.'.join(self.test_data['file_path'].split('/')[-1].split('.')[:-1])
-                              , 'percent': 1, 'data': self.test_data["sync_df"]}
+                scene_dict = {
+                    'name': '0_全程_all_' + '.'.join(self.test_data['file_path'].split('/')[-1].split('.')[:-1])
+                    , 'percent': 1, 'data': self.test_data["sync_df"]}
                 diff_info = self.ins_cal_error_diffs([scene_dict])[0]
                 if 'cal_info' in diff_info.keys():
-                    for i in ['utcTime']:
-                        diff_info['cal_info'].pop(i)
+                    for i in ['utcTime', 'velocity_x', 'velocity']:
+                        if i in diff_info['cal_info'].keys():
+                            diff_info['cal_info'].pop(i)
                     self.test_data["sync_df"] = pd.concat([self.test_data["sync_df"], pd.DataFrame(diff_info['cal_info'])], axis=1)
 
                 # os.remove(json_data_sync)
@@ -551,37 +760,54 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.test_data['sync_df_gps_path'] != "":
                 self.test_data["sync_df_gps"] = pd.read_feather(self.test_data['sync_df_gps_path'])
 
-                scene_dict = {'name': '0_全程_all_'+'.'.join(self.test_data['file_path'].split('/')[-1].split('.')[:-1]),
-                              'percent': 1, 'data': self.test_data["sync_df_gps"]}
+                scene_dict = {
+                    'name': '0_全程_all_' + '.'.join(self.test_data['file_path'].split('/')[-1].split('.')[:-1]),
+                    'percent': 1, 'data': self.test_data["sync_df_gps"]}
                 diff_info = self.ins_cal_error_diffs([scene_dict], data_type='sync_df_gps')[0]
                 if 'cal_info' in diff_info.keys():
-                    for i in ['none', 'single', 'pseduo', 'float', 'fixed', 'utcTime']:
+                    for i in ['none', 'single', 'pseduo', 'float', 'fixed', 'utcTime', 'velocity_x', 'velocity']:
                         if i in diff_info['cal_info'].keys():
                             diff_info['cal_info'].pop(i)
-                    self.test_data["sync_df_gps"] = pd.concat([self.test_data["sync_df_gps"], pd.DataFrame(diff_info['cal_info'])], axis=1)
+                    self.test_data["sync_df_gps"] = pd.concat(
+                        [self.test_data["sync_df_gps"], pd.DataFrame(diff_info['cal_info'])], axis=1)
+            # os.remove(self.test_data['df_gps_path'])
 
-                # os.remove(self.test_data['df_gps_path'])
+            if self.test_data['df_pdata_path'] != "":
+                # df_name = '_'.join(self.test_data['df_pdata_path'].split('_')[-2:])
+                if self.test_data['df_pdata_path'].split('.')[-1] == 'npy':
+                    self.test_data['df_pdata'] = np.load(self.test_data['df_pdata_path'], allow_pickle=True).item()
+                # os.remove(json_data_path)
+
+            if self.test_data['df_imu_path'] != "":
+                self.test_data["df_imu"] = pd.read_feather(self.test_data['df_imu_path'])
+            if self.test_data['df_vehicle_path'] != "":
+                self.test_data["df_vehicle"] = pd.read_feather(self.test_data['df_vehicle_path'])
+
             if self.test_data['sync_gps_ins_path'] != "":
                 self.test_data["sync_gps_ins"] = pd.read_feather(self.test_data['sync_gps_ins_path'])
 
-                scene_dict = {'name': '0_全程_all_'+'.'.join(self.test_data['file_path'].split('/')[-1].split('.')[:-1]),
-                              'percent': 1, 'data': self.test_data["sync_gps_ins"]}
-                diff_info = self.ins_cal_error_diffs([scene_dict], data_type='sync_gps_ins')[0]
-                if 'cal_info' in diff_info.keys():
-                    for i in ['none', 'single', 'pseduo', 'float', 'fixed', 'utcTime']:
-                        diff_info['cal_info'].pop(i)
-                    self.test_data["sync_gps_ins"] = pd.concat([self.test_data["sync_gps_ins"], pd.DataFrame(diff_info['cal_info'])], axis=1)
-                # os.remove(self.test_data['sync_gps_ins_path'])
+                # 后轮轴中心补PData里的杆臂值
+                scene_dict = {'name': '0_全程_all_' + '.'.join(self.test_data['file_path'].split('/')[-1].split('.')[:-1]),
+                                     'percent': 1, 'data': self.test_data["sync_gps_ins"]}
+                lbgc = [0, 0, 0]
+                if self.test_data["output_pos"] == "后轮轴中心" and 'df_pdata' in self.test_data.keys():
+                    if len(self.test_data['df_pdata']['Lbgc']) > 0:
+                        lbgc = self.test_data['df_pdata']['Lbgc'][0]
+                        lbgc = [-x for x in lbgc]  # 注意： lbgc为在车体坐标系下， 天线到后轮轴中心的距离，如需把天线位置补偿到后轮轴中心，补偿值取负数
+                        self.output_msg("【补偿杆臂值】输出位置为后轮轴中心，自动补偿杆臂Lbgc= " + str(lbgc))
+                diff_info = self.ins_cal_error_diffs([scene_dict], data_type='sync_gps_ins', lbgc=lbgc)[0]
 
-            if self.test_data['df_pdata_path'] != "":
-                df_name = '_'.join(self.test_data['df_pdata_path'].split('_')[-2:])
-                if self.test_data['df_pdata_path'].split('_')[-2:] == 'npy':
-                    self.test_data[df_name] = np.load(self.test_data['df_pdata_path'])
-                # os.remove(json_data_path)
+                if 'cal_info' in diff_info.keys():
+                    for i in ['none', 'single', 'pseduo', 'float', 'fixed', 'utcTime', 'velocity_x', 'velocity']:
+                        if i in diff_info['cal_info'].keys():
+                            diff_info['cal_info'].pop(i)
+                    self.test_data["sync_gps_ins"] = pd.concat([self.test_data["sync_gps_ins"], pd.DataFrame(diff_info['cal_info'])], axis=1)
 
             self.ins_test_data.append(self.test_data)  # 测试数据集合
+
             # 更新数据列表
-            self.update_data_manage(self.test_data["file_name"], "ins测试数据")
+            if self.test_data['df_path'] != "":
+                self.update_data_manage(self.test_data["file_name"], "ins测试数据")
             if self.test_data['df_gps_path'] != "":
                 self.update_data_manage(self.test_data["file_name"] + "【gps】", "ins测试数据")
             # 更新数据画图
@@ -599,12 +825,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         pos0 = None
         if 'test_type' not in self.ref_data.keys():
             for test_data in self.ins_test_data:
-                if not pos0:
-                    pos0 = [test_data["df"]["latitude"][0], test_data["df"]["longitude"][0], test_data["df"]["ellHeight"][0]]
-                test_coords = DataStatistics().pos_covert(test_data["df"]["latitude"],
-                                                          test_data["df"]["longitude"],
-                                                          test_data["df"]["ellHeight"], pos0)
-                self.widget_plot.plot(test_coords[1], test_coords[0], pen=self.color_list[i], name=test_data["file_name"])
+                if "df" in test_data and len(test_data["df"]) > 0:
+                    if not pos0:
+                        pos0 = [test_data["df"]["latitude"][0], test_data["df"]["longitude"][0],
+                                test_data["df"]["ellHeight"][0]]
+                    test_coords = DataStatistics().pos_covert(test_data["df"]["latitude"],
+                                                              test_data["df"]["longitude"],
+                                                              test_data["df"]["ellHeight"], pos0)
+                    self.widget_plot.plot(test_coords[1], test_coords[0], pen=self.color_list[i], name=test_data["file_name"])
                 if "df_gps" in test_data:
                     test_coords = DataStatistics().pos_covert(test_data["df_gps"]["latitude"],
                                                               test_data["df_gps"]["longitude"],
@@ -616,8 +844,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 i = i + 1
                 if i == len(self.color_list):
                     i = 0
-        elif self.ref_data["test_type"] == "动态":
+        elif self.ref_data["test_type"] == "动态" and 'df' in self.ref_data.keys():
             # 统一初始位置
+            if len(self.ref_data["df"]) == 0:
+                return
             pos0 = [self.ref_data["df"]["latitude"][0], self.ref_data["df"]["longitude"][0],
                     self.ref_data["df"]["ellHeight"][0]]
             # 参考数据绘制轨迹图
@@ -629,12 +859,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                       name=self.ref_data["file_name"])
             # GNSS 或 INS测试数据绘制轨迹图
             for test_data in self.gnss_test_data + self.ins_test_data:
-                test_coords = DataStatistics().pos_covert(test_data["df"]["latitude"],
-                                                          test_data["df"]["longitude"],
-                                                          test_data["df"]["ellHeight"], pos0)
-                self.widget_plot.plot(test_coords[1], test_coords[0], pen=self.color_list[i],
-                                      name=test_data["file_name"])
-                if "df_gps" in test_data:
+                if "df" in test_data and len(test_data['df']) > 0:
+                    test_coords = DataStatistics().pos_covert(test_data["df"]["latitude"],
+                                                              test_data["df"]["longitude"],
+                                                              test_data["df"]["ellHeight"], pos0)
+                    self.widget_plot.plot(test_coords[1], test_coords[0], pen=self.color_list[i], name=test_data["file_name"])
+                if "df_gps" in test_data and len(test_data['df_gps']) > 0:
                     test_coords = DataStatistics().pos_covert(test_data["df_gps"]["latitude"],
                                                               test_data["df_gps"]["longitude"],
                                                               test_data["df_gps"]["ellHeight"], pos0)
@@ -732,6 +962,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                    % (mousePoint.x(), mousePoint.y()))
                 vLine.setPos(mousePoint.x())
                 hLine.setPos(mousePoint.y())
+
         vb = self.widget_plot.vb
         self.widget_plot.scene().sigMouseMoved.connect(mouseMoved)
 
@@ -742,7 +973,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if plot_config_dict["time"] == ['0', '0']:
                 self.output_msg("绘图时间范围为：全程")
             else:
-                self.output_msg("绘图时间范围为：" + str(plot_config_dict["time"]) + str(plot_config_dict['time_type']) + "时间")
+                self.output_msg(
+                    "绘图时间范围为：" + str(plot_config_dict["time"]) + str(plot_config_dict['time_type']) + "时间")
             if self.ins_test_data:
                 self.output_msg("INS绘图显示时间类型为：" + plot_config_dict["ins_plot_time_type"])
                 self.output_msg("INS绘图抽稀倍数有：" + str(plot_config_dict["ins_plot_freq"]))
@@ -757,14 +989,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # gnss绘图（单图）
     def gnss_data_plot(self, plot_title):
+        polt_list = ["解状态占比饼状图", "历元间隔分布图", "差分龄期统计图", "解状态水平误差序列图"
+            , "位置误差(横向、纵向、水平)历元分布图", "速度误差(前向)历元分布图"
+            , "姿态误差(航向)历元分布图", "统计误差CDF分布图"] if plot_title == 'ALL' else [plot_title]
+
         if len(self.gnss_test_data) == 0:
             self.output_msg("【绘图失败】 无GNSS数据可绘图")
             return
-        self.output_msg("【开始绘图】" + plot_title)
         plotObj = gnssPlot.gnssDataPlot()
         plotObj.plot_config = self.plot_config
         plotObj.gnss_test_data = self.gnss_test_data
-        error_msg = plotObj.gnss_start_plot(plot_title)  # 画统计图流程
+        for plot_title in polt_list:
+            self.output_msg("【开始绘图】" + plot_title)
+            error_msg = plotObj.gnss_start_plot(plot_title)  # 画统计图流程
         if error_msg:
             self.output_msg("【绘图失败】" + error_msg)
 
@@ -826,6 +1063,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.output_msg("【注意】无数据场景：" + scene["name"])
                 statiObj = gnssStatistics.GnssStatistics()
                 statiObj.percent = scene["percent"]
+                statiObj.percent_ksxt = scene["percent_ksxt"]
                 statiObj.scene_name = scene["name"]
                 statiObj.SyncRefGpsData = scene["data"]
                 statiObj.dataStatistics()  # 开始统计
@@ -855,14 +1093,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # ins绘图（单图）
     def ins_data_plot(self, plot_title):
+        polt_list = ["位置偏差(水平、横向、纵向)历元分布图", "速度误差(北东地)历元分布图",
+                     "速度误差(前右下)历元分布图", "轮速历元分布图", "速度轮速对比历元分布图",
+                     "姿态误差(横滚、俯仰、航向)历元分布图", "坐标误差(经纬高)历元分布图",
+                     "里程(前右下)历元分布图", "加表(XYZ)历元分布图", "陀螺(XYZ)历元分布图",
+                     "历元间隔分布图", "加表陀螺历元间隔分布图", '相邻GPS-IMU时间间隔图',
+                     "同步数据轨迹图", "Kalman.P历元分布图", "Kalman.X历元分布图",
+                     "零偏历元分布图", "GPS解状态占比饼状图", "统计误差分布图", "GPS偏差对比图"] if plot_title == 'ALL' else [plot_title]
+
         if len(self.ins_test_data) == 0:
             self.output_msg("【绘图失败】 无INS数据可绘图")
             return
-        self.output_msg("【开始绘图】" + plot_title)
         plotObj = insPlot.insDataPlot()
         plotObj.plot_config = self.plot_config
         plotObj.ins_test_data = self.ins_test_data
-        error_msg = plotObj.ins_start_plot(plot_title)  # 画统计图流程
+        for plot_title in polt_list:
+            self.output_msg("【开始绘图】" + plot_title)
+            error_msg = plotObj.ins_start_plot(plot_title)  # 画统计图流程
         if error_msg:
             self.output_msg("【绘图失败】" + error_msg)
 
@@ -878,9 +1125,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.output_msg(plotObj.ins_multi_plot(plot_list))  # 画统计图流程
 
     # 计算相关参数
-    def ins_cal_error_diffs(self, all_scenes_data, data_type='sync_df'):
+    def ins_cal_error_diffs(self, all_scenes_data, data_type='sync_df', lbgc=[0, 0, 0]):
         """
 
+        :param lbgc:  后轮轴中心补偿PData中的lbgc
         :param all_scenes_data: [{'name': '', 'data': {}, 'percent':1}]
         :param data_type:
         :return:
@@ -889,160 +1137,207 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.output_msg('【导入失败】ins相关数据列表空，无法统计')
             return all_scenes_data
         else:
-            statistics_info = [{'base_info': {}, 'test_info': {}, 'cal_info': {}, 'statistic_info': {}} for i in range(len(all_scenes_data))]
+            statistics_info = [{'base_info': {}, 'test_info': {}, 'cal_info': {}, 'statistic_info': {}} for i in
+                               range(len(all_scenes_data))]
             precision_val_names = ['horizontal_error', 'longitudinal_error', 'lateral_error', 'elevation_error'
-                                   , 'north_vel_diff', 'east_vel_diff', 'ground_vel_diff', 'forward_vel_diff'
-                                   , 'right_vel_diff', 'downward_vel_diff', 'vel_diff'
-                                   , 'roll_diff', 'pitch_diff', 'heading_diff']
+                , 'north_vel_diff', 'east_vel_diff', 'ground_vel_diff', 'forward_vel_diff'
+                , 'right_vel_diff', 'downward_vel_diff', 'velocity_diff'
+                , 'roll_diff', 'pitch_diff', 'heading_diff']
         for scene in all_scenes_data:
-            scene_index = all_scenes_data.index(scene)
-            if data_type == 'sync_df':
-                self.output_msg("ref和INS同步数据相关信息：")
-                if len(scene['data']) == 0:
-                    self.output_msg(scene['name'] + ' 无符合的数据，无法统计！')
-                    all_scenes_data[scene_index].update(statistics_info[scene_index])
-                    continue
+            error_scene_index = []
+            try:
+                scene_index = all_scenes_data.index(scene)
+                if data_type == 'sync_df':
+                    self.output_msg("ref和INS同步数据相关信息：")
+                    if len(scene['data']) == 0:
+                        self.output_msg(scene['name'] + ' 无符合的数据，无法统计！')
+                        all_scenes_data[scene_index].update(statistics_info[scene_index])
+                        continue
+                    else:
+                        self.output_msg(scene['name'] + ' 的ref和INS同步数据统计中...')
+
+                    ################################### 速度 ###################################
+                    # Ref北东地速度转换成前右下坐标系下的速度
+                    statistics_info[scene_index]['base_info'].update(insStatistic.change_val_name(scene['data']
+                                                                                                  , ['NorthVelocity_x', 'EastVelocity_x', 'GroundVelocity_x']
+                                                                                                  , ['north_vel', 'east_vel', 'ground_vel']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['base_info'], scene['data']['heading_x']))
+                    # INS北东地速度转换成前右下坐标系下的速度
+                    statistics_info[scene_index]['test_info'].update(insStatistic.change_val_name(scene['data']
+                                                                                                  , ['NorthVelocity', 'EastVelocity', 'GroundVelocity']
+                                                                                                  , ['north_vel', 'east_vel', 'ground_vel']))
+                    statistics_info[scene_index]['test_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['test_info'], scene['data']['heading_x']))
+                    # 前右下里程计算
+                    statistics_info[scene_index]['test_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['test_info'], scene['data']['gpsItow']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['base_info'], scene['data']['gpsItow']))
+
+                    statistics_info[scene_index]['base_info']['velocity'] = scene['data']['velocity_x']
+                    statistics_info[scene_index]['test_info']['velocity'] = scene['data']['velocity']
+                    ################################### 姿态 ###################################
+                    pos0 = [scene['data']['latitude_x'][0], scene['data']['longitude_x'][0], scene['data']['ellHeight_x'][0]]
+                    statistics_info[scene_index]['test_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x'],
+                                                val_name=['latitude_x', 'longitude_x', 'ellHeight_x']))
+                    statistics_info[scene_index]['cal_info'].update(
+                        insStatistic.pos_error_cal(statistics_info[scene_index]['test_info'], statistics_info[scene_index]['base_info'], yaw=scene['data']['heading_x']))
+
+                    ################################### 计算差值 ###################################
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(
+                        statistics_info[scene_index]['base_info'], statistics_info[scene_index]['test_info']
+                        , df1_val_name=["north_vel", "east_vel", "ground_vel", 'forward_vel', 'right_vel', 'downward_vel', 'velocity']
+                        , df2_val_name=["north_vel", "east_vel", "ground_vel", 'forward_vel', 'right_vel', 'downward_vel', 'velocity']))
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(scene['data'], scene['data'],
+                                                                                          df1_val_name=["roll_x", "pitch_x", "heading_x"],
+                                                                                          df2_val_name=["roll", "pitch", "heading"]))
+
+                    ################################### 记录相关值 ###################################
+                    for i in ["forward_vel", "right_vel", "downward_vel", 'north_vel', 'east_vel', 'ground_vel', 'velocity',
+                              "n_axis", "e_axis", "d_axis", "forward_mile", "right_mile", "downward_mile"]:
+                        statistics_info[scene_index]['cal_info'][i + '_x'] = statistics_info[scene_index]['base_info'][i]
+                        statistics_info[scene_index]['cal_info'][i] = statistics_info[scene_index]['test_info'][i]
+                    ################################### 精度统计 ###################################
+                    statistics_info[scene_index]['cal_info']['utcTime'] = scene['data']['utcTime']
+                    for key in statistics_info[scene_index]['cal_info']:
+                        if key in precision_val_names:
+                            statistics_info[scene_index]['statistic_info'][key] = insStatistic.precision_statistics(statistics_info[scene_index]['cal_info'], key, percent=scene['percent'])
+
+                elif data_type == 'sync_df_gps':
+                    if len(scene['data']) == 0:
+                        # self.output_msg(scene['name'] + ' 无符合的数据，无法统计！')
+                        all_scenes_data[scene_index].update(statistics_info[scene_index])
+                        continue
+                    else:
+                        # self.output_msg(scene['name'] + ' 的ref和GPS同步数据统计中...')
+                        pass
+                    ################################### 速度 ###################################
+                    statistics_info[scene_index]['base_info'].update(insStatistic.change_val_name(scene['data']
+                                                                                                  , ['NorthVelocity_x', 'EastVelocity_x', 'GroundVelocity_x']
+                                                                                                  , ['north_vel', 'east_vel', 'ground_vel']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['base_info'], scene['data']['heading_x']))
+                    statistics_info[scene_index]['test_info'].update(insStatistic.speed_hv2neg(scene['data'], scene['data']['TrackAngle']))
+                    statistics_info[scene_index]['test_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['test_info'], scene['data']['heading_x']))
+
+                    statistics_info[scene_index]['test_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['test_info'], scene['data']['gpsItow']))  # 前右下里程计算
+                    statistics_info[scene_index]['base_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['base_info'], scene['data']['gpsItow']))  # 前右下里程计算
+                    ################################### 姿态 ###################################
+                    pos0 = [scene['data']['latitude_x'][0], scene['data']['longitude_x'][0], scene['data']['ellHeight_x'][0]]
+                    statistics_info[scene_index]['test_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x'], val_name=['latitude_x', 'longitude_x', 'ellHeight_x']))
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.pos_error_cal(statistics_info[scene_index]['test_info'], statistics_info[scene_index]['base_info'], yaw=scene['data']['heading_x']))
+                    ################################### 解状态转换 ###################################
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.gps_flags_transfer(scene['data']))
+
+                    ################################### 计算差值 ###################################
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(statistics_info[scene_index]['base_info'], statistics_info[scene_index]['test_info']))
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(scene['data'], scene['data'], df1_val_name=["pitch_x", "heading_x", "velocity_x"], df2_val_name=["pitch", "heading", "velocity"]))
+                    ################################### 记录相关值 ###################################
+                    for i in ["forward_vel", "right_vel", "downward_vel", 'north_vel', 'east_vel', 'ground_vel', "n_axis", "e_axis", "d_axis", "forward_mile", "right_mile", "downward_mile"]:
+                        statistics_info[scene_index]['cal_info'][i+'_x'] = statistics_info[scene_index]['base_info'][i]
+                        statistics_info[scene_index]['cal_info'][i] = statistics_info[scene_index]['test_info'][i]
+
+                    ################################### 精度统计 ###################################
+                    statistics_info[scene_index]['cal_info']['utcTime'] = scene['data']['utcTime']
+                    for key in statistics_info[scene_index]['cal_info'].keys():
+                        if key in precision_val_names:
+                            statistics_info[scene_index]['statistic_info'][key] = insStatistic.precision_statistics(statistics_info[scene_index]['cal_info'], key, percent=scene['percent'])
+                elif data_type == 'sync_gps_ins':
+                    if len(scene['data']) == 0:
+                        self.output_msg(scene['name'] + ' 无符合的数据，无法统计！')
+                        all_scenes_data[scene_index].update(all_scenes_data[scene_index])
+                        continue
+                    else:
+                        self.output_msg(scene['name'] + ' 的GPS和INS同步数据统计中...')
+                    ################################### 速度 ###################################
+                    statistics_info[scene_index]['base_info'].update(insStatistic.speed_hv2neg(scene['data'], scene['data']['TrackAngle_x'], speed_name=['HSpd_x', 'velocity_x']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['base_info'], scene['data']['heading_x']))
+                    statistics_info[scene_index]['test_info'].update(insStatistic.change_val_name(scene['data']
+                                                                                                                                        , ['NorthVelocity', 'EastVelocity', 'GroundVelocity']
+                                                                                                                                        , ['north_vel', 'east_vel', 'ground_vel']))
+
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(statistics_info[scene_index]['base_info'], statistics_info[scene_index]['test_info']))  # GPS-INS 北、东、地速度差
+                    statistics_info[scene_index]['test_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['test_info'], scene['data']['heading_x']))
+                    statistics_info[scene_index]['test_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['test_info'], scene['data']['gpsItow']))  # 前右下里程计算
+                    statistics_info[scene_index]['base_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['base_info'], scene['data']['gpsItow']))  # 前右下里程计算
+
+                    ################################### 姿态 ###################################
+                    pos0 = [scene['data']['latitude_x'][0], scene['data']['longitude_x'][0], scene['data']['ellHeight_x'][0]]
+                    statistics_info[scene_index]['test_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading']))
+                    statistics_info[scene_index]['base_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading'], bpos=lbgc, val_name=['latitude_x', 'longitude_x', 'ellHeight_x']))
+
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.pos_error_cal(
+                        statistics_info[scene_index]['test_info'], statistics_info[scene_index]['base_info'], yaw=scene['data']['heading']))
+                    ################################### 解状态转换 ###################################
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.gps_flags_transfer(scene['data'], flags_pos_name='flagsPos_x'))
+
+                    ################################### 计算差值 ###################################
+                    statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(scene['data'], scene['data'], df1_val_name=["pitch_x", "heading_x", "velocity_x"], df2_val_name=["pitch", "heading", "velocity"]))
+                    ################################### 记录对应数据, 4plot ###################################
+                    for i in ["forward_vel", "right_vel", "downward_vel", 'north_vel', 'east_vel', 'ground_vel', "n_axis", "e_axis", "d_axis", "forward_mile", "right_mile", "downward_mile"]:
+                        if i in statistics_info[scene_index]['base_info'].keys() and i in statistics_info[scene_index]['test_info'].keys():
+                            statistics_info[scene_index]['cal_info'][i+'_x'] = statistics_info[scene_index]['base_info'][i]
+                            statistics_info[scene_index]['cal_info'][i] = statistics_info[scene_index]['test_info'][i]
+
+                    ################################### 精度统计 ###################################
+                    statistics_info[scene_index]['cal_info']['utcTime'] = scene['data']['utcTime']
+                    for key in statistics_info[scene_index]['cal_info']:
+                        if key in precision_val_names:
+                            statistics_info[scene_index]['statistic_info'][key] = insStatistic.precision_statistics(statistics_info[scene_index]['cal_info'], key, percent=scene['percent'])
+
                 else:
-                    self.output_msg(scene['name'] + ' 的ref和INS同步数据统计中...')
+                    self.output_msg('INS同步数据中无该类型：' + str(data_type))
 
-                ################################### 速度 ###################################
-                # Ref北东地速度转换成前右下坐标系下的速度
-                statistics_info[scene_index]['base_info'].update(insStatistic.change_val_name(scene['data']
-                                                                                             , ['NorthVelocity_x', 'EastVelocity_x', 'GroundVelocity_x']
-                                                                                             , ['north_vel', 'east_vel', 'ground_vel']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['base_info'], scene['data']['heading_x']))
-                # INS北东地速度转换成前右下坐标系下的速度
-                statistics_info[scene_index]['test_info'].update(insStatistic.change_val_name(scene['data']
-                                                                                             , ['NorthVelocity', 'EastVelocity', 'GroundVelocity']
-                                                                                             , ['north_vel', 'east_vel', 'ground_vel']))
-                statistics_info[scene_index]['test_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['test_info'], scene['data']['heading_x']))
-                # 前右下里程计算
-                statistics_info[scene_index]['test_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['test_info'], scene['data']['gpsItow']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['base_info'], scene['data']['gpsItow']))
-                # sqrt_root_cal 用于计算（前右向）速度误差
-                statistics_info[scene_index]['base_info']['vel'] = insStatistic.sqrt_root_cal(statistics_info[scene_index]['base_info'])
-                statistics_info[scene_index]['test_info']['vel'] = insStatistic.sqrt_root_cal(statistics_info[scene_index]['test_info'])
-                ################################### 姿态 ###################################
-                pos0 = [scene['data']['latitude_x'][0], scene['data']['longitude_x'][0], scene['data']['ellHeight_x'][0]]
-                statistics_info[scene_index]['test_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x'], val_name=['latitude_x', 'longitude_x', 'ellHeight_x']))
-                statistics_info[scene_index]['cal_info'].update(insStatistic.pos_error_cal(statistics_info[scene_index]['test_info'], statistics_info[scene_index]['base_info'], yaw=scene['data']['heading_x']))
+                ################################### 存到对应场景信息中 ###################################
+                all_scenes_data[scene_index].update(statistics_info[scene_index])
+            except Exception as e:
+                self.output_msg(all_scenes_data[scene_index]['name'], ' 场景无法解析统计:')
+                self.output_msg(e)
+                error_scene_index.append(scene_index)
+                continue
 
-                ################################### 计算差值 ###################################
-                statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(
-                                                                                            statistics_info[scene_index]['base_info'], statistics_info[scene_index]['test_info']
-                                                                                            , df1_val_name=["north_vel", "east_vel", "ground_vel", 'forward_vel', 'right_vel', 'downward_vel', 'vel']
-                                                                                            , df2_val_name=["north_vel", "east_vel", "ground_vel", 'forward_vel', 'right_vel', 'downward_vel', 'vel']))
-                statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(scene['data'], scene['data'], df1_val_name=["roll_x", "pitch_x", "heading_x"], df2_val_name=["roll", "pitch", "heading"]))
-
-                ################################### 记录相关值 ###################################
-                for i in ["forward_vel", "right_vel", "downward_vel", 'north_vel', 'east_vel', 'ground_vel', "n_axis", "e_axis", "d_axis", "forward_mile", "right_mile", "downward_mile"]:
-                    statistics_info[scene_index]['cal_info'][i+'_x'] = statistics_info[scene_index]['base_info'][i]
-                    statistics_info[scene_index]['cal_info'][i] = statistics_info[scene_index]['test_info'][i]
-                ################################### 精度统计 ###################################
-                statistics_info[scene_index]['cal_info']['utcTime'] = scene['data']['utcTime']
-                for key in statistics_info[scene_index]['cal_info']:
-                    if key in precision_val_names:
-                        statistics_info[scene_index]['statistic_info'][key] = insStatistic.precision_statistics(statistics_info[scene_index]['cal_info'], key, percent=scene['percent'])
-
-            elif data_type == 'sync_df_gps':
-                if len(scene['data']) == 0:
-                    # self.output_msg(scene['name'] + ' 无符合的数据，无法统计！')
-                    all_scenes_data[scene_index].update(statistics_info[scene_index])
-                    continue
-                else:
-                    # self.output_msg(scene['name'] + ' 的ref和GPS同步数据统计中...')
-                    pass
-                ################################### 速度 ###################################
-                statistics_info[scene_index]['base_info'].update(insStatistic.change_val_name(scene['data']
-                                                                                              , ['NorthVelocity_x', 'EastVelocity_x', 'GroundVelocity_x']
-                                                                                              , ['north_vel', 'east_vel', 'ground_vel']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['base_info'], scene['data']['heading_x']))
-                statistics_info[scene_index]['test_info'].update(insStatistic.speed_hv2neg(scene['data'], scene['data']['TrackAngle']))
-                statistics_info[scene_index]['test_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['test_info'], scene['data']['heading_x']))
-
-                statistics_info[scene_index]['test_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['test_info'], scene['data']['gpsItow']))  # 前右下里程计算
-                statistics_info[scene_index]['base_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['base_info'], scene['data']['gpsItow']))  # 前右下里程计算
-                ################################### 姿态 ###################################
-                pos0 = [scene['data']['latitude_x'][0], scene['data']['longitude_x'][0], scene['data']['ellHeight_x'][0]]
-                statistics_info[scene_index]['test_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x'], val_name=['latitude_x', 'longitude_x', 'ellHeight_x']))
-                statistics_info[scene_index]['cal_info'].update(insStatistic.pos_error_cal(statistics_info[scene_index]['test_info'], statistics_info[scene_index]['base_info'], yaw=scene['data']['heading_x']))
-                ################################### 解状态转换 ###################################
-                statistics_info[scene_index]['cal_info'].update(insStatistic.gps_flags_transfer(scene['data']))
-
-                ################################### 计算差值 ###################################
-                statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(statistics_info[scene_index]['base_info'], statistics_info[scene_index]['test_info']))
-                statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(scene['data'], scene['data'], df1_val_name=["pitch_x", "heading_x"], df2_val_name=["pitch", "heading"]))
-                ################################### 记录相关值 ###################################
-                for i in ["forward_vel", "right_vel", "downward_vel", 'north_vel', 'east_vel', 'ground_vel', "n_axis", "e_axis", "d_axis", "forward_mile", "right_mile", "downward_mile"]:
-                    statistics_info[scene_index]['cal_info'][i+'_x'] = statistics_info[scene_index]['base_info'][i]
-                    statistics_info[scene_index]['cal_info'][i] = statistics_info[scene_index]['test_info'][i]
-
-                ################################### 精度统计 ###################################
-                statistics_info[scene_index]['cal_info']['utcTime'] = scene['data']['utcTime']
-                for key in statistics_info[scene_index]['cal_info'].keys():
-                    if key in precision_val_names:
-                        statistics_info[scene_index]['statistic_info'][key] = insStatistic.precision_statistics(statistics_info[scene_index]['cal_info'], key, percent=scene['percent'])
-            elif data_type == 'sync_gps_ins':
-                if len(scene['data']) == 0:
-                    self.output_msg(scene['name'] + ' 无符合的数据，无法统计！')
-                    all_scenes_data[scene_index].update(all_scenes_data[scene_index])
-                    continue
-                else:
-                    self.output_msg(scene['name'] + ' 的GPS和INS同步数据统计中...')
-                ################################### 速度 ###################################
-                statistics_info[scene_index]['base_info'].update(insStatistic.speed_hv2neg(scene['data']
-                                                                                                 , scene['data']['TrackAngle_x'], speed_name=['HSpd_x', 'velocity_x']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['base_info'], scene['data']['heading_x']))
-                statistics_info[scene_index]['test_info'].update(insStatistic.change_val_name(scene['data']
-                                                                                                    , ['NorthVelocity', 'EastVelocity', 'GroundVelocity']
-                                                                                                    , ['north_vel', 'east_vel', 'ground_vel']))
-                statistics_info[scene_index]['cal_info'].update(insStatistic.diff_cal(statistics_info[scene_index]['base_info'], statistics_info[scene_index]['test_info']))  # GPS-INS 北、东、地速度差
-                statistics_info[scene_index]['test_info'].update(insStatistic.speed_neg2frd(statistics_info[scene_index]['test_info'], scene['data']['heading_x']))
-                statistics_info[scene_index]['test_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['test_info'], scene['data']['gpsItow']))  # 前右下里程计算
-                statistics_info[scene_index]['base_info'].update(insStatistic.frd_mileage_cal(statistics_info[scene_index]['base_info'], scene['data']['gpsItow']))  # 前右下里程计算
-
-                ################################### 姿态 ###################################
-                pos0 = [scene['data']['latitude_x'][0], scene['data']['longitude_x'][0], scene['data']['ellHeight_x'][0]]
-                statistics_info[scene_index]['test_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x']))
-                statistics_info[scene_index]['base_info'].update(insStatistic.pos_covert(scene['data'], pos0=pos0, yaw=scene['data']['heading_x'], val_name=['latitude_x', 'longitude_x', 'ellHeight_x']))
-                statistics_info[scene_index]['cal_info'].update(insStatistic.pos_error_cal(
-                    statistics_info[scene_index]['test_info'], statistics_info[scene_index]['base_info'], yaw=scene['data']['heading_x']))
-                ################################### 解状态转换 ###################################
-                statistics_info[scene_index]['cal_info'].update(insStatistic.gps_flags_transfer(scene['data'], flags_pos_name='flagsPos_x'))
-
-                ################################### 计算差值 ###################################
-                statistics_info[scene_index]['cal_info'].update(
-                    insStatistic.diff_cal(scene['data'], scene['data'], df1_val_name=["pitch_x", "heading_x"], df2_val_name=["pitch", "heading"]))
-                ################################### 记录对应数据 ###################################
-                for i in ["forward_vel", "right_vel", "downward_vel", 'north_vel', 'east_vel', 'ground_vel', "n_axis", "e_axis", "d_axis", "forward_mile", "right_mile", "downward_mile"]:
-                    statistics_info[scene_index]['cal_info'][i+'_x'] = statistics_info[scene_index]['base_info'][i]
-                    statistics_info[scene_index]['cal_info'][i] = statistics_info[scene_index]['test_info'][i]
-
-                ################################### 精度统计 ###################################
-                statistics_info[scene_index]['cal_info']['utcTime'] = scene['data']['utcTime']
-                for key in statistics_info[scene_index]['cal_info']:
-                    if key in precision_val_names:
-                        statistics_info[scene_index]['statistic_info'][key] = insStatistic.precision_statistics(statistics_info[scene_index]['cal_info'], key, percent=scene['percent'])
-
-            else:
-                self.output_msg('INS同步数据中无该类型：' + str(data_type))
-
-            ################################### 存到对应场景信息中 ###################################
-            all_scenes_data[scene_index].update(statistics_info[scene_index])
+        # delete error scene data
+        for index in error_scene_index:
+            all_scenes_data.pop(index)
 
         return all_scenes_data
 
     # 输出INS精度统计表 ——  中间层，用来控制不同统计函数得出结果
     def export_ins_statistics(self, export_file_path):
 
-        for test_data in self.ins_test_data:
+        for test_data_o in self.ins_test_data:
             statistics_all_scenes_ins = []  # 汇总所有数据的场景信息
             statistics_all_scenes_gps = []  # 汇总所有数据的场景信息
             statistics_all_scenes_insgps = []  # 汇总所有数据的场景信息
             # reportObj = insStatistic.insReport()
             # report_path = '.'.join(test_data["file_path"].split(".")[:-1])
+
+            test_data = test_data_o.copy()
+            try:
+                if 'posture_bpox' in test_data.keys():
+                    for df_name in ['sync_df', 'sync_gps_ins']:
+                        if df_name in test_data.keys():
+                            for val_name in ['roll', 'pitch', 'heading']:
+                                val_index = ['roll', 'pitch', 'heading'].index(val_name)
+                                if val_name in test_data[df_name].keys():
+                                    test_data[df_name][val_name] -= test_data['posture_bpox'][val_index]
+                                else:
+                                    continue
+                if 'posture_bpox_gps' in test_data.keys():
+                    if 'sync_df_gps' in test_data.keys():
+                        for val_name in ['roll', 'pitch', 'heading']:
+                            val_index = ['roll', 'pitch', 'heading'].index(val_name)
+                            if val_name in test_data['sync_df_gps'].keys():
+                                test_data['sync_df_gps'][val_name] -= test_data['posture_bpox_gps'][val_index]
+                            else:
+                                continue
+                    if 'sync_gps_ins' in test_data.keys():
+                        for val_name in ['roll', 'pitch', 'heading']:
+                            val_index = ['roll', 'pitch', 'heading'].index(val_name)
+                            if val_name+'_x' in test_data['sync_gps_ins'].keys():
+                                test_data['sync_gps_ins'][val_name+'_x'] -= test_data['posture_bpox_gps'][val_index]
+                            else:
+                                continue
+            except Exception as e:
+                self.output_msg('统计姿态杆臂补偿失败，失败数据为：', val_name, '\n原因为：', e)
 
             # 1. 场景分类 #######################################################
             self.output_msg("开始场景分类:" + test_data["file_name"])
@@ -1095,7 +1390,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.output_msg('无数据，不进行统计。')
 
             if len(statistics_all_scenes_insgps) > 0:
-                statistics_all_scenes_gps = self.ins_cal_error_diffs(statistics_all_scenes_gps, data_type='sync_df_gps')
+                lbgc = [0, 0, 0]
+                if test_data["output_pos"] == "后轮轴中心" and 'df_pdata' in test_data.keys():
+                    if len(test_data['df_pdata']['Lbgc']) > 0:
+                        lbgc = test_data['df_pdata']['Lbgc'][0]
+
+                statistics_all_scenes_insgps = self.ins_cal_error_diffs(statistics_all_scenes_insgps,
+                                                                        data_type='sync_gps_ins', lbgc=lbgc)
                 # info_dict = statistics_all_scenes_gps[0]['cal_info'].copy()
                 # for i in ['none', 'single', 'pseduo', 'float', 'fixed', 'utcTime']:
                 #     info_dict.pop(i)
@@ -1113,9 +1414,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # if len(statistics_all_scenes_gps) != 0:
             #     self.output_msg(
             #         reportObj.statistic2excel(statistics_all_scenes_gps, data_type='基准与GPS数据同步统计结果'))
-            # if len(statistics_all_scenes_insgps) != 0:
-            #     self.output_msg(
-            #         reportObj.statistic2excel(statistics_all_scenes_insgps, data_type='GPS帧与INS帧同步统计结果'))
+            if len(statistics_all_scenes_insgps) != 0:
+                self.output_msg(
+                    reportObj.statistic2excel(statistics_all_scenes_insgps, data_type='GPS帧与INS帧同步统计结果'))
 
         self.output_msg("【统计完成】")
 
@@ -1136,8 +1437,10 @@ class ParseRef(QtCore.QThread):
         # 1.参考数据解析
         self.output_msg("【导入参考数据】")
         try:
-            self.output_msg("开始解析：" + self.ref_data["file_path"] + ", 数据类型：" + self.ref_data["file_type"] + ", 请等待...")
-            self.output_msg("已设置测试日期： " + self.ref_data["date_time"] + ", 测试类型： " + self.ref_data["test_type"])
+            self.output_msg(
+                "开始解析：" + self.ref_data["file_path"] + ", 数据类型：" + self.ref_data["file_type"] + ", 请等待...")
+            self.output_msg(
+                "已设置测试日期： " + self.ref_data["date_time"] + ", 测试类型： " + self.ref_data["test_type"])
             if dataParse.allDataParse(self.ref_data, self.ref_data["date_time"], freq=self.ref_data["file_freq"]) == -1:
                 self.output_msg("【导入失败】参考数据无解析结果, 请检查数据类型" + "\n")
                 return
@@ -1292,8 +1595,15 @@ class CompareMainIns(QtCore.QThread):
             else:
                 pass
 
-            self.decodeInsData(test_info)
-            self.sendDataframe(test_info=test_info)  # 传递解析数据
+            if self.decodeInsData(test_info):
+                if test_info['date_time'] != self.test_data['date_time']:
+                    test_info['date_time'] = self.test_data['date_time']
+                    print("change date time in test info:" + self.test_data['date_time'])
+
+                self.sendDataframe(test_info=test_info)  # 传递解析数据
+            else:
+                continue
+
         # 释放内存
         self.ref_data = {}
         self.output_msg("【数据导入完毕】\n")
@@ -1301,45 +1611,71 @@ class CompareMainIns(QtCore.QThread):
     def decodeInsData(self, test_info):
         self.test_data = test_info.copy()
         # 1. 测试数据解析
-        try:
-            self.output_msg("开始解析 ：" + self.test_data["file_path"] + ", 数据类型：" + self.test_data["file_type"] + ", 请等待......")
-            self.output_msg("已设置测试日期： " + self.test_data["date_time"])
-            if dataParse.allDataParse(self.test_data, self.test_data["date_time"]) == -1:
-                self.output_msg("【导入失败】ins帧无解析结果, 无法绘图统计, 请检查数据格式！" + "\n")
-                return
-            self.output_msg("INS测试数据解析完毕。")
-        except Exception as e:
-            self.output_msg("【导入失败】测试数据解析失败,失败原因: 数据异常，" + str(e) + "\n")
-            return
+        if test_info['file_type'] == 'feather':
+            for file_name in os.listdir('./' + self.test_data["file_name"]):
+                if 'df_pdata' in file_name:
+                    self.test_data["df_pdata_path"] = './' + self.test_data["file_name"] + '/' + file_name
+                elif 'gps_' == file_name[:4]:
+                    self.test_data["df_gps"] = pd.read_feather('./' + self.test_data["file_name"] + '/' + file_name)
+                elif 'ins_' == file_name[:4]:
+                    self.test_data["df"] = pd.read_feather('./' + self.test_data["file_name"] + '/' + file_name)
+        else:
+            try:
+                self.output_msg("开始解析 ：" + self.test_data["file_path"] + "，数据类型：" + self.test_data["file_type"]
+                                + "，输出位置：" + self.test_data["output_pos"] + "， 请等待......")
+                self.output_msg("已设置测试日期： " + self.test_data["date_time"])
+                insParseOutput = dataParse.allDataParse(self.test_data, self.test_data["date_time"])
+                if insParseOutput == -1:
+                    self.output_msg("【导入失败】ins帧无解析结果， 无法绘图统计， 请检查数据格式！" + "\n")
+                    return False
+                elif type(insParseOutput) == str:
+                    self.output_msg(insParseOutput)
+                    # 修改参考数据中输入错误的时间参数
+                    if '【注意】gps帧时间为：' in insParseOutput and "df" in self.ref_data.keys():
+                        try:
+                            gps_date = insParseOutput.split('【注意】gps帧时间为：')[-1].split('与设定时间不符')[0]
+                            self.output_msg('\n PS. 基准数据的测试日期设置与此测试数据的GPS帧内日期不一致！ 参考时间设置为：' + str(
+                                    self.test_data['date_time']) + '，GPS帧内时间（年月日字段）为：' + gps_date + '。\n请确认时间后重新导入参考数据/测试数据。')
+                            self.test_data['date_time'] = gps_date
+                            if 'df' in self.ref_data.keys():
+                                return False
+                        except Exception as e:
+                            self.output_msg('基准的Unix时间修改失败:\n')
+                            self.output_msg(e)
+                            return False
+                self.output_msg("INS测试数据解析完毕。")
+            except Exception as e:
+                self.output_msg("【导入失败】测试数据解析失败，失败原因: 数据异常，" + str(e) + "\n")
+                return False
 
         # 2. 时间同步
         if "df" in self.test_data.keys() and "df" in self.ref_data.keys():
             try:
-                self.output_msg("ins数据开始时间同步, 同步参考数据为:" + str(self.test_data["ref_data"]))
+                self.output_msg("ins数据开始时间同步， 同步参考数据为:" + str(self.test_data["ref_data"]))
                 sync_data = dataPreProcess.timeSynchronize(self.ref_data["df"], self.test_data["df"])
                 if len(sync_data[sync_data.keys()[0]]) == 0:
-                    self.output_msg("【导入失败】没有ins帧时间同步的结果,请检查参考数据对应的测试日期!" + "\n")
-                    return
+                    self.output_msg("【导入失败】没有ins帧时间同步的结果，请检查参考数据对应的测试日期!" + "\n")
+                    return False
                 else:
                     self.test_data["sync_df"] = sync_data
                     self.output_msg("ins帧与参考数据时间同步完成 ")
             except Exception as e:
-                self.output_msg("【导入失败】ins帧时间同步失败,失败原因: 数据异常，" + str(e) + "\n")
-                return
+                self.output_msg("【导入失败】ins帧时间同步失败，失败原因: 数据异常，" + str(e) + "\n")
+                return False
         else:
             self.output_msg('ref与ins同步中，无ref参考数据同步')
 
         if "df_gps" in self.test_data.keys() and "df" in self.ref_data.keys():
             try:
-                self.output_msg("gps数据开始时间同步, 同步参考数据为:" + str(self.test_data["ref_data"]))
+                self.output_msg("gps数据开始时间同步， 同步参考数据为:" + str(self.test_data["ref_data"]))
                 sync_data_gps = dataPreProcess.timeSynchronize(self.ref_data["df"], self.test_data["df_gps"])
                 if len(sync_data_gps[sync_data_gps.keys()[0]]) == 0:
-                    self.output_msg("【注意】没有gps帧时间同步的结果,请检查参考数据对应的测试日期!")
+                    self.output_msg("【注意】没有gps帧时间同步的结果，请检查参考数据对应的测试日期!")
                 else:
                     self.test_data["sync_df_gps"] = sync_data_gps
                     self.output_msg("gps帧与参考数据时间同步完成 ")
             except Exception as e:
-                self.output_msg("gps帧时间同步失败,失败原因: 数据异常，" + str(e))
+                self.output_msg("gps帧时间同步失败，失败原因: 数据异常，" + str(e))
         else:
             self.output_msg('ref与gps同步中，无ref参考数据同步')
 
@@ -1353,7 +1689,9 @@ class CompareMainIns(QtCore.QThread):
                     self.test_data["sync_gps_ins"] = sync_data_gpsins
                     self.output_msg("ins与自身gps时间同步完成")
             except Exception as e:
-                self.output_msg("gps帧时间同步失败,失败原因: 数据异常，" + str(e))
+                self.output_msg("gps帧时间同步失败，失败原因: 数据异常，" + str(e))
+
+        return True
 
     # 更新消息框内容
     def output_msg(self, msg_str):
@@ -1365,36 +1703,67 @@ class CompareMainIns(QtCore.QThread):
             print('self.test_data in sendDataframe is None')
             self.output_msg('解析错误！')
             return
+
+        if not os.path.exists('./' + self.test_data["file_name"]):
+            os.makedirs('./' + self.test_data["file_name"])
+            print('./' + self.test_data["file_name"])
+
         feather_id = uuid.uuid3(uuid.NAMESPACE_URL, self.test_data["file_path"])
-        feather_path = './ins_' + str(feather_id) + '.feather'
-        sync_feather_path = './sync_ref-ins_' + str(feather_id) + '.feather'
+        feather_path = './' + self.test_data["file_name"] + '/ins_' + str(feather_id) + '.feather'
+        sync_feather_path = './' + self.test_data["file_name"] + '/sync_ref-ins_' + str(feather_id) + '.feather'
         pdata_npy_path = None
         if 'df' in self.test_data.keys():
             self.test_data["df"].to_feather(feather_path)  # 暂存为feather格式
         else:
             feather_path = ''
-            return
+
         if "sync_df" in self.test_data.keys():
             self.test_data["sync_df"].to_feather(sync_feather_path)
         else:
             sync_feather_path = ""
-        if "sync_df_gps" in self.test_data.keys():
-            gps_feather_path = './gps_' + str(feather_id) + '.feather'
-            gps_sync_feather_path = './sync_ref-gps_' + str(feather_id) + '.feather'
+
+        if "df_gps" in self.test_data.keys():
+            gps_feather_path = './' + self.test_data["file_name"] + '/gps_' + str(feather_id) + '.feather'
             self.test_data["df_gps"].to_feather(gps_feather_path)  # 暂存为feather格式
-            self.test_data["sync_df_gps"].to_feather(gps_sync_feather_path)
         else:
             gps_feather_path = ""
+
+        if "sync_df_gps" in self.test_data.keys():
+            gps_sync_feather_path = './' + self.test_data["file_name"] + '/sync_ref-gps_' + str(feather_id) + '.feather'
+            self.test_data["sync_df_gps"].to_feather(gps_sync_feather_path)
+        else:
             gps_sync_feather_path = ""
+
         if "sync_gps_ins" in self.test_data.keys():
-            gpsins_sync_feather_path = './sync_gps-ins_' + str(feather_id) + '.feather'
+            gpsins_sync_feather_path = './' + self.test_data["file_name"] + '/sync_gps-ins_' + str(
+                feather_id) + '.feather'
             self.test_data["sync_gps_ins"].to_feather(gpsins_sync_feather_path)
         else:
             gpsins_sync_feather_path = ""
+
         if "df_pdata" in self.test_data.keys():
-            pdata_npy_path = './df_pdata_' + str(feather_id) + '.npy'
+            pdata_npy_path = './' + self.test_data["file_name"] + '/df_pdata_' + str(feather_id) + '.npy'
             np.save(pdata_npy_path, self.test_data["df_pdata"])
-            # self.test_data["df_pdata"].to_feather(pdata_npy_path)
+        elif "df_pdata_path" in self.test_data.keys():
+            pdata_npy_path = self.test_data["df_pdata_path"]
+        else:
+            pdata_npy_path = ""
+
+        if "df_imu" in self.test_data.keys():
+            imu_feather_path = './' + self.test_data["file_name"] + '/df_imu_' + str(feather_id) + '.feather'
+            self.test_data["df_imu"].to_feather(imu_feather_path)  # 暂存为feather格式
+        elif "df_imu_path" in self.test_data.keys():
+            imu_feather_path = self.test_data["df_imu_path"]
+        else:
+            imu_feather_path = ""
+
+        if "df_vehicle" in self.test_data.keys():
+            vehicle_feather_path = './' + self.test_data["file_name"] + '/df_vehicle_' + str(feather_id) + '.feather'
+            self.test_data["df_vehicle"].to_feather(vehicle_feather_path)  # 暂存为feather格式
+        elif "df_vehicle_path" in self.test_data.keys():
+            vehicle_feather_path = self.test_data["df_vehicle_path"]
+        else:
+            vehicle_feather_path = ""
 
         # 输出feather路径
         if test_info:
@@ -1404,6 +1773,104 @@ class CompareMainIns(QtCore.QThread):
             test_info["sync_df_gps_path"] = gps_sync_feather_path
             test_info["sync_gps_ins_path"] = gpsins_sync_feather_path
             test_info["df_pdata_path"] = pdata_npy_path
+            test_info["df_imu_path"] = imu_feather_path
+            test_info["df_vehicle_path"] = vehicle_feather_path
             self.test_signal.emit(test_info)
 
         self.test_data = None
+
+
+# QT子线程: INS转bddb
+class AnalysisBddb(QtCore.QThread):
+    updated = QtCore.pyqtSignal(str)  # 信号类变量（字符串）
+    mutex = QtCore.QMutex()
+
+    def __init__(self, parent: typing.Optional[QObject] = ...):
+        super().__init__(parent)
+        self.data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': True, 'imu': True,
+                                   'ins2': False, 'imu2': False, 'sync': False,
+                                   'sat': False, 'sat2': False, 'ZeroBias': False, 'EKFhandle_type': False,
+                                   'InsPl': False, 'GnssPl': False
+                                   }
+        self.data_info = []  # 以后可能是[filepath1, filepath2...]
+
+    def getInfo(self, signal_dict):
+        # 测试数据
+        self.data_analysis_flag = signal_dict['data_analysis_flag']
+        self.data_info = signal_dict['data_info']
+        if len(self.data_info) == 0:
+            self.output_msg('没有数据')
+            return
+
+    def run(self):
+        self.output_msg("【导入BDDB数据】")
+        for test_info in self.data_info:
+            self.decodeInsData(test_info)
+
+        # 释放内存
+        self.output_msg("【BDDB转mat完毕】\n")
+
+    def decodeInsData(self, test_path):
+        # 1. 测试数据解析
+        try:
+            self.output_msg("开始解析 ：" + test_path + "， 请等待......")
+
+            obj = HexDataParse()
+            obj.data_analysis_flag = self.data_analysis_flag
+            obj.filePath = test_path
+            obj.startParseFileHexData()
+            obj.saveDataToDF()
+
+            self.output_msg('帧数情况：')
+            # check frequency
+            obj.checkFreq()
+            obj.outputDataFrameStatsResult()
+            self.output_msg(obj.full_info)
+
+            self.output_msg('MAT文件生成中...')
+            obj.saveAllDataToMatFile()
+            dir_path = os.path.split(test_path)
+            self.output_msg("【MAT文件生成成功】" + dir_path[0] + '\\' + dir_path[1][:-4] + '_GPSINSData.mat')
+        except Exception as e:
+            self.output_msg("【MAT文件生成失败】测试数据解析失败，失败原因: 数据异常，" + str(e) + "\n")
+            return
+
+    # 更新消息框内容
+    def output_msg(self, msg_str):
+        self.updated.emit(msg_str)  # 推送消息回主线程
+
+
+# QT子线程: 对已解析文件转换成 csv、nmea数据等
+class CommonQtThread(QtCore.QThread):
+    updated = QtCore.pyqtSignal(str)  # 信号类变量（字符串）
+    mutex = QtCore.QMutex()
+
+    def __init__(self, parent: typing.Optional[QObject] = ...):
+        super().__init__(parent)
+        self.signal_dict = {"function_type": None}
+
+    def getInfo(self, signal_dict):
+        self.signal_dict = signal_dict
+
+    def run(self):
+        if self.signal_dict["function_type"] == "df2Nmea":
+            df, path = self.signal_dict["output_df"], self.signal_dict["output_path"]  # 先提取信号，避免串线程
+            self.output_msg("【nmea导出开始】导出路径为：" + path + "，请等待...")
+            df2Nmea.saveDfToNmea(df, path)
+            self.output_msg("【nmea导出完毕】导出路径为：" + path)
+        elif self.signal_dict["function_type"] == "df2Csv":
+            # with open(self.signal_dict["output_path"], "w") as file:
+            #     self.signal_dict["output_df"].to_csv(file)
+            df, path, sync_df, sync_path = self.signal_dict["output_df"], self.signal_dict["output_path"], \
+                                           self.signal_dict["output_sync_df"], self.signal_dict["output_sync_path"]
+            self.output_msg("【csv导出开始】导出路径为：" + path + "，请等待...")
+            df.to_csv(path)
+            self.output_msg("【csv导出完毕】导出路径为：" + path)
+            if sync_path is not None:
+                self.output_msg("【csv导出开始】同步数据导出路径为：" + path + "，请等待...")
+                sync_df.to_csv(sync_path)
+                self.output_msg("【csv导出完毕】同步数据导出路径为：" + path)
+
+    # 更新消息框内容
+    def output_msg(self, msg_str):
+        self.updated.emit(msg_str)  # 推送消息回主线程

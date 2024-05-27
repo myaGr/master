@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{174e7a62-5ecb-4832-95dc-6540b17940db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{367a3c38-8df0-4eef-940b-7b5167d6ee34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{4103d859-dcd0-4e23-bf36-ac2f30227996}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\app\playback\pb_main.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\ini.c">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\loguru.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_parse\ipc_parse.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\OptionParser.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\playback\ipc_upgrade.c">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\MemoryStatistics.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_log_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_bddb_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\rinex_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\ini.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\loguru.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_parse\ipc_parse.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\OptionParser.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\playback\ipc_upgrade.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\MemoryStatistics.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_log_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_bddb_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\rinex_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\configs\pb_config.ini">
+      <Filter>source</Filter>
+    </None>
+  </ItemGroup>
+</Project>

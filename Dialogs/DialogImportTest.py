@@ -27,17 +27,18 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
 
         # 信号关联
         self.comboBox_algorithmType.currentIndexChanged.connect(self.on_clicked_select_algorithm_type)  # 选择测试类型按钮按下
-        self.addTestFile.clicked.connect(self.on_clicked_add_test_file)  # 选择测试类型按钮按下
+        self.addTestFile.clicked.connect(self.on_clicked_add_test_file)  # 添加测试数据按钮按下
 
         # INS
         self.pushBtn_SelectIns.clicked.connect(self.on_clicked_select_ins_file)  # 选择参考文件按钮按下
 
         # GNSS
         self.pushBtn_SelectGnss.clicked.connect(self.on_clicked_select_gnss_file)  # 选择参考文件按钮按下
-        self.comboBox_GetGnssType.currentIndexChanged.connect(lambda: self.on_clicked_select_test_type(None))  # 选择测试文件类型按下
+        self.comboBox_GetGnssType.currentIndexChanged.connect(
+            lambda: self.on_clicked_select_test_type(None))  # 选择测试文件类型按下
         self.pushButton_setCsv.clicked.connect(lambda: self.open_dialog_import_csv())  # 打开csv配置窗口
 
-        self.buttonBox.accepted.connect(self.on_accepted)    # OK按钮按下
+        self.buttonBox.accepted.connect(self.on_accepted)  # OK按钮按下
         # self.buttonBox.rejected.connect(self.on_rejected)
 
     # 导入csv配置文件窗口
@@ -58,32 +59,35 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
         if algorithm_type == "INS":
             print(len(self.ins_widget_add))
             self.signal_dict = [
-                    {"algorithm_type": algorithm_type,
-                     "date_time": None,
-                     "file_path": self.lineEdit_GetInsFile.text(),
-                     "file_type": self.comboBox_GetInsType.currentText(),
-                     "csv_dict": self.csv_dict,
-                     'bpox': [0, 0, 0]}
-                ]
+                {"algorithm_type": algorithm_type,
+                 "date_time": None,
+                 "file_path": self.lineEdit_GetInsFile.text(),
+                 "file_type": self.comboBox_GetInsType.currentText(),
+                 "output_pos": "后轮轴中心" if self.checkBox_OutputPos.isChecked() else "天线位置",
+                 "csv_dict": self.csv_dict,
+                 'bpox': [0, 0, 0]}
+            ]
             for ins_widget in self.ins_widget_add:
                 self.signal_dict.append({
                     "algorithm_type": algorithm_type,
                     "date_time": None,
                     "file_path": ins_widget['lineEdit_GetInsFile'].text(),
                     "file_type": ins_widget['comboBox_GetInsType'].currentText(),
+                    "output_pos": "后轮轴中心" if ins_widget['checkBox_OutputPos'].isChecked() else "天线位置",
                     "csv_dict": self.csv_dict,
                     'bpox': [0, 0, 0]
                 })
+                print(111, self.signal_dict)
         else:
             TEST_DATE = self.dateEdit_testDate.date()
             global_var.set_value("TEST_DATE", TEST_DATE)
             print(len(self.gnss_widget_add))
             self.signal_dict = [{"algorithm_type": algorithm_type,
-                                "date_time": TEST_DATE.toString(Qt.ISODate),  # 获取测试日期,
-                                "file_path": self.lineEdit_GetGnssFile.text(),
-                                "file_type": self.comboBox_GetGnssType.currentText(),
-                                "csv_dict": self.csv_dict,
-                                'bpox': [0, 0, 0]}]
+                                 "date_time": TEST_DATE.toString(Qt.ISODate),  # 获取测试日期,
+                                 "file_path": self.lineEdit_GetGnssFile.text(),
+                                 "file_type": self.comboBox_GetGnssType.currentText(),
+                                 "csv_dict": self.csv_dict,
+                                 'bpox': [0, 0, 0]}]
             for gnss_widget in self.gnss_widget_add:
                 self.signal_dict.append({
                     "algorithm_type": algorithm_type,
@@ -109,7 +113,7 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
 
     def on_clicked_add_test_file(self):
         if self.comboBox_algorithmType.currentText() == "INS":
-            ins_widget = {'lineEdit_GetInsFile':None, 'comboBox_GetInsType':'', 'widget':None}
+            ins_widget = {'lineEdit_GetInsFile': None, 'comboBox_GetInsType': '', 'widget': None}
             self.ins_widget_add.append(ins_widget)
 
             ins_widget['widget'] = QtWidgets.QWidget(self.groupBox_ins)
@@ -122,7 +126,8 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
 
             ins_widget['lineEdit_GetInsFile'] = QtWidgets.QLineEdit(ins_widget['widget'])
             ins_widget['lineEdit_GetInsFile'].setObjectName("lineEdit_GetInsFile")
-            pushBtn_SelectIns.clicked.connect(lambda: self.on_clicked_select_ins_file(ins_widget['lineEdit_GetInsFile']))
+            pushBtn_SelectIns.clicked.connect(
+                lambda: self.on_clicked_select_ins_file(ins_widget['lineEdit_GetInsFile']))
             horizontalLayout_2.addWidget(pushBtn_SelectIns)
             horizontalLayout_2.addWidget(ins_widget['lineEdit_GetInsFile'])
 
@@ -132,6 +137,11 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
             ins_widget['comboBox_GetInsType'].addItems({"北云明文格式"})
             horizontalLayout_2.addWidget(ins_widget['comboBox_GetInsType'])
 
+            ins_widget['checkBox_OutputPos'] = QtWidgets.QCheckBox(ins_widget['widget'])
+            ins_widget['checkBox_OutputPos'].setObjectName("checkBox_OutputPos")
+            ins_widget['checkBox_OutputPos'].setText("后轮轴中心")
+            horizontalLayout_2.addWidget(ins_widget['checkBox_OutputPos'])
+
             toolButton_delet = QtWidgets.QPushButton(ins_widget['widget'])
             toolButton_delet.setObjectName("toolButton_delet")
             toolButton_delet.setText("删除")
@@ -140,7 +150,8 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
             #
             self.verticalLayout_2.addWidget(ins_widget['widget'])
         elif self.comboBox_algorithmType.currentText() == "GNSS":
-            gnss_widget = {'lineEdit_GetGnssFile':None, 'comboBox_GetGnssType':'','pushButton_setCsv':None , 'csv_file_path':'', 'csv_dict':{}, 'widget':None}
+            gnss_widget = {'lineEdit_GetGnssFile': None, 'comboBox_GetGnssType': '', 'pushButton_setCsv': None,
+                           'csv_file_path': '', 'csv_dict': {}, 'widget': None}
             self.gnss_widget_add.append(gnss_widget)
 
             gnss_widget['widget'] = QtWidgets.QWidget(self.groupBox_gnss)
@@ -161,14 +172,16 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
             gnss_widget['comboBox_GetGnssType'].setObjectName("comboBox_GetGnssType")
             gnss_widget['comboBox_GetGnssType'].addItem("NMEA")
             gnss_widget['comboBox_GetGnssType'].addItems({"CSV自定义", "导远自定义格式-GPS"})
-            gnss_widget['comboBox_GetGnssType'].currentIndexChanged.connect(lambda: self.on_clicked_select_test_type(gnss_widget))
+            gnss_widget['comboBox_GetGnssType'].currentIndexChanged.connect(
+                lambda: self.on_clicked_select_test_type(gnss_widget))
             horizontalLayout_4.addWidget(gnss_widget['comboBox_GetGnssType'])
 
             gnss_widget['pushButton_setCsv'] = QtWidgets.QPushButton(gnss_widget['widget'])
             gnss_widget['pushButton_setCsv'].setObjectName("pushButton_setCsv")
             gnss_widget['pushButton_setCsv'].setText("配置CSV")
             gnss_widget['pushButton_setCsv'].setEnabled(False)
-            gnss_widget['pushButton_setCsv'].clicked.connect(lambda: self.open_dialog_import_csv(gnss_widget=gnss_widget))
+            gnss_widget['pushButton_setCsv'].clicked.connect(
+                lambda: self.open_dialog_import_csv(gnss_widget=gnss_widget))
             horizontalLayout_4.addWidget(gnss_widget['pushButton_setCsv'])
 
             toolButton_delet = QtWidgets.QPushButton(gnss_widget['widget'])
@@ -222,4 +235,3 @@ class DialogImportTest(QDialog, UI.ui_Dialog_import_test.Ui_Dialog):
                 widget['pushButton_setCsv'].setEnabled(True)
             else:
                 widget['pushButton_setCsv'].setEnabled(False)
-

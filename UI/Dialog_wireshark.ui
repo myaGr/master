@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>433</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <item>
+    <widget class="QWidget" name="widget" native="true">
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QWidget" name="widget_2" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="pushButton_selectFile">
+           <property name="text">
+            <string>选择文件</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_FilePath">
+           <property name="placeholderText">
+            <string>Pcpng File Only</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="widget_3" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <widget class="QGroupBox" name="groupBox_3">
+           <property name="title">
+            <string>类型: </string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="widget_ins_2" native="true">
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <widget class="QLineEdit" name="lineEdit_port_type">
+                 <property name="text">
+                  <string>udp.srcport</string>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Pcpng File Only</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox">
+           <property name="title">
+            <string>PORT VALUE: </string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="widget_ins" native="true">
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QLineEdit" name="lineEdit_hq">
+                 <property name="text">
+                  <string>12303</string>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Pcpng File Only</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="title">
+         <string>对应关系（参考https://asensing.feishu.cn/docx/doxcnjf0SgneHfQMJZAy5YI7FHd）: </string>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QTableWidget" name="tableWidget_2">
+           <row>
+            <property name="text">
+             <string>port type</string>
+            </property>
+           </row>
+           <row>
+            <property name="text">
+             <string>port value</string>
+            </property>
+           </row>
+           <row>
+            <property name="text">
+             <string>对应内容</string>
+            </property>
+           </row>
+           <column>
+            <property name="text">
+             <string>高合</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>理想</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>BYD</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>比亚迪</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>奇瑞</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>滴滴</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>北汽</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>东风</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>红旗</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string> </string>
+            </property>
+           </column>
+           <item row="0" column="0">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="1">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="2">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="3">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="4">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="5">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="6">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="7">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="8">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="9">
+            <property name="text">
+             <string>udp.port</string>
+            </property>
+           </item>
+           <item row="0" column="10">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="11">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="12">
+            <property name="text">
+             <string>udp.srcport</string>
+            </property>
+           </item>
+           <item row="0" column="13">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="14">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="15">
+            <property name="text">
+             <string>udp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="16">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="17">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="18">
+            <property name="text">
+             <string>tcp.dstport</string>
+            </property>
+           </item>
+           <item row="0" column="19">
+            <property name="text">
+             <string>udp.port</string>
+            </property>
+           </item>
+           <item row="0" column="20">
+            <property name="text">
+             <string>udp.port</string>
+            </property>
+           </item>
+           <item row="0" column="21">
+            <property name="text">
+             <string>udp.port</string>
+            </property>
+           </item>
+           <item row="0" column="22">
+            <property name="text">
+             <string>udp.port</string>
+            </property>
+           </item>
+           <item row="0" column="23">
+            <property name="text">
+             <string>udp.port</string>
+            </property>
+           </item>
+           <item row="1" column="0">
+            <property name="text">
+             <string>12310</string>
+            </property>
+           </item>
+           <item row="1" column="1">
+            <property name="text">
+             <string>12311</string>
+            </property>
+           </item>
+           <item row="1" column="2">
+            <property name="text">
+             <string>12312</string>
+            </property>
+           </item>
+           <item row="1" column="3">
+            <property name="text">
+             <string>12300</string>
+            </property>
+           </item>
+           <item row="1" column="4">
+            <property name="text">
+             <string>12300</string>
+            </property>
+           </item>
+           <item row="1" column="5">
+            <property name="text">
+             <string>12310</string>
+            </property>
+           </item>
+           <item row="1" column="6">
+            <property name="text">
+             <string>12311</string>
+            </property>
+           </item>
+           <item row="1" column="7">
+            <property name="text">
+             <string>12304</string>
+            </property>
+           </item>
+           <item row="1" column="8">
+            <property name="text">
+             <string>12305</string>
+            </property>
+           </item>
+           <item row="1" column="9">
+            <property name="text">
+             <string>51226</string>
+            </property>
+           </item>
+           <item row="1" column="10">
+            <property name="text">
+             <string>30501</string>
+            </property>
+           </item>
+           <item row="1" column="11">
+            <property name="text">
+             <string>30501</string>
+            </property>
+           </item>
+           <item row="1" column="12">
+            <property name="text">
+             <string>7000</string>
+            </property>
+           </item>
+           <item row="1" column="13">
+            <property name="text">
+             <string>12310</string>
+            </property>
+           </item>
+           <item row="1" column="14">
+            <property name="text">
+             <string>12300</string>
+            </property>
+           </item>
+           <item row="1" column="15">
+            <property name="text">
+             <string>12301</string>
+            </property>
+           </item>
+           <item row="1" column="16">
+            <property name="text">
+             <string>12300</string>
+            </property>
+           </item>
+           <item row="1" column="17">
+            <property name="text">
+             <string>12303</string>
+            </property>
+           </item>
+           <item row="1" column="18">
+            <property name="text">
+             <string>12301</string>
+            </property>
+           </item>
+           <item row="1" column="19">
+            <property name="text">
+             <string>12300</string>
+            </property>
+           </item>
+           <item row="1" column="20">
+            <property name="text">
+             <string>12301</string>
+            </property>
+           </item>
+           <item row="1" column="21">
+            <property name="text">
+             <string>12302</string>
+            </property>
+           </item>
+           <item row="1" column="22">
+            <property name="text">
+             <string>12303</string>
+            </property>
+           </item>
+           <item row="1" column="23">
+            <property name="text">
+             <string>12310</string>
+            </property>
+           </item>
+           <item row="2" column="0">
+            <property name="text">
+             <string>GGA</string>
+            </property>
+           </item>
+           <item row="2" column="1">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="2">
+            <property name="text">
+             <string>观测量</string>
+            </property>
+           </item>
+           <item row="2" column="3">
+            <property name="text">
+             <string>GGA</string>
+            </property>
+           </item>
+           <item row="2" column="4">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="5">
+            <property name="text">
+             <string>观测量</string>
+            </property>
+           </item>
+           <item row="2" column="6">
+            <property name="text">
+             <string>INS log</string>
+            </property>
+           </item>
+           <item row="2" column="7">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="8">
+            <property name="text">
+             <string>GGA</string>
+            </property>
+           </item>
+           <item row="2" column="9">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="10">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="11">
+            <property name="text">
+             <string>GGA</string>
+            </property>
+           </item>
+           <item row="2" column="12">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="13">
+            <property name="text">
+             <string>GGA</string>
+            </property>
+           </item>
+           <item row="2" column="14">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="15">
+            <property name="text">
+             <string>观测量</string>
+            </property>
+           </item>
+           <item row="2" column="16">
+            <property name="text">
+             <string>GGA</string>
+            </property>
+           </item>
+           <item row="2" column="17">
+            <property name="text">
+             <string>差分数据</string>
+            </property>
+           </item>
+           <item row="2" column="18">
+            <property name="text">
+             <string>观测量</string>
+            </property>
+           </item>
+           <item row="2" column="19">
+            <property name="text">
+             <string>原始观测量</string>
+            </property>
+           </item>
+           <item row="2" column="20">
+            <property name="text">
+             <string>INS log</string>
+            </property>
+           </item>
+           <item row="2" column="21">
+            <property name="text">
+             <string>RTK日志（GGA要看是否开发）</string>
+            </property>
+           </item>
+           <item row="2" column="22">
+            <property name="text">
+             <string>RTK日志 千寻Service SDK日志</string>
+            </property>
+           </item>
+           <item row="2" column="23">
+            <property name="text">
+             <string>软件调试日志</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>Dialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>Dialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

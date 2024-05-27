@@ -16,17 +16,25 @@ class DialogInsMultiPlot(QDialog, UI.ui_Dialog_ins_multi_plot.Ui_Dialog):
     def on_accepted(self):
         if self.checkBox_timeGap.isChecked():
             self.signal_list.append("历元间隔分布图")
-        if self.checkBox_vel_bias.isChecked():
-            self.signal_list.append("速度偏差统计")
+        if self.checkBox_timeGap_acc_grox.isChecked():
+            self.signal_list.append("加表陀螺历元间隔分布图")
+        if self.checkBox_pos_bias.isChecked():
+            self.signal_list.append("位置水平偏差统计")
         if self.checkBox_yaw_bias.isChecked():
             self.signal_list.append("航向偏差统计")
+        if self.checkBox_vel_bias.isChecked():
+            self.signal_list.append("水平速度偏差统计")
         if self.checkBox_pos_horizontal_bias.isChecked():
             self.signal_list.append("位置水平误差")
         if self.checkBox_pos_lateral_bias.isChecked():
             self.signal_list.append("位置横向误差")
         if self.checkBox_pos_longitudinal_bias.isChecked():
             self.signal_list.append("位置纵向误差")
+        if self.checkBox_timeGap_gpsimu.isChecked():
+            self.signal_list.append("相邻GPS-IMU时间间隔图")
 
+        if self.checkBox_vel_error_h.isChecked():
+            self.signal_list.append("水平速度对比")
         if self.checkBox_vel_error_f.isChecked():
             self.signal_list.append("前向速度对比")
         if self.checkBox_vel_error_r.isChecked():
@@ -39,6 +47,8 @@ class DialogInsMultiPlot(QDialog, UI.ui_Dialog_ins_multi_plot.Ui_Dialog):
             self.signal_list.append("东向速度对比")
         if self.checkBox_vel_error_g.isChecked():
             self.signal_list.append("地向速度对比")
+        if self.checkBox_vel_h.isChecked():
+            self.signal_list.append("水平速度")
         if self.checkBox_vel_n.isChecked():
             self.signal_list.append("北向速度")
         if self.checkBox_vel_e.isChecked():
@@ -64,6 +74,12 @@ class DialogInsMultiPlot(QDialog, UI.ui_Dialog_ins_multi_plot.Ui_Dialog):
             self.signal_list.append("纬度")
         if self.checkBox_h.isChecked():
             self.signal_list.append("高度")
+        if self.checkBox_lon_GPS.isChecked():
+            self.signal_list.append("经度 实际与估计偏差对比")
+        if self.checkBox_lat_GPS.isChecked():
+            self.signal_list.append("纬度 实际与估计偏差对比")
+        if self.checkBox_h_GPS.isChecked():
+            self.signal_list.append("高度 实际与估计偏差对比")
         if self.checkBox_lon_error.isChecked():
             self.signal_list.append("经度对比")
         if self.checkBox_lat_error.isChecked():
@@ -78,10 +94,31 @@ class DialogInsMultiPlot(QDialog, UI.ui_Dialog_ins_multi_plot.Ui_Dialog):
             self.signal_list.append("Yaw")
         if self.checkBox_roll_error.isChecked():
             self.signal_list.append("Roll对比")
-        if self.checkBox_yaw_error.isChecked():
-            self.signal_list.append("Pitch对比")
         if self.checkBox_pitch_error.isChecked():
+            self.signal_list.append("Pitch对比")
+        if self.checkBox_yaw_error.isChecked():
             self.signal_list.append("Yaw对比")
+
+        if self.checkBox_accX.isChecked():
+            self.signal_list.append("加表x轴")
+        if self.checkBox_accY.isChecked():
+            self.signal_list.append("加表y轴")
+        if self.checkBox_accZ.isChecked():
+            self.signal_list.append("加表z轴")
+        if self.checkBox_GyroX.isChecked():
+            self.signal_list.append("陀螺x轴")
+        if self.checkBox_GyroY.isChecked():
+            self.signal_list.append("陀螺y轴")
+        if self.checkBox_GyroZ.isChecked():
+            self.signal_list.append("陀螺z轴")
+        if self.checkBox_FL.isChecked():
+            self.signal_list.append("左前轮轮速")
+        if self.checkBox_FR.isChecked():
+            self.signal_list.append("右前轮轮速")
+        if self.checkBox_BL.isChecked():
+            self.signal_list.append("左后轮轮速")
+        if self.checkBox_BR.isChecked():
+            self.signal_list.append("右后轮轮速")
 
         if self.checkBox_Pp.isChecked():
             self.signal_list.append("Pp")

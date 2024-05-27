@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{bcb3b566-17cf-426a-9af7-b738ace7e3c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{95425d56-c3c4-4fee-a384-72278357f8c6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\app\loc_parse\loc_parse.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\OptionParser.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_parse\ipc_parse.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\playback\ipc_upgrade.c">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\MemoryStatistics.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_bddb_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_log_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\OptionParser.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_parse\ipc_parse.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\playback\ipc_upgrade.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\MemoryStatistics.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_bddb_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_log_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

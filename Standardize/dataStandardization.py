@@ -110,6 +110,16 @@ def nmeaStandardization(inputData, date_time):
         ksxt_df = pd.DataFrame(tempData)
         outputData = outputData.merge(ksxt_df, on=['unixTime'])
 
+    elif "dualan" in inputData.keys():
+        gps_week = inputData["dualan"]['gpsWeek']
+        gps_second = inputData["dualan"]['gpsItow']
+        unixTime = timeExchangeMgr.gps2Unix(gps_week, gps_second)
+
+        tempData = {"unixTime": np.array(unixTime),
+                    "doubleHeading": np.array(inputData["dualan"]['double_heading'])}
+        dua_df = pd.DataFrame(tempData)
+        outputData = outputData.merge(dua_df, on=['unixTime'])
+
     return outputData
 
 
@@ -164,7 +174,13 @@ def InsGpsDataStandarsization(inputData, date_time):
     unixTime = []
     utcTime = []
     utcDate = []
-    gpsWeek = timeExchangeMgr.date2Gpsweek(date_time)  # 计算GPS周
+
+    # 计算GPS周
+    if "gpsWeek" in GPSdata.keys():     # 采用内部数据计算GPS周
+        gpsWeek = GPSdata["gpsWeek"][0]
+    else:
+        gpsWeek = timeExchangeMgr.date2Gpsweek(date_time)
+
     for i in range(len(GPSdata['itow_pos'])):
         unix = timeExchangeMgr.gps2Unix(gpsWeek, GPSdata['itow_pos'][i])  # 计算Unix时间
         utc = timeExchangeMgr.unix2Utc(unix)  # 计算UTC时间
@@ -187,9 +203,10 @@ def InsGpsDataStandarsization(inputData, date_time):
                 "latitude": np.array(GPSdata['Lat']), "longitude": np.array(GPSdata['Lon']),
                 "ellHeight": np.array(GPSdata['hMSL']),  # INSGPS数据如无特殊要求，高程一律认定为椭球高
                 "gpsQuality": flagPos,
-                "velocity": np.array(GPSdata['VSpd']), "satsNum": np.array(GPSdata['numSV']),
+                "velocity": np.array(GPSdata['HSpd']), "satsNum": np.array(GPSdata['numSV']),
                 "pitch": np.array(GPSdata['Pitch']), "heading": np.array(GPSdata['Heading']),  # GPS no roll value
-                "TrackAngle": np.array(GPSdata['TrackAngle'])
+                "TrackAngle": np.array(GPSdata['TrackAngle']),
+                "aveSNR": np.array(GPSdata['aveSNR'])
                 # "hDop": np.array(GPSdata['numSV'])  # INSGPS数据解析暂未解析 hdop
                 }
     tempData.update(GPSdata)
@@ -216,7 +233,7 @@ def INSdataStandarsization(inputData, date_time):
     utcDate = []
 
     # 计算GPS周
-    if "gpsWeek" in inputData.keys():
+    if "gpsWeek" in inputData.keys() and inputData["gpsWeek"][0] != None:
         gpsWeek = inputData["gpsWeek"][0]
     else:
         gpsWeek = timeExchangeMgr.date2Gpsweek(date_time)
@@ -248,7 +265,7 @@ def INSdataStandarsization(inputData, date_time):
 
 def volkswagenStandardization(inputData, date_time):
     """
-   Volkswagen数据标准化: 时间经纬高
+    Volkswagen大众PP格式数据标准化: 时间经纬高
     :param inputData: 输入原始100C数据、或Pos320数据（格式Dataframe）
     :param date_time: 数据采集日期
     :return: outputData 标准化NMEA数据（格式Dataframe）
@@ -264,6 +281,28 @@ def volkswagenStandardization(inputData, date_time):
     for key in add_keys:
         inputData[key] = np.nan
     return inputData
+
+
+def insPlDataStandarsization(inputData, date_time):
+    """
+    insPlData数据标准化: 时间PL数据格式Dataframe）
+    :param date_time: 数据采集日期
+    :return 标准化后的dataframe
+    """
+    # inputData["itow"] = inputData["time"]  # / 10   # / 10 测试！！！
+    gpsWeek = timeExchangeMgr.date2Gpsweek(date_time)
+    inputData["unixTime"] = timeExchangeMgr.gps2Unix(gpsWeek, inputData["time"])  # 计算Unix时间
+    inputData.pop("time")
+    if "gps_flag_pos" in inputData:
+        inputData["gpsQuality"] = inputData['gps_flag_pos']
+        inputData.pop("gps_flag_pos")
+
+    # 计算水平PL
+    if "pos_horizontal_pl" not in inputData:
+        inputData["pos_horizontal_pl"] = (inputData["pos_lat_pl"] ** 2 + inputData["pos_lon_pl"] ** 2) ** 0.5
+
+    return inputData
+
 
 
 if __name__ == "__main__":
@@ -282,7 +321,7 @@ if __name__ == "__main__":
     # print(data)
 
     from Parse import nmeaDecode
-    file_path = r"C:\Users\wenzixuan\Downloads\双天线测试\凯芯新硬件-RTK-1008PM.log"
+    file_path = r"C:\Users\wenzixuan\Downloads\novatel\navdia2.log"
     inputData = nmeaDecode.nmeaToDataframe(file_path)
     print(inputData)
     if "rmc" not in inputData.keys():

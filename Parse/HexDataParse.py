@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 # @Author   : lqw
-# @Date     : 2023/8/22
+# @Date     : 2023/12/04
 
 import re  # 正则表达式
 import struct  # 十六进制数据解析
@@ -20,17 +20,26 @@ class HexDataParse(object):
         self.filePath = ""  # 数据文件路径
         self.fileHexData = ""  # 存储从文件里读取的十六进制数据
 
+        self.full_info = ""
+        self.imu_freq = 200
+        self.vehicle_freq = 50
+        self.gps_freq = 10
+        self.freq_info = {}
+
         self.sysTimeFactor = 4000  # 系统时间系数，IMU数据、INS数据里会用到，570D除以1000，个别版本(234平台和377平台)是除以4000\
 
-        self.data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': True, 'imu': True,
-                                   'ins2': False, 'imu2': False, 'sync': False, 'sat': False, 'sat2': False,
-                                   'ZeroBias': False, 'EKFhandle_type': False}
+        self.flags = ['ins', 'gps', 'vehicle', 'imu', 'ins2', 'imu2', 'sync', 'ZeroBias', 'EKFhandle_type', 'sat', 'sat2', 'InsPl', 'GnssPl', 'x_status_ef', 'history_pos_4e']
+        self.data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': True, 'imu': True
+                                   , 'ins2': False, 'imu2': False,  'sync': False, 'ZeroBias': False, 'EKFhandle_type': False, 'sat': False, 'sat2': False
+                                   , 'InsPl': False, 'GnssPl': False, 'x_status_ef': False, 'history_pos_4e': False}
 
         self.imuDataFrame = None  # IMU数据帧，列表数据类型，元素是十六进制字符串
         self.imuData = pd.DataFrame()  # 解析后的IMU数据，pandas数据类型，这样占用内存更小，由于pandas数据结构添加一行数据效率很低，所以先以字典数据类型收集好数据，然后转成pandas数据结构进行存储
 
         self.gpsDataFrame = None  # GPS数据帧
         self.gpsData = pd.DataFrame()
+        self.bd_len_10 = '{134}'
+        self.bd_len_0B = '{110}'
 
         self.vehicleDataFrame = None  # 车辆数据帧
         self.vehicleData = pd.DataFrame()
@@ -54,11 +63,18 @@ class HexDataParse(object):
 
         self.EKFhandle_typeFrame = None  # 紧组合调试1
         self.EKFhandle_typeData = pd.DataFrame()
+        self.historyPosDataFrame = None
+        self.historyPosData = pd.DataFrame()
+        self.xStatusDataFrame = None
+        self.xStatusData = pd.DataFrame()
 
         self.zeroBiasDataFrame = None  # 常值零偏估算
         self.zeroBiasData = pd.DataFrame()
 
-        self.dataFrameStats = {}
+        self.InsPlDataFrame = None
+        self.InsPlData = pd.DataFrame()
+        self.GnssPlDataFrame = None
+        self.GnssPlData = pd.DataFrame()
 
         self.dataFrameStats = {'imuDataNum': 0, 'imuCheckErrIndex': [], 'gpsDataNum': 0, 'gpsCheckErrIndex': [],
                                'vehicleDataNum': 0, 'vehicleCheckErrIndex': [], 'insDataNum': 0, 'insCheckErrIndex': [],
@@ -69,7 +85,10 @@ class HexDataParse(object):
                                'ins2DataNum': 0, 'ins2CheckErrIndex': [],
                                'imu2FrameHeadNum_bdbd2a': 0, 'ins2FrameHeadNum_bdbd1b': 0,
                                'satelliteDataNum': 0, 'satelliteCheckErrIndex': [], 'satelliteFrameHeadNum_bdbd30': 0,
-                               'satellite2DataNum': 0, 'satellite2CheckErrIndex': [], 'satellite2FrameHeadNum_bdbd31': 0
+                               'satellite2DataNum': 0, 'satellite2CheckErrIndex': [], 'satellite2FrameHeadNum_bdbd31': 0,
+                               'InsPlDataNum': 0, 'InsPlErrIndex': [], 'InsPlFrameHeadNum_bdbd0d': 0,
+                               'GnssPlDataNum': 0, 'GnssPlErrIndex': [], 'GnssPlFrameHeadNum_bdbd0e': 0
+
                                }  # DataNum：数据个数，CheckErr：校验错误数据帧的序列号(下标)，FrameHeadNum：帧头数，只匹配帧头得出
 
         # 数据存储
@@ -94,6 +113,8 @@ class HexDataParse(object):
         self.ImuDataDF = pd.DataFrame()  # IMU数据DataFrame结构
         self.InsDataDF = pd.DataFrame()  # INS数据DataFrame结构
         self.Ins2DataDF = pd.DataFrame()  # odom数据DataFrame结构
+        self.InsPlDataDF = pd.DataFrame()  #
+        self.GnssPlDataDF = pd.DataFrame()  #
 
     # 变量初始化
     def variableInit(self):
@@ -119,13 +140,28 @@ class HexDataParse(object):
 
         self.dataFrameStats['EKFhandle_typeDataNum'] = 0
         self.dataFrameStats['EKFhandle_typeCheckErrIndex'] = []
+        self.dataFrameStats['x_status_data_num'] = 0
+        self.dataFrameStats['x_status_ErrIndex'] = []
+        self.dataFrameStats['history_pos_data_num'] = 0
+        self.dataFrameStats['history_pos_ErrIndex'] = []
         self.dataFrameStats['zeroBiasNum'] = 0
         self.dataFrameStats['zeroBiasErrIndex'] = []
+
+        self.dataFrameStats['InsPlErrIndex'] = []
+        self.dataFrameStats['InsPlNum'] = 0
+        self.dataFrameStats['GnssPlErrIndex'] = []
+        self.dataFrameStats['GnssPlNum'] = 0
+
+        for key in self.flags:
+            if key not in self.data_analysis_flag.keys():
+                self.data_analysis_flag[key] = False
 
     # 读取文件数据，以十六进制形式
     def readFileData(self):
         with open(self.filePath, 'rb') as f:
             self.fileHexData = f.read().hex()  # hex()函数：bytes转hex字符串
+
+        # self.fileHexData = self.fileHexData[:int(len(self.fileHexData)/5)]  # 开发测试用
 
     # 异或校验
     # hexstr：一帧数据包，十六进制字符串，包括末尾校验位
@@ -139,37 +175,6 @@ class HexDataParse(object):
             return True
         else:
             return False
-
-    @staticmethod
-    def checkDataFreq(df, timeName='', freq=200):
-        """
-        计算不同数据
-        其中，IMU默认200hz 轮速默认50hz或100hz GPS默认10hz或5hz
-        :param timeName: 时间字段名称
-        :param df: 解析出来的帧 dataframe
-        :param freq: 数据应为频率
-        :return:
-        """
-        time_diff_dict = {}
-        dataLen = 0
-
-        if len(df) == 0:
-            time_diff_dict['帧数统计'] = '无该帧信息'
-            return dataLen, time_diff_dict
-        duration = df.iloc[-1][timeName] - df.iloc[0][timeName]
-        dataLen = duration * freq
-        time_diff = np.array(np.diff(df[timeName]))
-
-        gap_time = 1 / freq
-        time_diff_dict['与前一帧间隔时长在 [%s s,%s s]的帧数' % (str(gap_time * 0.95), str(gap_time * 1.05))] = len1 = len(
-            time_diff[np.where((time_diff > gap_time * 0.95) & (time_diff < gap_time * 1.05))])
-        time_diff_dict['与前一帧间隔时长在 [%s s,%s s]的帧数' % (str(gap_time * 0.5), str(gap_time * 0.95))] = len2 = len(
-            time_diff[np.where((time_diff >= gap_time * 0.5) & (time_diff < gap_time * 0.95))])
-        time_diff_dict['与前一帧间隔时长在 [%s s,%s s]的帧数' % (str(gap_time * 1.05), str(gap_time * 1.5))] = len3 = len(
-            time_diff[np.where((time_diff > gap_time * 1.05) & (time_diff <= gap_time * 1.5))])
-        time_diff_dict['其他帧间隔时长的帧数'] = len(time_diff) - len1 - len2 - len3
-
-        return dataLen, time_diff_dict
 
     #################################### parse data ####################################
     # 解析一帧IMU数据
@@ -214,10 +219,18 @@ class HexDataParse(object):
         # elif self.myXORCheck(dataHexStr[:-8]):
         #     encode = '<iHiHihH2B4B9hH4BH3I2B'
         #     dataHexStr = dataHexStr[:-8]
-        if len(dataHexStr[6:]) == 142:
-            encode = '<iHiHihH2B4B9hH4BH3I3BhB'
+        if len(dataHexStr[6:]) == 210:
+            encode = '<iHiHihH2B4B9hH4BH3I3B2IB5h2B2q'
+        elif len(dataHexStr[6:]) == 176:
+            encode = '<iHiHihH2B4B9hH4BH3I3B2IB5hB'
+        elif len(dataHexStr[6:]) == 152:
+            encode = '<iHiHihH2B4B9hH4BH3I3B2I'
+        elif len(dataHexStr[6:]) == 142:
+            encode = '<iHiHihH2B4B9hH4BH3I4Bh'
+            # # 原74字节版本，（包括81字节的）已弃用
+            # encode = '<iHiHihH2B4B9hH4BH3I3BhB'
         elif len(dataHexStr[6:]) == 134:
-            encode = '<iHiHihH2B4B9hH4BH3I2B'
+            encode = '<iHiHihH2B4B9hH4BH3I2B'  #32个
         else:
             return []
         data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
@@ -245,38 +258,67 @@ class HexDataParse(object):
         if data[20] > 180:
             data[20] -= 360
         data[21] *= 1e-3
-        if utc_year > 0:
-            data[22] = utc_year + 2000
+        data[22] = utc_year + 2000
         data[27] *= 1e-3  # 秒
         data[28] *= 1e-3  # tsPos
         data[29] *= 1e-3  # tsVel
         data[30] *= 1e-3  # tsHeading
 
-        if len(data) > 33:
-            data[-2] *= 1e-3  # DOP
-            # 校验位
+        if len(dataHexStr[6:]) == 142:
+            # 校验位：69-70双字节校验
             data.pop(-3)
+            data.pop(-2)
+            # aveSNR
+            data[-1] *= 1e-2
+        elif len(data) > 33:
+            data[34] *= 2.5e-4  # week_seconds
+            # 校验位
+            data.pop(33)
 
-        if gps_week > 0:
-            gps_week += 2000
+        if len(data) > 36:
+            data[37] *= 1e-2  # GDOP
+            data[38] *= 1e-2  # PDOP
+            data[39] *= 1e-2  # HDOP
+            data[40] *= 1e-2  # HTDOP
+            data[41] *= 1e-2  # TDOP
+            # 校验位
+            data.pop(36)
+        if len(data) > 43:
+            data[44] *= 1e-8  # 高精纬度lat
+            data[45] *= 1e-8  # 高精经度lon
+            # 校验位
+            data.pop(43)
+
+        gps_week += 2000 if gps_week > 0 else 0
         data.append(gps_week)
 
         return data
 
     # 解析GPS数据
     def parseGPSData(self):
-        dataDic = {'Lon': [], 'LonStd': [], 'Lat': [], 'LatStd': [], 'hMSL': [], 'hMSLStd': [], 'SAcc': [],
-                   'RtkAge': [], 'gpsFix': [], 'flagsPos': [], 'flagsVel': [], 'flagsHeading': [], 'flagsTime': [],
-                   'HSpd': [], 'TrackAngle': [], 'VSpd': [], 'LatencyVel': [], 'BaseLineLength': [],
-                   'Heading': [], 'HeadingStd': [], 'Pitch': [], 'PitchStd': [], 'year': [], 'month': [],
-                   'day': [], 'hour': [], 'minute': [], 'second': [], 'itow_pos': [], 'itow_vel': [],
-                   'itow_heading': [], 'RecMsg': [], 'numSV': [], "DOP": [], "sub_sat_num": [], 'gpsWeek': []}
-        sorteddataDic = ['Lon', 'LonStd', 'Lat', 'LatStd', 'hMSL', 'hMSLStd', 'SAcc', 'RtkAge', 'gpsFix',
-                         'flagsPos', 'flagsVel', 'flagsHeading', 'flagsTime',
-                         'HSpd', 'TrackAngle', 'VSpd', 'LatencyVel', 'BaseLineLength',
-                         'Heading', 'HeadingStd', 'Pitch', 'PitchStd', 'year',
-                         'month', 'day', 'hour', 'minute', 'second', 'itow_pos', 'itow_vel', 'itow_heading', 'RecMsg',
-                         'numSV', "DOP", "sub_sat_num", "gpsWeek"]
+        if self.bd_len_10 in ['{142}',  '{134}']:
+            dataDic = {'Lon': [], 'LonStd': [], 'Lat': [], 'LatStd': [], 'hMSL': [], 'hMSLStd': [], 'SAcc': [],
+                       'RtkAge': [], 'gpsFix': [], 'flagsPos': [], 'flagsVel': [], 'flagsHeading': [], 'flagsTime': [],
+                       'HSpd': [], 'TrackAngle': [], 'VSpd': [], 'LatencyVel': [], 'BaseLineLength': [],
+                       'Heading': [], 'HeadingStd': [], 'Pitch': [], 'PitchStd': [], 'year': [], 'month': [],
+                       'day': [], 'hour': [], 'minute': [], 'second': [], 'itow_pos': [], 'itow_vel': [],
+                       'itow_heading': [], 'RecMsg': [], 'numSV': [], "aveSNR": [], 'gpsWeek': []}
+            # # 原74字节版本，（包括81字节的）已弃用
+            # dataDic = {'Lon': [], 'LonStd': [], 'Lat': [], 'LatStd': [], 'hMSL': [], 'hMSLStd': [], 'SAcc': [],
+            #            'RtkAge': [], 'gpsFix': [], 'flagsPos': [], 'flagsVel': [], 'flagsHeading': [], 'flagsTime': [],
+            #            'HSpd': [], 'TrackAngle': [], 'VSpd': [], 'LatencyVel': [], 'BaseLineLength': [],
+            #            'Heading': [], 'HeadingStd': [], 'Pitch': [], 'PitchStd': [], 'year': [], 'month': [],
+            #            'day': [], 'hour': [], 'minute': [], 'second': [], 'itow_pos': [], 'itow_vel': [],
+            #            'itow_heading': [], 'RecMsg': [], 'numSV': [], "DOP": [], "sub_sat_num": [], 'gpsWeek': []}
+        else:
+            dataDic = {'Lon': [], 'LonStd': [], 'Lat': [], 'LatStd': [], 'hMSL': [], 'hMSLStd': [], 'SAcc': [],
+                       'RtkAge': [], 'gpsFix': [], 'flagsPos': [], 'flagsVel': [], 'flagsHeading': [], 'flagsTime': [],
+                       'HSpd': [], 'TrackAngle': [], 'VSpd': [], 'LatencyVel': [], 'BaseLineLength': [],
+                       'Heading': [], 'HeadingStd': [], 'Pitch': [], 'PitchStd': [], 'year': [], 'month': [],
+                       'day': [], 'hour': [], 'minute': [], 'second': [], 'itow_pos': [], 'itow_vel': [],
+                       'itow_heading': [], 'RecMsg': [], 'numSV': [], 'week_seconds': [], 'gpsWeek': [],
+                      "GDOP": [], "PDOP": [], "HDOP": [], "HTDOP": [], "TDOP": [], "sub_sat_num": [],
+                      'Lat_high_precision': [],  'Lon_high_precision': [], }
         error_index = []
 
         for dataPkg in self.gpsDataFrame:
@@ -287,7 +329,7 @@ class HexDataParse(object):
                 error_index.append(self.gpsDataFrame.index(dataPkg))
                 continue
 
-            for key in list(dataDic.keys())[:-1]:
+            for key in list(dataDic.keys())[:-1]:  # 因最后的GPS week是通过之前的值算出来的
                 if list(dataDic.keys()).index(key) < len(data) - 1:
                     dataDic[key].append(data[list(dataDic.keys()).index(key)])
                 else:
@@ -305,10 +347,15 @@ class HexDataParse(object):
         # 数据依次为 按照协议顺序
         data = list(struct.unpack('<2HIB2HIBBIhIB', bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
 
-        data[2] *= 1e-3
-        data[6] *= 1e-3
+        data[0] *= 0.00863
+        data[1] *= 0.00863
+        data[4] *= 0.00863
+        data[5] *= 0.00863
+
+        data[2] *= 1e-3   # 前轮时间
+        data[6] *= 1e-3   # 后轮时间
         data[9] *= 1e-3
-        data[10] *= 0.0625
+        data[10] *= 0.1
         data[11] *= 1e-3
 
         data.pop(7)  # 删除元素，从后往前删
@@ -356,7 +403,12 @@ class HexDataParse(object):
         # else:
         #     return []
         # 定长 110
-        encode = '<9h3i3hBI2B3hIB'
+        if len(dataHexStr[6:]) == 110:
+            encode = '<9h3i3hBI2B3hIB'
+        elif len(dataHexStr[6:]) == 120:
+            encode = '<9h3i3hBI2B3hI2BI'
+        else:
+            return []
         data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
 
         data[0] *= 360.0 / 32768.0  # roll，横滚角，unit:deg
@@ -376,9 +428,9 @@ class HexDataParse(object):
         data[14] *= 100.0 / 32768.0
         data[22] /= sysTimeFactor
 
-        # if len(data) > 24:
-        #     # 校验位
-        #     data.pop(-2)
+        if len(data) > 24:
+            # 校验位
+            data.pop(-2)
 
         return data
 
@@ -387,14 +439,17 @@ class HexDataParse(object):
         dataDic = {"roll": [], "pitch": [], "yaw": [], "GyroX": [], "GyroY": [], "GyroZ": [], "AccX": [],
                    "AccY": [], "AccZ": [], "lat": [], "lon": [], "height": [], "NorthVelocity": [],
                    "EastVelocity": [], "GroundVelocity": [], "IMUstatus": [], "LEKFstatus": [], "GPSstatus": [],
-                   "DebugBin": [], "PData1": [], "PData2": [], "PData3": [], "time": [], "Ptype": []}  # "gps_week": []
+                   "DebugBin": [], "PData1": [], "PData2": [], "PData3": [], "time": [], "Ptype": [], "gpsWeek": []}
         sorteddataDic = ["roll", "pitch", "yaw", "GyroX", "GyroY", "GyroZ", "AccX", "AccY", "AccZ", "lat", "lon",
                          "height", "NorthVelocity", "EastVelocity", "GroundVelocity", "IMUstatus", "LEKFstatus",
-                         "GPSstatus", "DebugBin", "PData1", "PData2", "PData3", "time", "Ptype"]  # , "gps_week"
+                         "GPSstatus", "DebugBin", "PData1", "PData2", "PData3", "time", "Ptype", "gpsWeek"]  #
 
         for dataPkg in self.insDataFrame:
 
             data = self.parseINSDataOneFrame(dataPkg, self.sysTimeFactor)
+            if not data:
+                self.dataFrameStats['insCheckErrIndex'].append(self.insDataFrame.index(dataPkg))
+                continue
 
             for index in range(len(sorteddataDic)):
                 if index < len(data):
@@ -404,6 +459,84 @@ class HexDataParse(object):
 
         self.insDataFrame = None
         self.insData = pd.DataFrame(dataDic)
+
+    def parseInsPlDataOneFrame(self, dataHexStr, sysTimeFactor=4000):
+        # 数据依次为 按照协议顺序
+        encode = '<15H2BI'
+        data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
+
+        data[0] *= 1e-2  # 纵向pl unit:m
+        data[1] *= 1e-2  # 横向pl unit:m
+        data[2] *= 1e-2  # 水平pl unit:m
+        data[3] *= 1e-2  # 高程pl unit:m
+        data[4] *= 1e-2  # 北向pl unit:m
+        data[5] *= 1e-2  # 东向pl unit:m
+
+        data[6] *= 1e-2  # 纵向速度pl unit:m/s
+        data[7] *= 1e-2  # 横向速度pl unit:m/s
+        data[8] *= 1e-2  # 水平速度pl unit:m/s
+        data[9] *= 1e-2  # 高程速度pl unit:m/s
+        data[10] *= 1e-2  # 北向速度pl unit:m/s
+        data[11] *= 1e-2  # 东向速度pl unit:m/s
+
+        data[12] *= 1e-2  # 横滚角姿态pl unit:deg
+        data[13] *= 1e-2  # 俯仰角姿态pl unit:deg
+        data[14] *= 1e-2  # 航向角姿态pl unit:deg
+        # data[15] -- 组合状态
+        # data[16] -- GNSS解状态
+        data[17] *= 1e-3  # 时间
+
+        # if len(data) > 24:
+        #     # 校验位
+        #     data.pop(-2)
+
+        return data
+
+    # 解析INS完好性数据
+    def parseInsPlData(self):
+        dataDic = {'pos_longitudinal_pl': [], 'pos_lateral_pl': [], 'pos_horizontal_pl': [], 'pos_vertical_pl': [], 'pos_north_pl': [], 'pos_east_pl': []
+                         , 'vel_longitudinal_pl': [], 'vel_lateral_pl': [], 'vel_horizontal_pl': [], 'vel_vertical_pl': [], 'vel_north_pl': [], 'vel_east_pl': []
+                         , 'roll_pl': [], 'pitch_pl': [], 'yaw_pl': [], 'status':[], 'gps_flag_pos': [], 'time':[]}
+        for dataPkg in self.InsPlDataFrame:
+
+            data = self.parseInsPlDataOneFrame(dataPkg)
+
+            for key in list(dataDic.keys()):
+                dataDic[key].append(data[list(dataDic.keys()).index(key)])
+
+        self.InsPlDataFrame = None
+        self.InsPlData = pd.DataFrame(dataDic)
+
+    def parseGnssPlDataOneFrame(self, dataHexStr, sysTimeFactor=4000):
+        # 数据依次为 按照协议顺序
+        encode = '<3HI'
+        try:
+            data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
+
+            data[0] *= 1e-2  # 纵向pl unit:m
+            data[1] *= 1e-2  # 横向pl unit:m
+            data[2] *= 1e-2  # 稿pl unit:m
+
+            data[3] *= 1e-3  # 时间
+        except Exception as e:
+            print(e)
+            return None
+
+        return data
+
+    # 解析Gnss完好性数据
+    def parseGnssPlData(self):
+        dataDic = {'pos_lat_pl': [], 'pos_lon_pl': [], 'pos_vertical_pl': [],  'time':[]}
+        for dataPkg in self.GnssPlDataFrame:
+            data = self.parseGnssPlDataOneFrame(dataPkg)
+            if not data:
+                self.dataFrameStats['GnssPlErrIndex'].append(self.GnssPlDataFrame.index(dataPkg))
+
+            for key in list(dataDic.keys()):
+                dataDic[key].append(data[list(dataDic.keys()).index(key)])
+
+        self.GnssPlDataFrame = None
+        self.GnssPlData = pd.DataFrame(dataDic)
 
     # 找到同步时间数据帧
     # def findSyncDataFrame(self):
@@ -630,8 +763,7 @@ class HexDataParse(object):
 
                         if sat < sat_num:
                             # try:
-                            sat_info_dict['sat' + str(sat) + '_' + key].append(
-                                sat_info[sat * len(satellite_info) + satellite_info.index(key)])
+                            sat_info_dict['sat' + str(sat) + '_' + key].append(sat_info[sat * len(satellite_info) + satellite_info.index(key)])
                             # except Exception as e:
                             #     sat_info_dict['sat' + str(sat) + '_' + key].append(None)
                         else:
@@ -641,6 +773,7 @@ class HexDataParse(object):
             dataDic[key] = sat_info_dict[key]
         self.satelliteDataFrame = None  # 释放内存
         self.satelliteData = pd.DataFrame(dataDic)  # 以pandas数据结构来存储数据，占用内存空间更少
+        self.dataFrameStats['satelliteDataNum'] += len(self.dataFrameStats['satelliteCheckErrIndex'])
 
     def parseSatellite2DataOneFrame(self, dataHexStr):
         base_info = list(struct.unpack('<HIBHIHIHIHIHIHIHIB', bytes.fromhex(dataHexStr[2 * 3:2 * 53])))
@@ -735,8 +868,7 @@ class HexDataParse(object):
                             sat_info_dict['sat' + str(sat) + '_' + key] = []
 
                         if sat < sat_num:
-                            sat_info_dict['sat' + str(sat) + '_' + key].append(
-                                sat_info[sat * len(satellite_info) + satellite_info.index(key)])
+                            sat_info_dict['sat' + str(sat) + '_' + key].append(sat_info[sat * len(satellite_info) + satellite_info.index(key)])
                         else:
                             sat_info_dict['sat' + str(sat) + '_' + key].append(None)
             else:
@@ -746,6 +878,7 @@ class HexDataParse(object):
             dataDic[key] = sat_info_dict[key]
         self.satellite2DataFrame = None  # 释放内存
         self.satellite2Data = pd.DataFrame(dataDic)  # 以pandas数据结构来存储数据，占用内存空间更少
+        self.dataFrameStats['satellite2DataNum'] += len(self.dataFrameStats['satellite2CheckErrIndex'])
 
     # 解析EE帧数据
     def parseEKFhandle_typeOneFrame(self, dataHexStr):
@@ -787,6 +920,67 @@ class HexDataParse(object):
         self.zeroBiasDataFrame = None  # 释放内存
         self.zeroBiasData = pd.DataFrame(dataDic)  # 以pandas数据结构来存储数据，占用内存空间更少
 
+    def parse_x_status_data_one_frame(self, dataHexStr, sysTimeFactor=4000):
+        # 数据依次为 按照协议顺序
+        encode = '<I154f'
+        try:
+            data0 = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
+            data = [data0[0] * 2.50e-3, [], [], []] # 系统时间 unit:s
+            data[1] = data0[1:8]
+            data[2] = data0[8:15]
+            data[3] = data0[15:]
+        except Exception as e:
+            print(e)
+            return None
+
+        return data
+
+    # 解析 X状态量异常调试信息数据协议（EF）
+    def parse_x_status_data(self):
+        dataDic = {'sys_time': [], 'Z': [], 'R': [],  'K':[]}
+        for dataPkg in self.xStatusDataFrame:
+            data = self.parse_x_status_data_one_frame(dataPkg)
+            if not data:
+                self.dataFrameStats['x_status_ErrIndex'].append(self.xStatusDataFrame.index(dataPkg))
+            else:
+                for key in list(dataDic.keys()):
+                    dataDic[key].append(data[list(dataDic.keys()).index(key)])
+
+        self.xStatusDataFrame = None
+        dataDic['sys_time'] = pd.DataFrame(dataDic['sys_time'], columns=['sys_time'])
+        dataDic['Z'], dataDic['R'], dataDic['K'] = pd.DataFrame(dataDic['Z']), pd.DataFrame(dataDic['R']), pd.DataFrame(dataDic['K'])
+        self.xStatusData = dataDic
+
+    def parse_history_pos_data_one_frame(self, dataHexStr, sysTimeFactor=4000):
+        # 数据依次为 按照协议顺序
+        encode = '<h3i'
+        try:
+            data = list(struct.unpack(encode, bytes.fromhex(dataHexStr[2 * 3:-2])))  # 跳过帧头和末尾的校验位
+
+            data[0] *= 360.0 / 32768.0  # 航向
+            data[1] *= 1e-7  # 纬度
+            data[2] *= 1e-7  # 经度
+            data[3] *= 1e-3  # 高
+        except Exception as e:
+            print(e)
+            return None
+
+        return data
+
+    # 解析 历史位置记忆
+    def parse_history_pos_data(self):
+        dataDic = {'yaw': [], 'lat': [], 'lon': [], 'alt': []}
+        for dataPkg in self.historyPosDataFrame:
+            data = self.parse_history_pos_data_one_frame(dataPkg)
+            if not data:
+                self.dataFrameStats['history_pos_ErrIndex'].append(self.historyPosDataFrame.index(dataPkg))
+
+            for key in list(dataDic.keys()):
+                dataDic[key].append(data[list(dataDic.keys()).index(key)])
+
+        self.historyPosDataFrame = None
+        self.historyPosData = pd.DataFrame(dataDic)
+
     # 开始数据解包，总体整合
     # @profile  # 内存分析修饰器，添加这句代码，表明对此函数进行内存分析，内存分析结果会打印输出
     def startParseFileHexData(self):
@@ -820,6 +1014,18 @@ class HexDataParse(object):
         if self.data_analysis_flag['ZeroBias']:
             print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "开始解析零偏")
             self.parseZeroBiasData()
+        if self.data_analysis_flag['InsPl']:
+            print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "开始解析INS完好性")
+            self.parseInsPlData()
+        if self.data_analysis_flag['GnssPl']:
+            print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "开始解析GNSS完好性")
+            self.parseGnssPlData()
+        if self.data_analysis_flag['x_status_ef']:
+            print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "开始解析X状态量异常调试信息数据协议")
+            self.parse_x_status_data()
+        if self.data_analysis_flag['history_pos_4e']:
+            print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "开始解析历史位置记忆")
+            self.parse_history_pos_data()
         if self.data_analysis_flag['sat']:
             try:
                 print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + '开始解析frame30 ')
@@ -847,11 +1053,15 @@ class HexDataParse(object):
     def saveDataToDF(self):
         # IMU数据
         self.ImuDataDF = self.imuData
+        self.ImuDataDF['gps_ts'] = [self.gpsData['itow_pos'][i] if i < len(self.gpsData) else None
+                                for i in self.imuGpsTimeIndex]
 
         # GPS数据
         self.GpsDataDF = self.gpsData
         self.GpsDataDF['ts'] = [self.insData['time'][i] if i < len(self.insData) else None
                                 for i in self.gpsInsTimeIndex]
+        self.GpsDataDF['imu_ts'] = [self.imuData['time'][i] if i < len(self.imuData) else None
+                                for i in self.gpsImuTimeIndex] if 'time' in self.imuData.keys() else [None]*len(self.GpsDataDF)
         self.GpsDataDF['RecMsgBin'] = self.Unit2Bin(self.gpsData['RecMsg'], 8)
 
         # vehicle数据
@@ -885,21 +1095,6 @@ class HexDataParse(object):
             self.PDataDict[key] = PData[key].tolist() if type(PData[key]) != list else PData[key]
         # PDataDF = pd.DataFrame.from_dict(self.PDataDict)  # All arrays must be of the same length
 
-        ## 输出feather
-        # dir_path = os.path.split(self.filePath)
-        # newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_ImuDataDF.feather'
-        # self.ImuDataDF.to_feather(newFilePath)  # 暂存为feather格式
-        # newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_GpsDataDF.feather'
-        # self.GpsDataDF.to_feather(newFilePath)  # 暂存为feather格式
-        # newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_VehicleDataDF.feather'
-        # self.VehicleDataDF.to_feather(newFilePath)  # 暂存为feather格式
-        # newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_InsDataDF.feather'
-        # self.VehicleDataDF.to_feather(newFilePath)  # 暂存为feather格式
-        # newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_Ins2DataDF.feather'
-        # self.Ins2DataDF.to_feather(newFilePath)  # 暂存为feather格式
-        # newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_SyncDataDF.feather'
-        # self.SyncDataDF.to_feather(newFilePath)  # 暂存为feather格式
-
     # 将数据存成pkl二进制序列化文件，比csv文件占用存储空间更少
     # data_df：要存的数据，pandas数据类型
     # fileName：文件名，不包括文件后缀名和文件路径
@@ -921,6 +1116,10 @@ class HexDataParse(object):
         if not os.path.exists(folderPath):
             os.mkdir(folderPath)
         self.ImuDataDF.to_csv(folderPath + '/ImuData.csv')
+        # # 客户端还需需屏蔽 g a LEKFstatus LEKFstatusBin
+        # #  'g': np.array([self.insData['GyroX'], self.insData['GyroY'], self.insData['GyroZ']]).T,
+        # #  'a': np.array([self.insData['AccX'], self.insData['AccY'], self.insData['AccZ']]).T,
+        # self.InsDataDF = self.InsDataDF.drop(['LEKFstatus', 'LEKFstatusBin','GyroX','GyroY','GyroZ','AccX','AccY','AccZ'], axis=1)
         self.InsDataDF.to_csv(folderPath + '/InsData.csv')
         self.Ins2DataDF.to_csv(folderPath + '/Ins2Data.csv')
         self.GpsDataDF.to_csv(folderPath + '/GpsData.csv')
@@ -928,51 +1127,52 @@ class HexDataParse(object):
         self.SyncDataDF.to_csv(folderPath + '/SyncData.csv')
         self.satelliteData.to_csv(folderPath + '/satelliteData.csv')
         self.satellite2Data.to_csv(folderPath + '/satellite2Data.csv')
+        self.EKFhandle_typeData.to_csv(folderPath + '/EKFhandle_typeData.csv')
+        self.InsPlData.to_csv(folderPath + '/INS_PL_Data.csv')
+        self.GnssPlData.to_csv(folderPath + '/GNSS_PL_Data.csv')
+
+        self.historyPosData.to_csv(folderPath + '/history_Pos_Data.csv')
+        writer = pd.ExcelWriter(folderPath + '/x_status_Data.xlsx')
+        self.xStatusData['sys_time'].to_excel(writer, sheet_name='sys_time')
+        self.xStatusData['Z'].to_excel(writer, sheet_name='Z')
+        self.xStatusData['R'].to_excel(writer, sheet_name='R')
+        self.xStatusData['K'].to_excel(writer, sheet_name='K')
+        writer.save()
+        writer.close()
 
     # 开始将数据存成.mat文件格式，总体整合
     def saveAllDataToMatFile(self):
-        veh = self.saveVehicleDataToMatFile()
-        sync = self.saveSyncDataToMatFile()
-        raw = self.saveImuDataToMatFile()
-        gps = self.saveGpsDataToMatFile()
+        veh = self.saveVehicleDataToMatFile() if self.data_analysis_flag['vehicle'] else {}
+        sync = self.saveSyncDataToMatFile() if self.data_analysis_flag['vehicle'] else {}
+        raw = self.saveImuDataToMatFile() if self.data_analysis_flag['imu'] else {}
+        gps = self.saveGpsDataToMatFile() if self.data_analysis_flag['gps'] else {}
         ins = self.saveInsDataToMatFile()
 
         pdata = self.savePDataToMatFile()
-        Imu2Dta = self.saveImu2DataToMatFile()
-        Ins2Data = self.saveIns2DataToMatFile()
-        SatelliteData = self.saveSatelliteDataToMatFile()
-        Satellite2Data = self.saveSatellite2DataToMatFile()
-        EKFhandle_typeData = self.saveEkfHandleDataToMatFile()
-        ZeroBiasData = self.saveZeroBiasDataToMatFile()
+        Imu2Dta = self.saveImu2DataToMatFile() if self.data_analysis_flag['imu2'] else {}
+        Ins2Data = self.saveIns2DataToMatFile() if self.data_analysis_flag['ins2'] else {}
+        SatelliteData = self.saveSatelliteDataToMatFile() if self.data_analysis_flag['sat'] else {}
+        Satellite2Data = self.saveSatellite2DataToMatFile() if self.data_analysis_flag['sat2'] else {}
+        EKFhandle_typeData = self.saveEkfHandleDataToMatFile() if self.data_analysis_flag['EKFhandle_type'] else {}
+        ZeroBiasData = self.saveZeroBiasDataToMatFile() if self.data_analysis_flag['ZeroBias'] else {}
+        InsPlData = self.saveInsPlDataDataToMatFile() if self.data_analysis_flag['InsPl'] else {}
+        GnssPlData = self.saveGnssPlDataDataToMatFile() if self.data_analysis_flag['GnssPl'] else {}
+
+        history_pos_data = self.save_history_pos_data2mat() if self.data_analysis_flag['history_pos_4e'] else {}
+        x_status_data = self.save_x_status_data2mat() if self.data_analysis_flag['x_status_ef'] else {}
 
         ins['Pdata'] = pdata
         matDic = {'GPSINSData': {'RawData': raw, 'SyncData': sync, 'GPSData': gps, 'INSData': ins,
                                  'EnvisionCanData': veh, 'Imu2Dta': Imu2Dta, 'Ins2Data': Ins2Data,
+                                 'SatelliteData': SatelliteData, 'Satellite2Data': Satellite2Data,
                                  'EKFhandle_type': EKFhandle_typeData, 'ZeroBiasData': ZeroBiasData,
-                                 'SatelliteData': SatelliteData, 'Satellite2Data': Satellite2Data
+                                 'inr': InsPlData, 'GNSS_PL': GnssPlData,
+                                 'history_pos':history_pos_data, 'x_status':x_status_data
                                  }}
         dir_path = os.path.split(self.filePath)
-
-        # # 多个mat
-        # folder = dir_path[0] + '\\' + dir_path[1][:-4] + '_MatFiles'
-        # if not os.path.exists(folder):
-        #     os.makedirs(folder)
-        # print(time.strftime('%H:%M:%S', time.localtime()), "保存路径为：", folder)
-        # for df in matDic['GPSINSData']:
-        #     try:
-        #         newFilePath = folder + "\\" + df + '_GPSINSData.mat'
-        #         savemat(newFilePath, matDic['GPSINSData'][df], do_compression=True)  # 存成.mat文件格式
-        #     except Exception as e:
-        #         print(folder + "\\" + df + '_GPSINSData.mat: ' + str(e))
-
-        # 单个mat
-        newFilePath = dir_path[0] + '\\' + dir_path[1][:-4] + '_GPSINSData.mat'
+        newFilePath = dir_path[0] + '/' + dir_path[1][:-4] + '_GPSINSData.mat'
         print(time.strftime('%H:%M:%S', time.localtime()), "保存路径为：", newFilePath)
         savemat(newFilePath, matDic, do_compression=True)  # 存成.mat文件格式
-
-        # import hdf5storage
-        # # 设置压缩选项
-        # hdf5storage.savemat(newFilePath, gps, format='7.3')
 
     # 将数据存成.mat文件格式
     # IMU数据
@@ -988,14 +1188,14 @@ class HexDataParse(object):
     # GPS数据
     def saveGpsDataToMatFile(self):
         mat_key = ['Lon', 'LonStd', 'Lat', 'LatStd', 'hMSL', 'hMSLStd', 'SAcc', 'RtkAge'
-                   , 'gpsFix', 'HSpd', 'Trk', 'VSpd', 'LatencyVel', 'BaseLineLength'
-                   , 'heading', 'cAcc', 'pitch', 'pitchStd', 'RecMsg', 'RecMsgBin'
-                   , 'NumSV', 't', 'gpsWeek', 'itow_pos', 'itow_vel', 'itow_heading'
-                   , 'ts', 'flagsPos', 'flagsVel', 'flagsHeading', 'flagsTime']
+            , 'gpsFix', 'HSpd', 'Trk', 'VSpd', 'LatencyVel', 'BaseLineLength'
+            , 'heading', 'cAcc', 'pitch', 'pitchStd', 'RecMsg', 'RecMsgBin'
+            , 'NumSV', 't', 'gpsWeek', 'itow_pos', 'itow_vel', 'itow_heading'
+            , 'ts', 'flagsPos', 'flagsVel', 'flagsHeading', 'flagsTime']
         if len(self.gpsData) == 0:
             return dict.fromkeys(mat_key, [])
-        if len(self.insData) != 0:
-            gpsInsTime = [self.insData['time'][i] for i in self.gpsInsTimeIndex]
+        gpsInsTime = [self.insData['time'][i] if i < len(self.insData) else 0 for i in self.gpsInsTimeIndex]
+        # gpsInsTime = [self.insData['time'][i] for i in self.gpsInsTimeIndex] if len(self.insData) != 0 else []
 
         matDic = {'Lon': np.array([self.gpsData['Lon']]).T, 'LonStd': np.array([self.gpsData['LonStd']]).T,
                   'Lat': np.array([self.gpsData['Lat']]).T, 'LatStd': np.array([self.gpsData['LatStd']]).T,
@@ -1003,7 +1203,6 @@ class HexDataParse(object):
                   'SAcc': np.array([self.gpsData['SAcc']]).T,
                   'RtkAge': np.array([self.gpsData['RtkAge']]).T,
                   'gpsFix': np.float64(np.array([self.gpsData['gpsFix']]).T),
-                  # 'flags': np.float64(np.array([self.gpsData['flags']]).T),
                   'HSpd': np.array([self.gpsData['HSpd']]).T, 'Trk': np.array([self.gpsData['TrackAngle']]).T,
                   'VSpd': np.array([self.gpsData['VSpd']]).T, 'LatencyVel': np.array([self.gpsData['LatencyVel']]).T,
                   'BaseLineLength': np.array([self.gpsData['BaseLineLength']]).T,
@@ -1017,7 +1216,11 @@ class HexDataParse(object):
                   'gpsWeek': np.array([self.gpsData['gpsWeek']]).T,
                   'itow_pos': np.array([self.gpsData['itow_pos']]).T,
                   'itow_vel': np.array([self.gpsData['itow_vel']]).T,
-                  'itow_heading': np.array([self.gpsData['itow_heading']]).T, 'ts': np.array([gpsInsTime]).T,
+                  'itow_heading': np.array([self.gpsData['itow_heading']]).T,
+                  'ts': np.array([gpsInsTime]).T,
+                  'aveSNR': np.array([self.gpsData['aveSNR']]).T if self.gpsData['aveSNR'][0] is not None else np.array([[0] * len(self.gpsData['aveSNR'])]),
+
+                  # 'flags': np.float64(np.array([self.gpsData['flags']]).T),  # 转成下面的:
                   'flagsPos': np.float64(np.array([self.gpsData['flagsPos']]).T),
                   'flagsVel': np.float64(np.array([self.gpsData['flagsVel']]).T),
                   'flagsHeading': np.float64(np.array([self.gpsData['flagsHeading']]).T),
@@ -1033,8 +1236,8 @@ class HexDataParse(object):
                                   'VehSpdNonDriL', 'VehSpdNonDriR', 'tsVehSpdNonDri', 'Shifter', 'tsShifter', 'flag']
                                  , [])
 
-        vehicleInsTime = [self.insData['time'][i] for i in self.vehicleInsTimeIndex] if len(self.insData) != 0 else []
-
+        # vehicleInsTime = [self.insData['time'][i] for i in self.vehicleInsTimeIndex] if len(self.insData) != 0 else []
+        vehicleInsTime = [self.insData['time'][i] if i < len(self.insData) else None for i in self.vehicleInsTimeIndex]
         VehSpdDriL = np.array([self.vehicleData['WheelSpeedFrontLeft']]).T
         VehSpdDriR = np.array([self.vehicleData['WheelSpeedFrontRight']]).T
         VehSpdNonDriL = np.array([self.vehicleData['WheelSpeedBackLeft']]).T
@@ -1057,33 +1260,36 @@ class HexDataParse(object):
     # INS数据
     def saveInsDataToMatFile(self):
         mat_keys = ['angle', 'g', 'a', 'pos', 'v', 'IMUstatus'
-                    , 'IMUstatusBin', 'LEKFstatus', 'LEKFstatusBin'
-                    , 'GPSstatus', 'GPSstatusBin', 'DebugBin', 'P', 'ts', 'Ptype']
+            , 'IMUstatusBin', 'LEKFstatus', 'LEKFstatusBin'
+            , 'GPSstatus', 'GPSstatusBin', 'DebugBin', 'P', 'ts', 'Ptype']
         if len(self.insData) == 0:
             return dict.fromkeys(mat_keys, [])
+        gpsWeek = np.array([self.insData['gpsWeek']]).T if self.insData['gpsWeek'][0] != None else np.array([[0]*len(self.insData['gpsWeek'])])
         matDic = {'angle': np.array([self.insData['roll'], self.insData['pitch'], self.insData['yaw']]).T,
-                  'g': np.array([self.insData['GyroX'], self.insData['GyroY'], self.insData['GyroZ']]).T,
-                  'a': np.array([self.insData['AccX'], self.insData['AccY'], self.insData['AccZ']]).T,
+                  'g': np.array([self.insData['GyroX'], self.insData['GyroY'], self.insData['GyroZ']]).T,  # 客户端需屏蔽
+                  'a': np.array([self.insData['AccX'], self.insData['AccY'], self.insData['AccZ']]).T,  # 客户端需屏蔽
                   'pos': np.array([self.insData['lat'], self.insData['lon'], self.insData['height']]).T,
                   'v': np.array(
                       [self.insData['NorthVelocity'], self.insData['EastVelocity'], self.insData['GroundVelocity']]).T,
                   'IMUstatus': np.float64(np.array([self.insData['IMUstatus']]).T),
                   'IMUstatusBin': self.Unit2Bin(self.insData['IMUstatus'], 8),
-                  'LEKFstatus': np.float64(np.array([self.insData['LEKFstatus']]).T),
-                  'LEKFstatusBin': self.Unit2Bin(self.insData['LEKFstatus'], 32),
+                  'LEKFstatus': np.float64(np.array([self.insData['LEKFstatus']]).T),  # 客户端需屏蔽
+                  'LEKFstatusBin': self.Unit2Bin(self.insData['LEKFstatus'], 32),  #客户端需屏蔽
                   'GPSstatus': np.float64(np.array([self.insData['GPSstatus']]).T),
                   'GPSstatusBin': self.Unit2Bin(self.insData['GPSstatus'], 8),
                   'DebugBin': self.Unit2Bin(self.insData['DebugBin'], 8),
                   'P': np.float64(np.array([self.insData['PData1'], self.insData['PData2'], self.insData['PData3']]).T),
-                  'ts': np.array([self.insData['time']]).T, 'Ptype': np.float64(np.array([self.insData['Ptype']]).T)}
+                  'ts': np.array([self.insData['time']]).T, 'Ptype': np.float64(np.array([self.insData['Ptype']]).T),
+                  'gpsWeek': gpsWeek}
         return matDic
 
     # 同步时间数据
     def saveSyncDataToMatFile(self):
         if len(self.syncData) == 0:
             return dict.fromkeys(['timu', 'tgps', 'ts'], [])
-        if len(self.insData) != 0:
-            syncInsTime = [self.insData['time'][i] for i in self.syncInsTimeIndex]
+        # if len(self.insData) != 0:
+        #     syncInsTime = [self.insData['time'][i] for i in self.syncInsTimeIndex]
+        syncInsTime = [self.insData['time'][i] if i < len(self.insData) else None for i in self.syncInsTimeIndex]
 
         matDic = {'timu': np.float64(np.array([self.syncData['imuTime']]).T),
                   'tgps': np.float64(np.array([self.syncData['gpsTime']]).T),
@@ -1123,6 +1329,7 @@ class HexDataParse(object):
                   'temp_P': np.array([self.ins2Data['temp_P0'], self.ins2Data['temp_P1'], self.ins2Data['temp_P2']]).T,
                   'Index': np.float64(np.array([self.ins2Data['Index']]).T),
                   'frame_id': np.float64(np.array([self.ins2Data['frame_id']]).T),
+                  'ts': np.array([self.Ins2DataDF['ts']]).T,
                   'time': np.array([self.ins2Data['time']]).T
                   }
         return matDic
@@ -1131,20 +1338,16 @@ class HexDataParse(object):
         matDic = dict.fromkeys(['base_info', 'sat_info'], [])
         if not self.satelliteData.empty:
             matDic = {
-                'base_info': np.float64(
-                    np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[:14]]).T),
-                'sat_info': np.float64(
-                    np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[14:]]).T)}
+                'base_info': np.float64(np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[:14]]).T),
+                'sat_info': np.float64(np.array([self.satelliteData[i] for i in list(self.satelliteData.keys())[14:]]).T)}
         return matDic
 
     def saveSatellite2DataToMatFile(self):
         matDic = dict.fromkeys(['base_info', 'sat_info'], [])
         if not self.satellite2Data.empty:
             matDic = {
-                'base_info': np.float64(
-                    np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[:11]]).T),
-                'sat_info': np.float64(
-                    np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[11:]]).T)}
+                'base_info': np.float64(np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[:11]]).T),
+                'sat_info': np.float64(np.array([self.satellite2Data[i] for i in list(self.satellite2Data.keys())[11:]]).T)}
         return matDic
 
     # 紧组合EE数据
@@ -1173,20 +1376,20 @@ class HexDataParse(object):
     # 轮循表数据
     def savePDataToMatFile(self):
         mat_key = ['Xp', 'Xv', 'Xatt', 'Xba', 'Xbg', 'Align', 'Xalign', 'Lbbg', 'Xlbbg', 'Lbbc', 'Xlbbc', 'Ba'
-                   , 'Bg', 'Atttg', 'XAtttg', 'Lbgc', 'Attbg', 'StdAtttb', 'Dpos', 'Dvel', 'Tsover', 'Tsover2'
-                   , 'DParkingpos', 'Pp', 'Pv', 'Patt', 'Pba', 'Pbg', 'Palign', 'Plbbg', 'Plbbc', 'PAtttg'
-                   , 'Pkws', 'StdAtttg', 'SUIDAOTIME', 'StdLttg', 'PpT', 'PvT', 'PattT', 'PbaT', 'PbgT', 'XpT'
-                   , 'XvT', 'XattT', 'XbaT', 'XbgT', 'AlignT', 'XalignT', 'PalignT', 'TimeGPS2IMUT'
-                   , 'CalibrationFlagT', 'TimeLekfUpdateT', 'LbbgT', 'XlbbgT', 'PlbbgT', 'LbbcT', 'XlbbcT'
-                   , 'PlbbcT', 'BaT', 'BgT', 'TempT', 'Gmean_Gvar_AvarT', 'AtttgT', 'PAtttgT', 'XAtttgT', 'KwsT'
-                   , 'PkwsT', 'XkwsT', 'LbgcT', 'AttbgT', 'TrisQualityT', 'nStateT', 'Flag34T', 'State35T'
-                   , 'StdAtttbT', 'StdAtttgT', 'SUIDAOTIMET', 'StdLttgT', 'StdKwsT', 'TimeT', 'DposT', 'DvelT'
-                   , 'VelbT', 'TsoverT', 'Tsover2T', 'RposT', 'stdPosT', 'DposHpPpHT', 'TimeEdlayT'
-                   , 'DParkingposT', 'TimeGPS2IMU', 'CalibrationFlag', 'TimeLekfUpdate', 'Temp', 'TimeNoW'
-                   , 'TimeNoRTKINT', 'Gmean', 'TrisAbsmaxdposPspeed', 'TrisQuality', 'TrisMaxdpos', 'StateGPS'
-                   , 'StateKWS', 'Ppostemp', 'State35', 'DposHorizontal', 'temptime', 'TimeNoPOS', 'tsOverRTKInt'
-                   , 'tsOverVelb', 'Ra1', 'rabs', 'DposHpPpH', 'TimeGPS2IMUPos', 'TimeGPS2IMUHeading'
-                   , 'TimeGPS2IMUCarVel', 'Avar', 'Gvar', 'Kws', 'Xkws', 'Flag34', 'StdKws', 'Velb', 'Rpos', 'stdPos']
+            , 'Bg', 'Atttg', 'XAtttg', 'Lbgc', 'Attbg', 'StdAtttb', 'Dpos', 'Dvel', 'Tsover', 'Tsover2'
+            , 'DParkingpos', 'Pp', 'Pv', 'Patt', 'Pba', 'Pbg', 'Palign', 'Plbbg', 'Plbbc', 'PAtttg'
+            , 'Pkws', 'StdAtttg', 'SUIDAOTIME', 'StdLttg', 'PpT', 'PvT', 'PattT', 'PbaT', 'PbgT', 'XpT'
+            , 'XvT', 'XattT', 'XbaT', 'XbgT', 'AlignT', 'XalignT', 'PalignT', 'TimeGPS2IMUT'
+            , 'CalibrationFlagT', 'TimeLekfUpdateT', 'LbbgT', 'XlbbgT', 'PlbbgT', 'LbbcT', 'XlbbcT'
+            , 'PlbbcT', 'BaT', 'BgT', 'TempT', 'Gmean_Gvar_AvarT', 'AtttgT', 'PAtttgT', 'XAtttgT', 'KwsT'
+            , 'PkwsT', 'XkwsT', 'LbgcT', 'AttbgT', 'TrisQualityT', 'nStateT', 'Flag34T', 'State35T'
+            , 'StdAtttbT', 'StdAtttgT', 'SUIDAOTIMET', 'StdLttgT', 'StdKwsT', 'TimeT', 'DposT', 'DvelT'
+            , 'VelbT', 'TsoverT', 'Tsover2T', 'RposT', 'stdPosT', 'DposHpPpHT', 'TimeEdlayT'
+            , 'DParkingposT', 'TimeGPS2IMU', 'CalibrationFlag', 'TimeLekfUpdate', 'Temp', 'TimeNoW'
+            , 'TimeNoRTKINT', 'Gmean', 'TrisAbsmaxdposPspeed', 'TrisQuality', 'TrisMaxdpos', 'StateGPS'
+            , 'StateKWS', 'Ppostemp', 'State35', 'DposHorizontal', 'temptime', 'TimeNoPOS', 'tsOverRTKInt'
+            , 'tsOverVelb', 'Ra1', 'rabs', 'DposHpPpH', 'TimeGPS2IMUPos', 'TimeGPS2IMUHeading', 'TimeGPS2IMUCarVel'
+            , 'Avar', 'Gvar', 'Kws', 'Xkws', 'Flag34', 'StdKws', 'Velb', 'Rpos', 'stdPos']
         matDic = dict.fromkeys(mat_key, [])
         if len(self.insData) == 0:
             return matDic
@@ -1266,52 +1469,104 @@ class HexDataParse(object):
             matDic.pop(i)
         return matDic
 
+    def saveInsPlDataDataToMatFile(self):
+        if len(self.InsPlData) == 0:
+            return dict.fromkeys(['pos_pl', 'vel_pl', 'att_pl', 'status', 'time'], [])
+        matDic = {'pos_pl': np.array([self.InsPlData['pos_longitudinal_pl'], self.InsPlData['pos_lateral_pl'], self.InsPlData['pos_horizontal_pl']
+                                         , self.InsPlData['pos_vertical_pl'], self.InsPlData['pos_north_pl'], self.InsPlData['pos_east_pl']]).T,
+                  'vel_pl': np.array([self.InsPlData['vel_longitudinal_pl'], self.InsPlData['vel_lateral_pl'], self.InsPlData['vel_horizontal_pl']
+                                         , self.InsPlData['vel_vertical_pl'], self.InsPlData['vel_north_pl'], self.InsPlData['vel_east_pl']]).T,
+                  'att_pl': np.array([self.InsPlData['roll_pl'], self.InsPlData['pitch_pl'], self.InsPlData['yaw_pl']]).T,
+                  'status': np.array([self.InsPlData['status']]).T,'time': np.array([self.InsPlData['time']]).T}
+        return matDic
+
+    def saveGnssPlDataDataToMatFile(self):
+        if len(self.GnssPlData) == 0:
+            return dict.fromkeys(['pos_pl'], [])
+        matDic = {'pos_pl': np.array([self.GnssPlData['time']
+                                         , self.GnssPlData['pos_lat_pl'], self.GnssPlData['pos_lon_pl'], self.GnssPlData['pos_vertical_pl']]).T}
+        return matDic
+
+    def save_history_pos_data2mat(self):
+        if len(self.historyPosData) == 0:
+            return dict.fromkeys(['yaw', 'lat', 'lon', 'alt'], [])
+        matDic = {'yaw': np.array([self.historyPosData['yaw']]).T
+            , 'lat': np.array([self.historyPosData['lat']]).T, 'lon': np.array([self.historyPosData['lon']]).T, 'alt': np.array([self.historyPosData['alt']]).T}
+        return matDic
+
+    def save_x_status_data2mat(self):
+        if len(self.xStatusData) == 0:
+            return dict.fromkeys(['sys_time', 'Z', 'R',  'K'], [])
+        matDic = {'sys_time': np.array([self.xStatusData['sys_time']]).T
+            , 'Z': np.array([self.xStatusData['Z']]).T, 'R': np.array([self.xStatusData['R']]).T, 'K': np.array([self.xStatusData['K']]).T}
+        return matDic
+
     #################################### analyze data ####################################
+    def findHexLength(self, head, len_lists):
+        """
+        检查帧的长短
+        :param head: 'bddb10'
+        :param len_lists: [最大值, 次之, ...] 除去 bddbxx 六位的长度
+        :return: '{142}''
+        """
+        if not len_lists:
+            return '{0}'
+        len_count_dict = dict.fromkeys(len_lists, 0)
+
+        frames = re.findall(r''+head+'.{'+str(len_lists[0])+'}', self.fileHexData)
+        for frame in frames:
+            this_head = frame[:6]
+            if this_head == head:
+                for hex_len in len_lists:
+                    if self.myXORCheck(frame[:hex_len+6]):
+                        len_count_dict[hex_len] += 1
+                        break
+                    else:
+                        continue
+
+        bd_length = '{'+str(max(len_count_dict, key=lambda x: len_count_dict[x]))+'}'
+
+        return bd_length
+
     # 找到所有数据帧
     def findAllDataFrame(self):
-        frame0A = []
-        frame10 = []
-        frame20 = []
-        frame0B = []
-        frame0C = []
-        frame2A = []
-        frame1B = []
-        frame30 = []
-        frame31 = []
-        frameEE = []
-        frame6E = []
-        flag = True
-        indexIns = 0
-        self.gpsInsTimeIndex = []
-        self.vehicleInsTimeIndex = []
-        self.syncInsTimeIndex = []
+        frame0A, frame10, frame20, frame0B, frame0C, frame2A, frame1B, frame30, frame31, frameEE, frame4E, frameEF, frame6E, frame0D, frame0E = [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
+        flag, flagGps, flagImu = True, True, True
+        indexIns, indexGps, indexImu = 0, 0, 0
+        self.gpsInsTimeIndex, self.gpsImuTimeIndex, self.vehicleInsTimeIndex, self.syncInsTimeIndex, self.imuGpsTimeIndex = [], [], [], [], []
 
         # 10帧 检查长短
-        frames = re.findall(r'bddb10.{142}', self.fileHexData)
-        long_db, short_db = 0, 0
-        for frame in frames:
-            head = frame[:6]
-            if head == 'bddb10':
-                if self.myXORCheck(frame):
-                    long_db += 1
-                elif self.myXORCheck(frame[:-8]):
-                    short_db += 1
-                else:
-                    continue
-        bd_len = '{142}' if long_db > short_db else '{134}'
-
+        self.bd_len_10 = self.findHexLength('bddb10', [142, 134])
+        self.bd_len_0B = self.findHexLength('bddb0b', [120, 110])
+        # frames = re.findall(r'bddb10.{142}', self.fileHexData)
+        # long_db, short_db = 0, 0
+        # for frame in frames:
+        #     head = frame[:6]
+        #     if head == 'bddb10':
+        #         if self.myXORCheck(frame):
+        #             long_db += 1
+        #         elif self.myXORCheck(frame[:-8]):
+        #             short_db += 1
+        #         else:
+        #             continue
+        # bd_len = '{142}' if long_db > short_db else '{134}'
+        re_find = r'bddb0a.{62}|bddb20.{62}|bddb0c.{18}|bddb2a.{62}|bddb1b.{132}|bddbee.{26}|bddb4e.{30}|bddb6e.{28}|bddb0d.{74}|bddb0e.{22}|bddbef.{1242}'
         frames = re.findall(
             # r'bddb0a.{62}|bddb20.{62}|bddb0b.{120}|bddb0c.{18}|bddb2a.{62}|bddb1b.{132}|bddbee.{26}|bddb6e.{28}',
-            r'bddb0a.{62}|bddb20.{62}|bddb0b.{110}|bddb0c.{18}|bddb2a.{62}|bddb1b.{132}|bddbee.{26}|bddb6e.{28}|bddb10.' + bd_len,
+            'bddb10.' + self.bd_len_10+'|bddb0b.' + self.bd_len_0B + '|' + re_find,
             self.fileHexData)
         for frame in frames:
             head = frame[:6]
             if head == 'bddb0a':
                 if not self.myXORCheck(frame):  # 数据校验有问题
                     self.dataFrameStats['imuCheckErrIndex'].append(
-                        self.dataFrameStats['imuDataNum'] + len(
-                            self.dataFrameStats['imuCheckErrIndex']))  # 统计校验有问题的数据帧的序列号(下标)
+                        self.dataFrameStats['imuDataNum'] + len(self.dataFrameStats['imuCheckErrIndex']))  # 统计校验有问题的数据帧的序列号(下标)
                     continue
+                indexImu += 1
+                if flagImu:  # 首次进入
+                    indexImu = 0
+                    flagImu = False
+                self.imuGpsTimeIndex.append(indexGps)
                 self.dataFrameStats['imuDataNum'] += 1
                 frame0A.append(frame)
             elif head == 'bddb20':
@@ -1363,6 +1618,20 @@ class HexDataParse(object):
                     continue
                 self.dataFrameStats['EKFhandle_typeDataNum'] += 1
                 frameEE.append(frame)
+            elif head == 'bddbef':
+                if not self.myXORCheck(frame):
+                    self.dataFrameStats['x_status_ErrIndex'].append(
+                        self.dataFrameStats['x_status_bdbdEF'] + len(self.dataFrameStats['x_status_ErrIndex']))
+                    continue
+                self.dataFrameStats['x_status_data_num'] += 1
+                frameEF.append(frame)
+            elif head == 'bddb4e':
+                if not self.myXORCheck(frame):
+                    self.dataFrameStats['history_pos_ErrIndex'].append(
+                        self.dataFrameStats['history_pos_bdbd4E'] + len(self.dataFrameStats['history_pos_ErrIndex']))
+                    continue
+                self.dataFrameStats['history_pos_data_num'] += 1
+                frame4E.append(frame)
             elif head == 'bddb6e':
                 if not self.myXORCheck(frame):
                     self.dataFrameStats['zeroBiasErrIndex'].append(self.dataFrameStats['zeroBiasNum'])
@@ -1374,9 +1643,26 @@ class HexDataParse(object):
                     self.dataFrameStats['gpsCheckErrIndex'].append(
                         self.dataFrameStats['gpsDataNum'] + len(self.dataFrameStats['gpsCheckErrIndex']))
                     continue
+                indexGps += 1
+                if flagGps:  # 首次进入
+                    indexGps = 0
+                    flagGps = False
                 self.gpsInsTimeIndex.append(indexIns)
+                self.gpsImuTimeIndex.append(indexImu)
                 self.dataFrameStats['gpsDataNum'] += 1
                 frame10.append(frame)
+            elif head == 'bddb0d':
+                if not self.myXORCheck(frame):
+                    self.dataFrameStats['InsPlErrIndex'].append(self.dataFrameStats['InsPlNum'])
+                    continue
+                self.dataFrameStats['InsPlNum'] += 1
+                frame0D.append(frame)
+            elif head == 'bddb0e':
+                if not self.myXORCheck(frame):
+                    self.dataFrameStats['GnssPlErrIndex'].append(self.dataFrameStats['GnssPlNum'])
+                    continue
+                self.dataFrameStats['GnssPlNum'] += 1
+                frame0E.append(frame)
 
         # 30 31帧
         # # method 0
@@ -1402,19 +1688,11 @@ class HexDataParse(object):
             for i in range(len(self.fileHexData[:-6]) - 6028):
                 if self.fileHexData[i:i + 6] == 'bddb30':
                     frame30.append(self.fileHexData[i:i + 6028])
-            # for frame in frame30:
-            #     head = frame[:6]
-            #     if head == 'bddb30':
-            #         frame30.append(frame)
             self.dataFrameStats['satelliteDataNum'] = len(frame30)
         if self.data_analysis_flag['sat2']:
             for i in range(len(self.fileHexData[:-6]) - 8108):
                 if self.fileHexData[i:i + 6] == 'bddb31':
                     frame31.append(self.fileHexData[i:i + 8108])
-            # for frame in frame31:
-            #     head = frame[:6]
-            #     if head == 'bddb31':
-            #         frame31.append(frame)
             self.dataFrameStats['satellite2DataNum'] = len(frame31)
 
         self.imuDataFrame = frame0A
@@ -1427,7 +1705,11 @@ class HexDataParse(object):
         self.satelliteDataFrame = frame30
         self.satellite2DataFrame = frame31
         self.EKFhandle_typeFrame = frameEE
+        self.historyPosDataFrame = frame4E
+        self.xStatusDataFrame = frameEF
         self.zeroBiasDataFrame = frame6E
+        self.InsPlDataFrame = frame0D
+        self.GnssPlDataFrame = frame0E
         # 减少内存占用
         self.gpsInsTimeIndex = np.array(self.gpsInsTimeIndex)
         self.vehicleInsTimeIndex = np.array(self.vehicleInsTimeIndex)
@@ -1457,6 +1739,14 @@ class HexDataParse(object):
             self.dataFrameStats['satelliteCheckErrIndex'])
         self.dataFrameStats['satellite2DataTotalNum'] = self.dataFrameStats['satellite2DataNum'] + len(
             self.dataFrameStats['satellite2CheckErrIndex'])
+        self.dataFrameStats['InsPlTotalNum'] = self.dataFrameStats['InsPlNum'] + len(
+            self.dataFrameStats['InsPlErrIndex'])
+        self.dataFrameStats['GnssPlTotalNum'] = self.dataFrameStats['GnssPlNum'] + len(
+            self.dataFrameStats['GnssPlErrIndex'])
+        self.dataFrameStats['x_status_data_total_num'] = self.dataFrameStats['x_status_data_num'] + len(
+            self.dataFrameStats['x_status_ErrIndex'])
+        self.dataFrameStats['history_pos_data_total_num'] = self.dataFrameStats['history_pos_data_num'] + len(
+            self.dataFrameStats['history_pos_ErrIndex'])
 
     # 各帧头数量统计
     def dataFrameHeadNumStats(self):
@@ -1470,7 +1760,11 @@ class HexDataParse(object):
         self.dataFrameStats['satelliteFrameHeadNum_bdbd30'] = len(re.findall(r'bddb30', self.fileHexData))
         self.dataFrameStats['satellite2FrameHeadNum_bdbd31'] = len(re.findall(r'bddb31', self.fileHexData))
         self.dataFrameStats['EKFhandle_typeDataNum_bdbdEE'] = len(re.findall(r'bddbee', self.fileHexData))
+        self.dataFrameStats['x_status_bdbdEF'] = len(re.findall(r'bddbef', self.fileHexData))
+        self.dataFrameStats['history_pos_bdbd4E'] = len(re.findall(r'bddb4e', self.fileHexData))
         self.dataFrameStats['ZeroBiasDataNum_bdbd6E'] = len(re.findall(r'bddb6e', self.fileHexData))
+        self.dataFrameStats['InsFlFrameHeadNum_bdbd0D'] = len(re.findall(r'bddb0d', self.fileHexData))
+        self.dataFrameStats['GnssFlFrameHeadNum_bdbd0E'] = len(re.findall(r'bddb0e', self.fileHexData))
 
     # 所有数据存为DataFrame数格式
     def clear_cache(self):
@@ -1527,65 +1821,225 @@ class HexDataParse(object):
     def printDataFrameStatsResult(self):
         print("IMU数据帧：", "纯帧头数量:", self.dataFrameStats['imuFrameHeadNum_bdbd0a'], "总帧数量:",
               self.dataFrameStats['imuDataNum'], "错误帧数量:",
-              len(self.dataFrameStats['imuCheckErrIndex']), "错误帧索引下标:", self.dataFrameStats['imuCheckErrIndex'])
+              len(self.dataFrameStats['imuCheckErrIndex']), "错误帧索引下标:", self.dataFrameStats['imuCheckErrIndex'][:10])
         print("GPS数据帧：", "纯帧头数量:", self.dataFrameStats['gpsFrameHeadNum_bdbd10'], "总帧数量:",
               self.dataFrameStats['gpsDataNum'], "错误帧数量:",
-              len(self.dataFrameStats['gpsCheckErrIndex']), "错误帧索引下标:", self.dataFrameStats['gpsCheckErrIndex'])
+              len(self.dataFrameStats['gpsCheckErrIndex']), "错误帧索引下标:", self.dataFrameStats['gpsCheckErrIndex'][:10])
         print("车辆数据帧：", "纯帧头数量:", self.dataFrameStats['vehicleFrameHeadNum_bdbd20'], "总帧数量:",
               self.dataFrameStats['vehicleDataNum'], "错误帧数量:",
               len(self.dataFrameStats['vehicleCheckErrIndex']), "错误帧索引下标:",
-              self.dataFrameStats['vehicleCheckErrIndex'])
+              self.dataFrameStats['vehicleCheckErrIndex'][:10])
         print("INS数据帧：", "纯帧头数量:", self.dataFrameStats['insFrameHeadNum_bdbd0b'], "总帧数量:",
               self.dataFrameStats['insDataNum'], "错误帧数量:",
-              len(self.dataFrameStats['insCheckErrIndex']), "错误帧索引下标:", self.dataFrameStats['insCheckErrIndex'])
+              len(self.dataFrameStats['insCheckErrIndex']), "错误帧索引下标:", self.dataFrameStats['insCheckErrIndex'][:10])
         print("同步时间数据帧：", "纯帧头数量:", self.dataFrameStats['syncFrameHeadNum_bdbd0c'], "总帧数量:",
               self.dataFrameStats['syncDataNum'], "错误帧数量:",
               len(self.dataFrameStats['syncCheckErrIndex']), "错误帧索引下标:",
-              self.dataFrameStats['syncCheckErrIndex'])
+              self.dataFrameStats['syncCheckErrIndex'][:10])
         print("IMU2数据帧：", "纯帧头数量:", self.dataFrameStats['imu2FrameHeadNum_bdbd2a'], "总帧数量:",
               self.dataFrameStats['imu2DataNum'], "错误帧数量:",
               len(self.dataFrameStats['imu2CheckErrIndex']), "错误帧索引下标:",
-              self.dataFrameStats['imu2CheckErrIndex'])
+              self.dataFrameStats['imu2CheckErrIndex'][:10])
         print("INS2数据帧：", "纯帧头数量:", self.dataFrameStats['ins2FrameHeadNum_bdbd1b'], "总帧数量:",
               self.dataFrameStats['ins2DataNum'], "错误帧数量:",
               len(self.dataFrameStats['ins2CheckErrIndex']), "错误帧索引下标:",
-              self.dataFrameStats['ins2CheckErrIndex'])
+              self.dataFrameStats['ins2CheckErrIndex'][:10])
         print("Satellite数据帧：", "纯帧头数量:", self.dataFrameStats['satelliteFrameHeadNum_bdbd30'], "总帧数量:",
               self.dataFrameStats['satelliteDataNum'], "错误帧数量:",
               len(self.dataFrameStats['satelliteCheckErrIndex']), "错误帧索引下标:",
-              self.dataFrameStats['satelliteCheckErrIndex'])
+              self.dataFrameStats['satelliteCheckErrIndex'][:10])
+        print("Satellite31数据帧：", "纯帧头数量:", self.dataFrameStats['satellite2DataTotalNum'], "总帧数量:",
+              self.dataFrameStats['satellite2DataNum'], "错误帧数量:",
+              len(self.dataFrameStats['satellite2CheckErrIndex']), "错误帧索引下标:",
+              self.dataFrameStats['satellite2CheckErrIndex'][:10])
         print("EE数据帧：", "EE纯帧头数量:", self.dataFrameStats['EKFhandle_typeDataNum_bdbdEE'], "总帧数量:",
               self.dataFrameStats['EKFhandle_typeDataNum'], "错误帧数量:",
               len(self.dataFrameStats['EKFhandle_typeCheckErrIndex']), "错误帧索引下标:",
-              self.dataFrameStats['EKFhandle_typeCheckErrIndex'])
+              self.dataFrameStats['EKFhandle_typeCheckErrIndex'][:10])
+        print("EF数据帧：", "EF纯帧头数量:", self.dataFrameStats['x_status_bdbdEF'], "总帧数量:",
+              self.dataFrameStats['x_status_data_num'], "错误帧数量:",
+              len(self.dataFrameStats['x_status_ErrIndex']), "错误帧索引下标:",
+              self.dataFrameStats['x_status_ErrIndex'][:10])
+        print("4E数据帧：", "4E纯帧头数量:", self.dataFrameStats['history_pos_bdbd4E'], "总帧数量:",
+              self.dataFrameStats['history_pos_data_num'], "错误帧数量:",
+              len(self.dataFrameStats['history_pos_ErrIndex']), "错误帧索引下标:",
+              self.dataFrameStats['history_pos_ErrIndex'][:10])
         print("常值零偏数据帧：", "6E纯帧头数量:", self.dataFrameStats['ZeroBiasDataNum_bdbd6E'], "总帧数量:",
               self.dataFrameStats['zeroBiasNum'], "错误帧数量:",
-              len(self.dataFrameStats['zeroBiasErrIndex']), "错误帧索引下标:", self.dataFrameStats['zeroBiasErrIndex'])
+              len(self.dataFrameStats['zeroBiasErrIndex']), "错误帧索引下标:", self.dataFrameStats['zeroBiasErrIndex'][:10])
+        print("INS完好性数据帧：", "0D纯帧头数量:", self.dataFrameStats['InsFlFrameHeadNum_bdbd0D'], "总帧数量:",
+              self.dataFrameStats['InsPlNum'], "错误帧数量:",
+              len(self.dataFrameStats['InsPlErrIndex']), "错误帧索引下标:", self.dataFrameStats['InsPlErrIndex'][:10])
+        print("GNSS完好性数据帧：", "0E纯帧头数量:", self.dataFrameStats['GnssFlFrameHeadNum_bdbd0E'], "总帧数量:",
+              self.dataFrameStats['GnssPlNum'], "错误帧数量:",
+              len(self.dataFrameStats['GnssPlErrIndex']), "错误帧索引下标:", self.dataFrameStats['GnssPlErrIndex'][:10])
+
+    @staticmethod
+    def checkDataFreq(df, timeName='', freq=200):
+        """
+        计算不同数据
+        其中，IMU默认200hz 轮速默认50hz或100hz GPS默认10hz或5hz
+        :param timeName: 时间字段名称
+        :param df: 解析出来的帧 dataframe
+        :param freq: 数据应为频率
+        :return:
+        """
+        time_diff_dict = {}
+        dataLen = 0
+
+        if len(df) == 0:
+            time_diff_dict['帧数统计'] = '无该帧信息'
+            return dataLen, time_diff_dict
+        if timeName not in df.keys():
+            time_diff_dict['帧数统计'] = '无'+str(timeName)+'信息'
+            return dataLen, time_diff_dict
+        try:
+            duration = df.iloc[-1][timeName] - df.iloc[0][timeName]
+            dataLen = duration * freq
+            time_diff = np.array(np.diff(df[timeName]))
+
+            gap_time = 1 / freq
+            time_diff_dict[
+                '与前一帧间隔时长在 [%s s,%s s]的帧数' % (str(gap_time * 0.95), str(gap_time * 1.05))] = len1 = len(
+                time_diff[np.where((time_diff > gap_time * 0.95) & (time_diff < gap_time * 1.05))])
+            time_diff_dict[
+                '与前一帧间隔时长在 [%s s,%s s]的帧数' % (str(gap_time * 0.5), str(gap_time * 0.95))] = len2 = len(
+                time_diff[np.where((time_diff >= gap_time * 0.5) & (time_diff < gap_time * 0.95))])
+            time_diff_dict[
+                '与前一帧间隔时长在 [%s s,%s s]的帧数' % (str(gap_time * 1.05), str(gap_time * 1.5))] = len3 = len(
+                time_diff[np.where((time_diff > gap_time * 1.05) & (time_diff <= gap_time * 1.5))])
+            time_diff_dict['其他帧间隔时长的帧数'] = len(time_diff) - len1 - len2 - len3
+        except Exception as e:
+            time_diff_dict['帧数统计'] = str(e)
+
+        return dataLen, time_diff_dict
+
+    def checkFreq(self):
+        try:
+            self.full_info = "开始检查频率是否有误："
+            imu_actual_len, self.freq_info['imu不同时间间隔帧数'] = self.checkDataFreq(self.ImuDataDF, timeName='time', freq=self.imu_freq)
+            self.freq_info['imu数据长度'] = imu_actual_len + len(self.dataFrameStats['imuCheckErrIndex'])
+
+            vehicle_actual_len, self.freq_info['vehicle不同时间间隔帧数'] = self.checkDataFreq(self.VehicleDataDF, timeName='ts', freq=self.vehicle_freq)
+            self.freq_info['vehicle数据长度'] = vehicle_actual_len + len(self.dataFrameStats['vehicleCheckErrIndex'])
+
+            gps_actual_len, self.freq_info['gps不同时间间隔帧数'] = self.checkDataFreq(self.GpsDataDF, timeName='ts', freq=self.gps_freq)
+            self.freq_info['gps数据长度'] = gps_actual_len + len(self.dataFrameStats['gpsCheckErrIndex'])
+            self.full_info += "\n【检查完成】。"
+
+            self.outputDataFrameStatsResult()  # 输出数据帧统计结果
+        except Exception as e:
+            self.full_info += "文件频率检测失败..."
+            self.full_info += '失败原因:' + str(e)
+
+    def outputDataFrameStatsResult(self):
+        try:
+            msg = "IMU数据帧" \
+                  "：\n    纯帧头数量:" + str(self.dataFrameStats['imuFrameHeadNum_bdbd0a']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['imuDataTotalNum']) \
+                  + "，\n    " + str(self.imu_freq) + "Hz频率下应该有帧数：" + str(self.freq_info['imu数据长度']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['imuCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['imuCheckErrIndex']))) \
+                  + "，\n    不同时间间隔帧数:\n        " + str(self.freq_info['imu不同时间间隔帧数']) \
+                  + "。\n\n"
+            self.full_info = msg
+
+            msg = "GPS数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['gpsFrameHeadNum_bdbd10']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['gpsDataTotalNum']) \
+                  + "，\n    " + str(self.gps_freq) + "Hz频率下应该有帧数：" + str(self.freq_info['gps数据长度']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['gpsCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['gpsCheckErrIndex']))) \
+                  + "，\n    不同时间间隔帧数:\n        " + str(self.freq_info['gps不同时间间隔帧数']) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "车辆数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['vehicleFrameHeadNum_bdbd20']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['vehicleDataTotalNum']) \
+                  + "，\n    " + str(self.vehicle_freq) + "Hz频率下应该有帧数：" + str(self.freq_info['vehicle数据长度']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['vehicleCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['vehicleCheckErrIndex']))) \
+                  + "，\n    不同时间间隔帧数:\n        " + str(self.freq_info['vehicle不同时间间隔帧数']) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "INS数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['insFrameHeadNum_bdbd0b']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['insDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['insCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['insCheckErrIndex']))) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "同步时间数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['syncFrameHeadNum_bdbd0c']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['syncDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['syncCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['syncCheckErrIndex']))) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "IMU2数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['imu2FrameHeadNum_bdbd2a']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['imu2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['imu2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['imu2CheckErrIndex']))) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "INS2数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['ins2FrameHeadNum_bdbd1b']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['ins2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['ins2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['ins2CheckErrIndex']))) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "30卫星数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['satelliteFrameHeadNum_bdbd30']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['satelliteDataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['satelliteCheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['satelliteCheckErrIndex']))) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            msg = "31卫星数据帧：" \
+                  "\n    纯帧头数量:" + str(self.dataFrameStats['satellite2FrameHeadNum_bdbd31']) \
+                  + "，\n    总帧数量:" + str(self.dataFrameStats['satellite2DataTotalNum']) \
+                  + "，\n    错误帧数量:" + str(len(self.dataFrameStats['satellite2CheckErrIndex'])) \
+                  + "，\n    错误帧索引下标:" + str(list(set(self.dataFrameStats['satellite2CheckErrIndex']))) \
+                  + "。\n\n"
+            self.full_info += msg
+
+            self.full_info += '\nPS. 采用奇偶校验帧是否错误。'
+
+        except Exception as e:
+            self.full_info += 'bddb数据解析数据显示有误'
+            self.full_info += str(e)
 
 
 if __name__ == "__main__":
     obj = HexDataParse()
-    obj.data_analysis_flag = {'ins': True, 'gps': True,
-                              'imu': True, 'imu2': True, 'vehicle': True, 'sync': True, 'ins2': True,
-                              'sat': False, 'sat2': False, 'ZeroBias': True, 'EKFhandle_type': True}
-    # obj.filePath = r"E:\PycharmProjects\0.0_TestData\_testdata\INS\1\12302.txt"
-    obj.filePath = r"E:\PycharmProjects\0.0_TestData\sim_ins\ins_big_data\ins_002_0914_.dat"
-    types = []
+    # obj.filePath = r"D:\Files\test\dbFiles\test1\test1_LogINS.txt" #10帧是134
+    # obj.filePath = r'D:\Files\test\dbFiles\test6_320\12311-1114-紧组合.txt'  # 142长的10帧
+    # obj.filePath = r'D:\Files\test\dbFiles\test1\test1_LogINS.txt'
+    obj.filePath = r"E:\Downloads\fault_bddb_Li_test_wenzixuan_20240518172611473_ins_bddb_xh_0518_2_ins_2.edited"
+    obj.data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': False, 'imu': False
+        , 'ins2': False, 'imu2': False, 'sync': False
+        , 'sat': True, 'sat2': True, 'ZeroBias': False, 'EKFhandle_type': False
+        , 'InsPl': False, 'GnssPl': False, 'x_status_ef': False, 'history_pos_4e': False}
     # types = ["csv", "mat"]
+    types = ["csv", "mat"]
 
-    print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "开始数据解析...")
-    obj.startParseFileHexData()
-    obj.printDataFrameStatsResult()  # 打印数据帧统计结果
-    print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "数据解析完成...")
-
-    print(time.strftime('%H:%M:%S', time.localtime()) + ' ' + "存成Dataframe")
+    print(time.strftime('%H:%M:%S', time.localtime()), "开始解析数据: ", obj.filePath)
+    obj.startParseFileHexData()  # 开始数据解析
+    print(time.strftime('%H:%M:%S', time.localtime()), "解析完成...")
+    obj.printDataFrameStatsResult()
     obj.saveDataToDF()
-    # print(obj.InsDataDF['time'])
-
     if "csv" in types:
         print("存成Csv文件...")
         obj.SaveAllDataToCsvFile()
-
     if "mat" in types:
         print("存成Mat文件...")
         obj.saveAllDataToMatFile()

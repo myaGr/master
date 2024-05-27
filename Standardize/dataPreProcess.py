@@ -182,8 +182,44 @@ def scenesDifferByGpsQuality(SyncRefGpsData, scene_name):
     for i in range(len(SyncInsGpsScene)):
         SyncInsGpsScene[i]["data"] = SyncInsGpsScene[i]["data"].reset_index(drop=True)
         # 计算每种解状态在场景内的占比
-        SyncInsGpsScene[i]["percent"] = len(SyncInsGpsScene[i]["data"][SyncInsGpsScene[i]["data"].keys()[0]]) / len(SyncRefGpsData[SyncRefGpsData.keys()[0]])
+        SyncInsGpsScene[i]["percent"] = len(SyncInsGpsScene[i]["data"][SyncInsGpsScene[i]["data"].keys()[0]]) / len(SyncRefGpsData[SyncRefGpsData.keys()[0]]) \
+            if len(SyncRefGpsData[SyncRefGpsData.keys()[0]]) > 0 else 0
+
+        # 计算双天线航向占比，需去除NA值
+        SyncInsGpsScene[i]["percent_ksxt"] = 0
+        if "double_heading_error" in SyncInsGpsScene[i]["data"]:
+            SyncInsGpsScene[i]["percent_ksxt"] = len(SyncInsGpsScene[i]["data"]["double_heading_error"].dropna()) / len(SyncRefGpsData["double_heading_error"].dropna()) \
+                if len(SyncRefGpsData["double_heading_error"].dropna()) > 0 else 0
+
     return SyncInsGpsScene
+
+
+def time_to_unix(time, time_type, utcDate, start, end):
+    """
+    起始时间统一为unix时间
+    :param time: 原始时间[start, end]
+    :param time_type: 时间类型
+    :param utcDate: utc日期
+    :param start: 默认起始时间
+    :param end: 默认结束时间
+    :return start, end : 最终起始、结束时间（unix）
+    @author: zixuanwen
+    """
+    if time_type == 'gps':
+        gpsWeek = timeExchangeMgr.date2Gpsweek(str(utcDate))
+        if float(time[0]) != 0:
+            start = timeExchangeMgr.gps2Unix(gpsWeek, float(time[0]))
+        if float(time[1]) != 0:
+            end = timeExchangeMgr.gps2Unix(gpsWeek, float(time[1]))
+    # 当时间类型为UTC时间
+    if time_type == 'utc':
+        if float(time[0]) != 0:
+            start_utc_str = str(utcDate) + " " + time[0][:2] + ":" + time[0][2:4] + ":" + time[0][4:]
+            start = timeExchangeMgr.utc2Unix(start_utc_str)
+        if float(time[1]) != 0:
+            end_utc_str = str(utcDate) + " " + time[1][:2] + ":" + time[1][2:4] + ":" + time[1][4:]
+            end = timeExchangeMgr.utc2Unix(end_utc_str)
+    return start, end
 
 
 # 根据时间段切割数据
@@ -203,21 +239,9 @@ def scenesDifferByTime(sync_df, add_scenes, file_name):
 
     for scene in scenes:
         scene["name"] = scene["id"] + "_" + scene["name"] + "_all_" + file_name
-        # 当时间类型为GPS周内秒
-        if scene['time_type'] == 'gps':
-            gpsWeek = timeExchangeMgr.date2Gpsweek(str(utcDate))
-            if float(scene['time'][0]) != 0:
-                start = timeExchangeMgr.gps2Unix(gpsWeek, float(scene['time'][0]))
-            if float(scene['time'][1]) != 0:
-                end = timeExchangeMgr.gps2Unix(gpsWeek, float(scene['time'][1]))
-        # 当时间类型为UTC时间
-        if scene['time_type'] == 'utc':
-            if float(scene['time'][0]) != 0:
-                start_utc_str = str(utcDate) + " " + scene['time'][0][:2] + ":" + scene['time'][0][2:4] + ":" + scene['time'][0][4:]
-                start = timeExchangeMgr.utc2Unix(start_utc_str)
-            if float(scene['time'][1]) != 0:
-                end_utc_str = str(utcDate) + " " + scene['time'][1][:2] + ":" + scene['time'][1][2:4] + ":" + scene['time'][1][4:]
-                end = timeExchangeMgr.utc2Unix(end_utc_str)
+
+        # 统一时间类型为unix时间
+        start, end = time_to_unix(scene['time'], scene['time_type'], utcDate, start, end)
 
         # 根据指定时间段筛选
         scene['data'] = sync_df[(sync_df['unixTime'] >= start) & (sync_df['unixTime'] <= end)].copy()
@@ -226,6 +250,7 @@ def scenesDifferByTime(sync_df, add_scenes, file_name):
         # 计算场景内对应解状态的占比，所有解是100%
         if len(sync_df[sync_df.keys()[0]]) > 0:
             scene['percent'] = 1  # len(scene['data'][scene['data'].keys()[0]])/len(sync_df[sync_df.keys()[0]])
+            scene['percent_ksxt'] = 1
     scenes = merge_scenes(scenes)  # 同类场景数据合并
     return scenes
 
@@ -266,7 +291,7 @@ def sceneClassify(test_data, scene_list, classify_data_name="sync_df"):
     # 索引name决定了统计表输出场景的顺序, GNSS数据需要以（1）场景id、（2）场景解状态、（3）数据名3个字段为序输出
     # 解状态 gps_flag = {"all": "所有解", "fixed": "固定解", "float": "浮点解", "pseduo": "伪距解", "single": "单点解"}
     scenes_data = [{"name": "0_全程_all_" + test_data["file_name"],
-                    "data": test_data[classify_data_name], "time": [0, 0], "percent": 1}]
+                    "data": test_data[classify_data_name], "time": [0, 0], "percent": 1, "percent_ksxt": 1}]
     # 1. 根据时间段场景分类
     scenes_data.extend(scenesDifferByTime(test_data[classify_data_name], scene_list, test_data["file_name"]))
 

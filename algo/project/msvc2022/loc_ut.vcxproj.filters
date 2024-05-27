@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{dc99705b-e67f-47e5-925a-7e67882f759a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\googletest">
+      <UniqueIdentifier>{ae1cffda-f8f2-4439-b40f-7c0bfe9229ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\emock">
+      <UniqueIdentifier>{c6a39624-e2d6-4d19-ba28-fe9b733427e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\emock\port">
+      <UniqueIdentifier>{9656f71e-7f1c-4478-9139-b06f27859b7c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-assertion-result.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-death-test.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-filepath.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-matchers.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-port.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-printers.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-test-part.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\googletest\src\gtest-typed-test.cc">
+      <Filter>3rdparty\googletest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\AfterMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Any.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\AnyBase.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\AnyCast.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ApiHook.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ApiHookKey.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Asserter.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\AssertionFailedError.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\BeforeMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\CallerMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ChainableMockMethodContainer.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ChainableMockMethodCore.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ChainableMockMethodNameKey.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ChainableMockObjectBase.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ChainingMockHelper.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ConstraintSet.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\DecoratedConstraint.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\DefaultMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\DefaultStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\DieStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Exception.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ExpectsMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Formatter.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\GlobalMockObject.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\HookMockObject.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IdentityBuilder.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Ignore.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IgnoreResultHandler.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IgnoreResultHandlerFactory.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IgnoreReturnStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Invocation.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvocationId.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvocationMockBuilderGetter.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvocationMocker.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvocationMockerSet.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvocationTimesMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvokedAtLeast.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvokedAtMost.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvokedExactly.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvokedOnce.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\InvokedTimesMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IsAnythingHelper.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IsStringContains.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IsStringEndWith.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\IsStringStartWith.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\JmpCode.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\JmpOnlyApiHook.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\MismatchResultHandler.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\MismatchResultHandlerFactory.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\NormalResultHandler.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\NormalResultHandlerFactory.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\OutBoundPointer.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\PendingMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ProcStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\RefAny.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\RepeatStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Result.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ReturnObjectList.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ReturnStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\SimpleInvocationRecorder.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\StringConstraint.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\StubContainer.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\StubsMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\SymbolRetriever.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\TestFailureMatcher.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ThenStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\Trampoline.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\TypelessConstraintAdapter.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\TypelessStubAdapter.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\TypeString.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\VoidResultHandler.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\VoidResultHandlerFactory.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\WillStub.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\WinCodeModifier.cpp">
+      <Filter>3rdparty\emock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\googletest\emock\src\ports\failure\gtest_report_failure.cpp">
+      <Filter>3rdparty\emock\port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\ut\test_loc_core_api.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\ut\test_gnss_common.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\ut\test_main.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\ut\test_cmn_utils.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{b0de9d46-42cd-48a6-b7ec-cd7028857495}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{1a190860-9173-41af-91f2-b9060b56c838}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\serial">
+      <UniqueIdentifier>{b6695910-df63-49d4-b71b-cfae278a5125}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="driver">
+      <UniqueIdentifier>{beede888-f58f-41c4-b758-1b2588804382}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{1cc9f4ca-8319-4d99-baf9-2a1199c6694d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{4c8dd72b-6826-4691-9867-bed9fe389f29}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\app\loc_app\loc_app.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\ini.c">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\loguru.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\serial\serial.cpp">
+      <Filter>3rdparty\serial</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\serial\windows\list_ports_win.cpp">
+      <Filter>3rdparty\serial</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\serial\windows\win.cpp">
+      <Filter>3rdparty\serial</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\ntrip_client.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\uart_driver.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\OptionParser.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\MemoryStatistics.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_bddb_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_log_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\qx_ssr_client.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\nwstream_client.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\ini.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\loguru.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\serial\serial.h">
+      <Filter>3rdparty\serial</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\serial\windows\win.h">
+      <Filter>3rdparty\serial</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\ntrip_client.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\uart_driver.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\OptionParser.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\MemoryStatistics.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_bddb_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_log_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\qx_ssr_client.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\nwstream_client.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\configs\app.ini">
+      <Filter>config</Filter>
+    </None>
+  </ItemGroup>
+</Project>

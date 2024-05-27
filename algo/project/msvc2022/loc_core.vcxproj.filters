@@ -1,0 +1,808 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="sm">
+      <UniqueIdentifier>{b8831b7c-3d09-40bc-b394-e6e4a125fa29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dcp">
+      <UniqueIdentifier>{6e297837-a526-44ec-85a9-ed611df8bb94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sd">
+      <UniqueIdentifier>{5eb913c0-5dec-41d4-a038-0f7aeca000cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="midware">
+      <UniqueIdentifier>{a8965cab-e88d-4116-a551-68fe70ce5d65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="os">
+      <UniqueIdentifier>{e86a49f3-7652-4dc3-a670-a3afc241a451}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ppp">
+      <UniqueIdentifier>{6b5ddf26-80cf-4914-8b8a-b359871b9a9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hpp">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="cmn">
+      <UniqueIdentifier>{126246f1-4e42-479a-85ae-2bdb75fd4044}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="api">
+      <UniqueIdentifier>{5479cd97-a422-4ebd-8796-bab307812e80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vdr">
+      <UniqueIdentifier>{16e3ed6d-f6fb-4a61-a0c8-aa193358cdc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hpp\ver1.0">
+      <UniqueIdentifier>{b5b812e5-60f0-4924-a1d3-dbbd97af6b05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="api\qxsi">
+      <UniqueIdentifier>{486ace86-ef4a-42f2-af77-9cd9181385b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="api\dysk">
+      <UniqueIdentifier>{b6f2e298-6396-4050-b2e3-4dcc6e145923}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="midware\quicklz">
+      <UniqueIdentifier>{5f515cb8-27a8-4e3b-978a-d29086de925c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ort">
+      <UniqueIdentifier>{78bd710d-349a-4342-bf74-2ed5f8cdef83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ekf">
+      <UniqueIdentifier>{0e2d1261-daeb-49e3-84bd-1947a4cf9467}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\core\os\os_mutex.c">
+      <Filter>os</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\os\os_thread.c">
+      <Filter>os</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\midware\mw_fifo.c">
+      <Filter>midware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\midware\mw_ipctask.c">
+      <Filter>midware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\midware\mw_log.c">
+      <Filter>midware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\sm\sm_task.c">
+      <Filter>sm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\dcp\dcp_task.c">
+      <Filter>dcp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\hpp_task.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\vdr_task.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\sd\sd_task.c">
+      <Filter>sd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_task.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\loc_core_api.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\gnss_common.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_utils.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\ephemeris.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\geoid.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_cfd.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_comm.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_engine_api.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_kf.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_kf_algo.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_kf_math.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_ls.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_ls_filter.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_ls_raim.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_math.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_mode.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_nmea.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_pe.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_qos.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_report.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_rtk.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_sd.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_sd_cor.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_sd_dec.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_sd_nm.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_sd_pos.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_sd_rtd_cor.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_tdcp.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\gnss_tm.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\lambda.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\pntpos.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\postpos.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\rcvraw.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\rtk_seq_ekf.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\rtk_seq_float_ekf.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\rtkcmn.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\rtkpos.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\ver1.0\solution.c">
+      <Filter>hpp\ver1.0</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\sm\rtcm_dec.c">
+      <Filter>sm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\midware\mw_alloc.c">
+      <Filter>midware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\tide_correction.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_amb_fix.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\windup_correction.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\sat_attitude.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\loc_core_cfg.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\gnss_prep.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_process.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\gnss_filter_type.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\pvt_proc.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\pvt_kf.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\pvt_ls.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\pvt_cf.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_proc.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_filter_sol.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_sparse_matrix_multiply.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\trop_empirical_model.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\dcp\dcp_solution.c">
+      <Filter>dcp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\iono_empirical_model.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_type.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_qr_parity_check.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\sm\sm_nmea.c">
+      <Filter>sm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_turboEdit.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\loc_core_report.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\ssr_stream_parse.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\gnss_identify_scene.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_dopplerDetectCS.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_CSmask_combine.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_corr_check.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_filter_sol.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_amb_fix.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_multiFreq_detectCS.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_type.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\mlambda.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_pre_fix.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_obsnoise.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_obsnoise.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_integrity.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtd_sol.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_alignment.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_api.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_axis_detect.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_config.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_data_encode.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_ellip_para.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_err_model.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_fault_detection.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_feedback.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_gnss.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_if.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_integrity.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_kf.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_log.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_math.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_meas_qc.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_mech.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_nhc.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_proc.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_quat.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_tc.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_transform.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_wheel.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\vdr\fusion_zupt.c">
+      <Filter>vdr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_pos_check.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\gnss_tdcp_detectCS.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\hpp\rtk_integrity.c">
+      <Filter>hpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\cmn_multipathDetect.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_integ_dt_model_ver.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_integ_dt_model_hor.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\loc_core_ssr_api.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\service_ssr_cvt.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\api\loc_core_nmea_api.c">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\midware\quicklz\quicklz.c">
+      <Filter>midware\quicklz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\midware\mw_logcmprs.c">
+      <Filter>midware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ort\ort_task.c">
+      <Filter>ort</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ort\ort_proc.c">
+      <Filter>ort</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ort\ort_type.c">
+      <Filter>ort</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ekf\ekf_task.c">
+      <Filter>ekf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\ppp\ppp_qrcheck.c">
+      <Filter>ppp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\sm\ubx_dec.c">
+      <Filter>sm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\dcp_common.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\seq_kalman_float.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\cmn\seq_kalman.c">
+      <Filter>cmn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\dcp\dcp_ort_sol.c">
+      <Filter>dcp</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\core\os\os_mutex.h">
+      <Filter>os</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\os\os_thread.h">
+      <Filter>os</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\midware\mw_fifo.h">
+      <Filter>midware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\midware\mw_ipctask.h">
+      <Filter>midware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\midware\mw_log.h">
+      <Filter>midware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sm\sm_api.h">
+      <Filter>sm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sm\sm_task.h">
+      <Filter>sm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\dcp\dcp_api.h">
+      <Filter>dcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\dcp\dcp_task.h">
+      <Filter>dcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\hpp_api.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\hpp_task.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\vdr_api.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\vdr_task.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sd\sd_api.h">
+      <Filter>sd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sd\sd_task.h">
+      <Filter>sd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_api.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_task.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\loc_core_api.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\gnss_def.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\gnss_common.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_utils.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\gnss_type.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sm\rtcm_dec.h">
+      <Filter>sm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\midware\mw_alloc.h">
+      <Filter>midware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\tide_correction.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\windup_correction.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\sat_attitude.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\loc_core_cfg.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\gnss_prep.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_process.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_type.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\gnss_filter_type.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\pvt_proc.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\pvt_kf.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\pvt_ls.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\pvt_cf.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_proc.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_filter_sol.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_sparse_matrix_multiply.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\trop_empirical_model.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\dcp\dcp_solution.h">
+      <Filter>dcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\iono_empirical_model.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_amb_fix.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_qr_parity_check.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sm\sm_nmea.h">
+      <Filter>sm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_turboEdit.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_api.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_def.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\loc_core_report.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\loc_memory_api.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\ssr_stream_parse.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\gnss_identify_scene.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_dopplerDetectCS.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_CSmask_combine.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_type.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_corr_check.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_filter_sol.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_amb_fix.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_multiFreq_detectCS.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\mlambda.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_pre_fix.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_obsnoise.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_obsnoise.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_integrity.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtd_sol.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_alignment.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_api.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_axis_detect.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_config.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_data_encode.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_ellip_para.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_err_model.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_fault_detection.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_feedback.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_global.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_gnss.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_if.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_integrity.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_kf.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_log.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_math.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_meas_qc.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_mech.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_nhc.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_proc.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_quat.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_tc.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_transform.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_wheel.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\vdr\fusion_zupt.h">
+      <Filter>vdr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_pos_check.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\gnss_tdcp_detectCS.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\cmn_multipathDetect.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\integ_type.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\hpp\rtk_integrity.h">
+      <Filter>hpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_integ_model.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\loc_core_ssr_api.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\service_ssr_cvt.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\qxsi\qxsi_ids_ssr2los_interface.h">
+      <Filter>api\qxsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\qxsi\qxsi_ssr2los_type_def.h">
+      <Filter>api\qxsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\dysk\dpi_sdk.h">
+      <Filter>api\dysk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\api\loc_core_nmea_api.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\midware\quicklz\quicklz.h">
+      <Filter>midware\quicklz</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\midware\mw_logcmprs.h">
+      <Filter>midware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ort\ort_api.h">
+      <Filter>ort</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ort\ort_task.h">
+      <Filter>ort</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ort\ort_proc.h">
+      <Filter>ort</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ort\ort_type.h">
+      <Filter>ort</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ekf\ekf_api.h">
+      <Filter>ekf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ekf\ekf_task.h">
+      <Filter>ekf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\ppp\ppp_qrcheck.h">
+      <Filter>ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\sm\ubx_dec.h">
+      <Filter>sm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\dcp_common.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\seq_kalman_float.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\cmn\seq_kalman.h">
+      <Filter>cmn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\dcp\dcp_ort_sol.h">
+      <Filter>dcp</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

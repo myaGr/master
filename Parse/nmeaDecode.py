@@ -11,13 +11,13 @@ def decodeNmeaGGA(file, fre=None):
     """
     if check_file_exist(file) != 1:
         return 0
-    ggaList, rmcList,  ksxtList = [], [], []
-    gga_frq_time, rmc_frq_time, ksxt_frq_time = 0, 0, 0   # 降频初始时间
+    ggaList, rmcList,  ksxtList, duaList = [], [], [], []
+    gga_frq_time, rmc_frq_time, ksxt_frq_time, dua_frq_time = 0, 0, 0, 0   # 降频初始时间
     with open(file, 'r', encoding='gb18030', errors='ignore') as fileObj:
         data = fileObj.readlines()
         for line in data:
-            if line == '' or 'BKGGA' in line or "\x00" in line:  # 过滤包含乱码情况
-                continue
+            # if line == '' or 'BKGGA' in line or "\x00" in line:  # 过滤包含乱码情况
+            #     continue
             if "$GNGGA" in line or "$GPGGA" in line and len(line.split(",")) == 15:  # 从$开启截取信息
                 try:
                     line = line[line.rfind('$'):]    # str = str.rstrip('\n')
@@ -48,11 +48,13 @@ def decodeNmeaGGA(file, fre=None):
                 line = line[line.rfind('$'):]  # str = str.rstrip('\n')
                 try:
                     tmprmc = pynmea2.parse(line)
-                    if not tmprmc.timestamp or tmprmc.timestamp == ' ' or tmprmc.timestamp == 0.0:
+                    if not tmprmc.timestamp or tmprmc.timestamp == ' ' or tmprmc.timestamp == '' or tmprmc.timestamp == 0.0:
                         continue
+                    # if tmprmc.lat == '' or tmprmc.lon == '' or tmprmc.spd_over_grnd == '' or tmprmc.true_course == '':
+                    #     continue
                     # 把类强制装换成list加了tmprmc
-                    rmc = [tmprmc.timestamp, tmprmc.status, float(tmprmc.lat), tmprmc.lat_dir,
-                           float(tmprmc.lon), tmprmc.lon_dir, float(tmprmc.spd_over_grnd), float(tmprmc.true_course),
+                    rmc = [tmprmc.timestamp, tmprmc.status, tmprmc.lat, tmprmc.lat_dir,
+                           tmprmc.lon, tmprmc.lon_dir, tmprmc.spd_over_grnd, tmprmc.true_course,
                            tmprmc.datestamp, tmprmc.mag_variation, tmprmc.mag_var_dir]
 
                     if fre:  # rmc降频处理
@@ -71,18 +73,32 @@ def decodeNmeaGGA(file, fre=None):
                     if fre:  # 降频处理
                         if int(float(line_list[1]) * fre) == int(ksxt_frq_time * fre):
                             continue
-                    ksxt_frq_time = float(tmprmc.data[0])
-
                     date_time = line_list[1]
-                    double_heading = float(line_list[5])
-
+                    ksxt_frq_time = float(date_time)
+                    double_heading = float(line_list[5]) if line_list[5] != '' else None
                     ksxt = [date_time, double_heading]
                     ksxtList.append(ksxt)
                 except Exception as e:
                     print(line + ", 数据解析失败" + str(e))
                     continue
+            elif ("#DUALANTENNAHEADING" in line or "#HEADINGA" in line) and len(line.split(",")) > 20:
+                line = line[line.rfind('#'):]
+                try:
+                    line_list = line.replace('\n', '').split(";")
+                    if fre:  # 降频处理
+                        if int(float(line_list[0].split(",")[6])/1000 * fre) == int(dua_frq_time * fre):
+                            continue
+                    gps_week = int(line_list[0].split(",")[5])
+                    gps_second = float(line_list[0].split(",")[6])/1000
+                    dua_frq_time = gps_second
+                    double_heading = float(line_list[1].split(",")[3]) if line_list[1].split(",")[3] != '' else None
+                    dualan = [gps_week, gps_second, double_heading]
+                    duaList.append(dualan)
+                except Exception as e:
+                    print(line + ", 数据解析失败" + str(e))
+                    continue
 
-    return ggaList, rmcList, ksxtList
+    return ggaList, rmcList, ksxtList, duaList
 
 
 # 检查文件是否存在
@@ -115,7 +131,7 @@ def nmeaToDataframe(file_path, fre=None):
         @author: cuihe
         @date: 2022-10-25
     """
-    ggalist, rmclist, ksxtList = decodeNmeaGGA(file_path, fre=fre)   # 路径是否存在验证
+    ggalist, rmclist, ksxtList, duaList = decodeNmeaGGA(file_path, fre=fre)   # 路径是否存在验证
     if len(ggalist) == 0:
         return
     gga_columns = ['timestamp', 'lat', 'lat_dir', 'lon', 'lon_dir', 'gps_qual', 'num_sats', 'horizontal_dil',
@@ -132,20 +148,26 @@ def nmeaToDataframe(file_path, fre=None):
     ksxt_index = range(len(ksxtList))
     ksxt_df = pd.DataFrame(ksxtList, columns=ksxt_columns, index=ksxt_index)
 
+    dua_columns = ["gpsWeek", "gpsItow", "double_heading"]
+    dua_index = range(len(duaList))
+    dua_df = pd.DataFrame(duaList, columns=dua_columns, index=dua_index)
+
     # 有rmc的时候，输出rmc和gga的dataframe; 没有rmc的时候,只输出gga的dataframe，rmc为空={}，
     nmea_dict = {"gga": gga_df}
     if not rmc_df.empty:
         nmea_dict["rmc"] = rmc_df
-    if not rmc_df.empty:
+    if not ksxt_df.empty:
         nmea_dict["ksxt"] = ksxt_df
+    if not dua_df.empty:
+        nmea_dict["dualan"] = dua_df
     return nmea_dict
 
 
-
-
 if __name__ == '__main__':
-    filepath = r"C:\Users\wenzixuan\Downloads\双天线测试\凯芯新硬件-RTK-1008PM.log"
-    print(nmeaToDataframe(filepath))
+    # filepath = r"C:\Users\wenzixuan\Downloads\双天线测试\共天线2\NAV3120-DIA-RTK-1018PM.log"
+    filepath = r"C:\Users\wenzixuan\Downloads\571_0103.log"
+    nmea = nmeaToDataframe(filepath)
+    print(nmea)
     # gga_df, rmc_df = nmeaToDataframe(filepath)
     # print("gga", len(gga_df), gga_df.keys())
     # print(gga_df)

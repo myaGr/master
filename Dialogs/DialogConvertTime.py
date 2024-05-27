@@ -1,3 +1,5 @@
+import datetime
+
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import Qt
 import UI.ui_Dialog_convert_time
@@ -10,35 +12,107 @@ class DialogConvertTime(QDialog, UI.ui_Dialog_convert_time.Ui_Dialog):
     def __init__(self):
         super(DialogConvertTime, self).__init__()
         self.setupUi(self)
-        self.dateEdit_utcDate_1.setDate(global_var.get_value("TEST_DATE"))
-        self.dateTimeEdit_utcTime_3.setDate(global_var.get_value("TEST_DATE"))
-        self.pushButton_utcDate2gpsWeek.clicked.connect(self.utcDate2gpsWeek)  # UTC日期转GPS周
-        self.pushButton_gpsWeek2utcDate.clicked.connect(self.gpsWeek2utcDate)  # GPS周转UTC日期
-        self.pushButton_utc2itow.clicked.connect(self.utc2Itow)  # utc转gps周内秒
-        self.pushButton_gps2utc.clicked.connect(self.gps2utc)  # gps时间转utc
 
-    def utcDate2gpsWeek(self):
-        utc_date = self.dateEdit_utcDate_1.date()
-        utc_date = utc_date.toString(Qt.ISODate)
-        gps_week = timeExchangeMgr.date2Gpsweek(utc_date)
-        self.lineEdit_gpsWeek_1.setText(str(int(gps_week)))
+        self.pushButton_getCurrentTime.clicked.connect(self.getCurrentTime)  # 获取当前时间
+        self.comboBox_timeType.currentIndexChanged.connect(self.on_clicked_select_time_type)  # 选择时间类
+        self.pushButton_convertTime.clicked.connect(self.time_convert)  # 时间转换
 
-    def gpsWeek2utcDate(self):
-        gpsWeek = int(self.lineEdit_gpsWeek_2.text())
-        utc_date = timeExchangeMgr.gps2UTC(gpsWeek, 0)
-        self.lineEdit_utcDate_2.setText(str(utc_date.date()))
+        print(global_var.get_value("TEST_DATE"))
 
-    def utc2Itow(self):
-        utc_time = self.dateTimeEdit_utcTime_3.dateTime()
-        utc_time = utc_time.toString(Qt.ISODate)
-        utc_time = utc_time.replace("T", " ")
-        gps_week, gps_sec = timeExchangeMgr.utc2Gps(utc_time)
-        self.lineEdit_itow_3.setText(str(gps_sec))
+    def getCurrentTime(self):
+        current_time = timeExchangeMgr.setCurrentTimer(datetype="date", format='%Y/%m/%d %H:%M:%S')
+        self.lineEdit_getCurrentTime.setText(str(current_time))
+        current_unix_time = timeExchangeMgr.setCurrentTimer(datetype="unix")
+        self.lineEdit_getCurrentTime_Unix.setText(str(int(current_unix_time)))
 
-    def gps2utc(self):
-        gps_sec = float(self.lineEdit_itow_4.text())
-        gps_week = int(self.lineEdit_gpsWeek_4.text())
-        utc_time = timeExchangeMgr.gps2UTC(gps_week, gps_sec)
-        self.lineEdit_utcTime_4.setText(str(utc_time))
+    def on_clicked_select_time_type(self):
+        # self.widget_unixTime.setEnabled(False)
+        # self.widget_pkTime.setEnabled(False)
+        # self.widget_utcTime.setEnabled(False)
+        # self.widget_gpsTime.setEnabled(False)
+        # self.widget_itows.setEnabled(False)
+        # self.widget_doy.setEnabled(False)
+        # self.widget_leapSecond.setEnabled(False)
 
+        if self.comboBox_timeType.currentText() == "Unix时间戳":
+            self.widget_unixTime.setEnabled(True)
+        elif self.comboBox_timeType.currentText() == "北京时间":
+            self.widget_pkTime.setEnabled(True)
+        elif self.comboBox_timeType.currentText() == "UTC时间":
+            self.widget_utcTime.setEnabled(True)
+        elif self.comboBox_timeType.currentText() == "GPS时间":
+            self.widget_gpsTime.setEnabled(True)
+        elif self.comboBox_timeType.currentText() == "周内秒":
+            self.widget_itows.setEnabled(True)
+        elif self.comboBox_timeType.currentText() == "年积日":
+            self.widget_doy.setEnabled(True)
 
+    def time_convert(self):
+        unixTime, pk_time, utc_time, gps_time, gps_week, gps_sec, year, day, leapSecond = 0, 0, 0, 0, 0, 0, 0, 0, 0
+        try:
+            if self.comboBox_timeType.currentText() == "Unix时间戳":
+                unixTime = float(self.lineEdit_unixTime.text())
+                utc_time = timeExchangeMgr.unix2Utc(unixTime, unit="s")
+                pk_time = timeExchangeMgr.unix2date(unixTime, unit="s")
+                gps_time = timeExchangeMgr.unix2Gps(unixTime, unit="s")
+                gps_week, gps_sec = timeExchangeMgr.utc2Gps(str(utc_time))
+                year, day = timeExchangeMgr.timedate2doy(pk_time)
+            elif self.comboBox_timeType.currentText() == "北京时间":
+                pk_time = self.dateTimeEdit_pkTime.dateTime()
+                pk_time_str = pk_time.toString(Qt.ISODate)
+                pk_time_str = pk_time_str.replace("T", " ")
+                unixTime = timeExchangeMgr.date2Unix(pk_time_str)
+                utc_time = timeExchangeMgr.unix2Utc(unixTime, unit="s")
+                gps_time = timeExchangeMgr.unix2Gps(unixTime, unit="s")
+                gps_week, gps_sec = timeExchangeMgr.utc2Gps(str(utc_time))
+                pk_time = timeExchangeMgr.unix2date(unixTime, unit="s")
+                year, day = timeExchangeMgr.timedate2doy(pk_time)
+            elif self.comboBox_timeType.currentText() == "UTC时间":
+                utc_time = self.dateTimeEdit_utcTime.dateTime()
+                utc_time_str = utc_time.toString(Qt.ISODate)
+                utc_time_str = utc_time_str.replace("T", " ")
+                unixTime = timeExchangeMgr.utc2Unix(utc_time_str)
+                utc_time = timeExchangeMgr.unix2Utc(unixTime, unit="s")
+                pk_time = timeExchangeMgr.unix2date(unixTime, unit="s")
+                gps_time = timeExchangeMgr.unix2Gps(unixTime, unit="s")
+                gps_week, gps_sec = timeExchangeMgr.utc2Gps(str(utc_time))
+                year, day = timeExchangeMgr.timedate2doy(pk_time)
+            elif self.comboBox_timeType.currentText() == "GPS时间":
+                gps_time = self.dateTimeEdit_gpsTime.dateTime()
+                gps_time_str = gps_time.toString(Qt.ISODate)
+                gps_time_str = gps_time_str.replace("T", " ")
+                unixTime = timeExchangeMgr.gpsTime2Unix(gps_time_str)
+                utc_time = timeExchangeMgr.unix2Utc(unixTime, unit="s")
+                pk_time = timeExchangeMgr.unix2date(unixTime, unit="s")
+                gps_time = timeExchangeMgr.unix2Gps(unixTime, unit="s")
+                gps_week, gps_sec = timeExchangeMgr.utc2Gps(str(utc_time))
+                year, day = timeExchangeMgr.timedate2doy(pk_time)
+            elif self.comboBox_timeType.currentText() == "周内秒":
+                gps_week, gps_sec = float(self.lineEdit_gpsWeek.text()), float(self.lineEdit_gpsItow.text())
+                unixTime = timeExchangeMgr.gps2Unix(gps_week, gps_sec)
+                utc_time = timeExchangeMgr.unix2Utc(unixTime, unit="s")
+                pk_time = timeExchangeMgr.unix2date(unixTime, unit="s")
+                gps_time = timeExchangeMgr.unix2Gps(unixTime, unit="s")
+                year, day = timeExchangeMgr.timedate2doy(pk_time)
+            elif self.comboBox_timeType.currentText() == "年积日":
+                year, day = int(self.lineEdit_year.text()), int(self.lineEdit_doy.text())
+                pk_time = timeExchangeMgr.doy2timedate(year, day)
+                unixTime = timeExchangeMgr.date2Unix(pk_time)
+                utc_time = timeExchangeMgr.unix2Utc(unixTime, unit="s")
+                pk_time = timeExchangeMgr.unix2date(unixTime, unit="s")
+                gps_time = timeExchangeMgr.unix2Gps(unixTime, unit="s")
+                gps_week, gps_sec = timeExchangeMgr.utc2Gps(str(utc_time))
+
+            leapSecond = timeExchangeMgr.cal_leapSecond("unixTime", unixTime)
+        except:
+            unixTime, pk_time, utc_time, gps_time, gps_week, gps_sec, year, day, leapSecond = 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+        self.lineEdit_unixTime.setText(str(unixTime))
+        self.dateTimeEdit_pkTime.setDateTime(pk_time)
+        self.dateTimeEdit_utcTime.setDateTime(utc_time)
+        self.dateTimeEdit_gpsTime.setDateTime(gps_time)
+        self.lineEdit_gpsWeek.setText(str(int(gps_week)))
+        self.lineEdit_gpsItow.setText(str(gps_sec))
+        self.lineEdit_year.setText(str(year))
+        self.lineEdit_doy.setText(str(day))
+        self.label_leapSecond.setText(str(leapSecond))

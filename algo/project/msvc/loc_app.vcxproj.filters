@@ -1,0 +1,251 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{b0de9d46-42cd-48a6-b7ec-cd7028857495}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{1a190860-9173-41af-91f2-b9060b56c838}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\serial">
+      <UniqueIdentifier>{b6695910-df63-49d4-b71b-cfae278a5125}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="driver">
+      <UniqueIdentifier>{beede888-f58f-41c4-b758-1b2588804382}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{1cc9f4ca-8319-4d99-baf9-2a1199c6694d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{4c8dd72b-6826-4691-9867-bed9fe389f29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="adapter">
+      <UniqueIdentifier>{7ccd0dc3-c077-4dee-a7d6-7dc27136dc5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\swift">
+      <UniqueIdentifier>{ef98fbc5-69c6-42e5-8b62-83c20cd6aed0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\swift\swift">
+      <UniqueIdentifier>{1eed9fd0-a4ed-43eb-9c30-95751a6b24c9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\app\loc_app\loc_app.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\ini.c">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\loguru.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\serial\serial.cpp">
+      <Filter>3rdparty\serial</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\serial\windows\list_ports_win.cpp">
+      <Filter>3rdparty\serial</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\serial\windows\win.cpp">
+      <Filter>3rdparty\serial</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\ntrip_client.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\uart_driver.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\OptionParser.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\MemoryStatistics.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_bddb_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\utils\ag_log_parse.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\qx_ssr_client.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\driver\nwstream_client.cpp">
+      <Filter>driver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\adapter\swift_core_ssr_api.cpp">
+      <Filter>adapter</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\app\loc_app\adapter\tsx_adapter_integration.cpp">
+      <Filter>adapter</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\ini.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\loguru.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\serial\serial.h">
+      <Filter>3rdparty\serial</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\serial\windows\win.h">
+      <Filter>3rdparty\serial</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\ntrip_client.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\uart_driver.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\OptionParser.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\MemoryStatistics.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_bddb_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\utils\ag_log_parse.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\qx_ssr_client.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\driver\nwstream_client.h">
+      <Filter>driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\adapter\swift_core_ssr_api.h">
+      <Filter>adapter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\app\loc_app\adapter\tsx_adapter_integration.h">
+      <Filter>adapter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\swift\config.h">
+      <Filter>3rdparty\swift\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\swift\inputs.h">
+      <Filter>3rdparty\swift\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\swift\outputs.h">
+      <Filter>3rdparty\swift\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\swift\client.h">
+      <Filter>3rdparty\swift\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\swift\compile_constants.h">
+      <Filter>3rdparty\swift\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\autogen\swift\compile_constants.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\helper_functions\cappers.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\helper_functions\coord_system.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\integrity\integrity_provider.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\atmo.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\callback_functions.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\code_bias.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\common.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\flags.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\orbit_clock.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\phase_bias.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\satellite_apc.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\satellite_bounds.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\static_buffer.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\internal_types\tile_definition.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\clock_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\code_bias_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\common.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\grid_locality_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\iono_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\los_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\orbit_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\phase_bias_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\los_calculator\tropo_calculator.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_decoder\bits\bits.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_decoder\bits\bitstream.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_decoder\bits\sbp_msg.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_decoder\constants.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_decoder\rtcm_decoder.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_decoder\sbp_decoder.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\rtcm_encoder\message_ids.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\storage_areas\active_area.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\storage_areas\area_converter.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\storage_areas\flags_area.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\swift\include\storage_areas\holding_area.h">
+      <Filter>3rdparty\swift</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\configs\app.ini">
+      <Filter>config</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,6 +1,7 @@
 from Parse.HexDataParse import HexDataParse
 from Parse import novatelDecode, nmeaDecode, csvDecode
 from Standardize import dataStandardization
+from Utils import timeExchangeMgr
 
 
 # 数据解析
@@ -13,7 +14,7 @@ def allDataParse(data_dic, date_time, data_analysis_flag=None, freq=None):
     :param freq: 解析数据输出频率（降频）,单位hz
     return：-1 解析失败， data_dic["df"]解析结果dataframe
     """
-    data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': True, 'imu': True,
+    data_analysis_flag = {'ins': True, 'gps': True, 'vehicle': True, 'imu': True, 'InsPl': False, 'GnssPl': False,
                           'ins2': False, 'imu2': False, 'sync': False,
                           'sat': False, 'sat2': False, 'ZeroBias': False, 'EKFhandle_type': False
                           } if not data_analysis_flag else data_analysis_flag
@@ -43,20 +44,40 @@ def allDataParse(data_dic, date_time, data_analysis_flag=None, freq=None):
         obj.filePath = data_dic["file_path"]
         obj.startParseFileHexData()
         obj.saveDataToDF()
+        # check frequency
+        obj.checkFreq()
+        # obj.outputDataFrameStatsResult()
+
         input_ins_data = obj.InsDataDF
         input_gps_data = obj.GpsDataDF
         input_vehicle_data = obj.VehicleDataDF
         input_pdata = obj.PDataDict
-        if input_ins_data.empty:
-            return -1
-        data_dic["df"] = dataStandardization.INSdataStandarsization(input_ins_data, date_time)
+        input_imu = obj.ImuDataDF
         if input_gps_data.empty:
-            return 0
-        data_dic["df_gps"] = dataStandardization.InsGpsDataStandarsization(input_gps_data, date_time)
+            obj.full_info += '\n无gps帧，将无法鉴定该测试数据的具体时间。'
+        else:
+            utc_time_gps = timeExchangeMgr.gps2UTC(input_gps_data.gpsWeek[0], input_gps_data.itow_pos[0]).strftime('%Y-%m-%d')
+            if utc_time_gps != date_time:
+                obj.full_info += '\n【注意】gps帧时间为：' + utc_time_gps + '与设定时间不符，采用GPS帧内时间。'
+                date_time = utc_time_gps
+            data_dic["df_gps"] = dataStandardization.InsGpsDataStandarsization(input_gps_data, date_time)
+            obj.full_info += '\n该数据含GPS帧'
+        if input_ins_data.empty:
+            obj.full_info += '\n无ins帧，影响：界面无轨迹及数据列表展示、无ins帧相关画图、无统计功能'
+        else:
+            data_dic["df"] = dataStandardization.INSdataStandarsization(input_ins_data, date_time)
+            data_dic["df_pdata"] = input_pdata
+        if input_imu.empty:
+            obj.full_info += '\n无imu帧'
+        else:
+            data_dic["df_imu"] = input_imu
+            obj.full_info += '\n该数据含imu帧'
         if input_vehicle_data.empty:
-            return 0
-        data_dic["df_vehicle"] = input_vehicle_data
-        data_dic["df_pdata"] = input_pdata
+            obj.full_info += '\n无轮速帧'
+        else:
+            data_dic["df_vehicle"] = input_vehicle_data
+            obj.full_info += '\n该数据含轮速帧'
+        return obj.full_info
     elif data_dic["file_type"] == "导远自定义-GPS":
         obj = HexDataParse()
         obj.data_analysis_flag = dict.fromkeys(obj.data_analysis_flag, False)
